@@ -19,9 +19,9 @@
     "yargs": "^15.4.1"
   },
   "scripts": {
-    "start:frontend": "npx --yes vite@6.4.4 --host 0.0.0.0",
+    "start:frontend": "vite --host 0.0.0.0",
     "start:backend": "ts-node --project tsconfig.server.json src/server.ts --env=development",
-    "build:frontend": "node scripts/write-build-info.js && npx --yes vite@6.4.4 build",
+    "build:frontend": "node scripts/write-build-info.js && vite build",
     "build:backend": "tsc --project tsconfig.server.json",
     "build:windows": "npm run build:frontend && npm run build:backend && node scripts/package-windows.js",
     "build:tray": "npm run build:windows && electron-builder --win portable",
@@ -30,7 +30,7 @@
     "cypress:open": "cypress open",
     "cypress:backend": "ts-node --project tsconfig.server.json src/server.ts --env=development --with-test",
     "lint": "eslint .",
-    "preview:frontend": "npx --yes vite@6.4.4 preview",
+    "preview:frontend": "vite preview",
     "test:frontend:smoke": "node scripts/check-vite-output.cjs && node scripts/check-vite-preview.cjs"
   },
   "devDependencies": {
