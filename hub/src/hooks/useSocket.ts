@@ -22,8 +22,10 @@ if (typeof window !== 'undefined') {
   socket.on("connect", onConnection)
   socket.on("connect_error", onDisconnection)
   socket.on("connect_timeout", onDisconnection)
-  socket.on("disconnected", onDisconnection)
-  socket.on("reconnect", onDisconnection)
+  // Socket.IO emits "disconnect", never "disconnected". Successful
+  // reconnect must set Hub state back to connected, not disconnected.
+  socket.on("disconnect", onDisconnection)
+  socket.on("reconnect", onConnection)
   socket.on("reconnecting", onDisconnection)
   socket.on("reconnect_error", onDisconnection)
   socket.on("reconnect_failed", onDisconnection)
