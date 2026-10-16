@@ -1,10 +1,24 @@
 import express from 'express'
+import { timingSafeEqual } from 'crypto'
 import { MixerDriver } from '../../lib/MixerDriver'
 import CompanionConnector from './CompanionConnector'
 
 // Requests must originate from the Hub machine. Never trust X-Forwarded-For.
 export function isLoopbackAddress(address?: string): boolean {
     return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1'
+}
+
+/**
+ * Local calls remain authenticated by loopback address. Remote network calls
+ * are opt-in and require the token explicitly configured on the Hub host.
+ * Never trust the X-Forwarded-For HTTP header for this decision.
+ */
+export function isAuthorizedCompanionRequest(address: string | undefined, authorization: string | undefined, token: string | undefined): boolean {
+    if (isLoopbackAddress(address)) return true
+    if (!token || token.length < 16 || !authorization || !authorization.startsWith('Bearer ')) return false
+    const expected = Buffer.from(token, 'utf8')
+    const received = Buffer.from(authorization.slice('Bearer '.length), 'utf8')
+    return received.length === expected.length && timingSafeEqual(received, expected)
 }
 
 export type CompanionTallyState = { programs: string[], previews: string[] }
@@ -36,11 +50,15 @@ export default function registerCompanionApi(app: express.Express, driver: Mixer
     ) ? driver.currentMixerInstance : null
 
     app.use('/api/companion', (req, res, next) => {
-        if (!isLoopbackAddress(req.socket.remoteAddress)) {
-            res.status(403).json({ error: 'Companion API accepts localhost requests only' })
+        res.setHeader('Cache-Control', 'no-store')
+        if (!isAuthorizedCompanionRequest(
+            req.socket.remoteAddress,
+            req.get('authorization'),
+            process.env.VTALLY_COMPANION_TOKEN,
+        )) {
+            res.status(403).json({ error: 'Companion API: remote access requires the Hub access token' })
             return
         }
-        res.setHeader('Cache-Control', 'no-store')
         next()
     })
 
