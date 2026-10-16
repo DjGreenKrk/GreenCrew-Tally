@@ -57,14 +57,14 @@ if (!nativeAddons.length) {
 console.log('Including native serialport addon(s): ' + nativeAddons.map(file => path.relative(projectDir, file)).join(', '))
 
 const pkgArgs = [
-  '--yes', '--package=@yao-pkg/pkg', '--', 'pkg', 'dist/server.js', '--targets', 'node24-win-x64',
+  'dist/server.js', '--targets', 'node24-win-x64',
   '--output', 'dist/vtally.exe',
   '--assets', nativeAddons.map(file => path.relative(projectDir, file).replace(/\\/g, '/')).join(','),
 ]
-const isWindows = process.platform === 'win32'
+const pkgCli = require.resolve('@yao-pkg/pkg/lib-es5/bin.js')
 const result = spawnSync(
-  isWindows ? (process.env.ComSpec || 'cmd.exe') : 'npx',
-  isWindows ? ['/d', '/s', '/c', 'npx', 'exec', ...pkgArgs] : ['exec', ...pkgArgs],
+  process.execPath,
+  [pkgCli, ...pkgArgs],
   { cwd: projectDir, stdio: 'inherit' },
 )
 
