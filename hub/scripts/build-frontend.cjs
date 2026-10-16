@@ -4,4 +4,7 @@ const { webcrypto } = require('node:crypto')
 if (!globalThis.crypto || typeof globalThis.crypto.getRandomValues !== 'function') {
   globalThis.crypto = webcrypto
 }
-require('../node_modules/vite/bin/vite.js')
+import('../node_modules/vite/bin/vite.js').catch(error => {
+  console.error(error)
+  process.exitCode = 1
+})
