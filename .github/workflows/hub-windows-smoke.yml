@@ -25,8 +25,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '16.20.2'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - name: Install Hub dependencies, including serialport
-        run: npm ci --legacy-peer-deps
+        run: |
+          # node-gyp 9 uses distutils, which was removed in Python 3.12.
+          $env:PYTHON = (Get-Command python).Source
+          python --version
+          npm ci --legacy-peer-deps
       - name: Run firmware and Hub unit tests
         run: npm run test:ci -- --watchAll=false --runInBand
       - name: Build Hub EXE and flashable ESP8266 firmware
