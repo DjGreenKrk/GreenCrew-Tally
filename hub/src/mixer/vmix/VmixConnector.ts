@@ -112,7 +112,9 @@ class VmixConnector implements Connector {
                 return
             }
             this.communicator.notifyMixerIsDisconnected()
-            console.log("Connection to vMix closed")
+            if (!this.disconnectRequested) {
+                console.log("Connection to vMix closed")
+            }
 
             if(this.intervalHandle) {
                 clearInterval(this.intervalHandle);
