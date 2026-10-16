@@ -61,9 +61,10 @@ const pkgArgs = [
   '--output', 'dist/vtally.exe',
   '--assets', nativeAddons.map(file => path.relative(projectDir, file).replace(/\\/g, '/')).join(','),
 ]
+const isWindows = process.platform === 'win32'
 const result = spawnSync(
-  process.platform === 'win32' ? 'npx.cmd' : 'npx',
-  ['exec', ...pkgArgs],
+  isWindows ? (process.env.ComSpec || 'cmd.exe') : 'npx',
+  isWindows ? ['/d', '/s', '/c', 'npx', 'exec', ...pkgArgs] : ['exec', ...pkgArgs],
   { cwd: projectDir, stdio: 'inherit' },
 )
 
