@@ -1,0 +1,35 @@
+{
+  "type": "connection",
+  "id": "greencrew-vtally",
+  "name": "GreenCrew vTally",
+  "shortname": "vTally",
+  "description": "Local HTTP Program/Preview tally bridge to vTally Hub",
+  "version": "0.0.0",
+  "license": "MIT",
+  "repository": "git+https://github.com/DjGreenKrk/wifi-tally.git",
+  "bugs": "https://github.com/DjGreenKrk/wifi-tally/issues",
+  "maintainers": [
+    {
+      "name": "GreenCrew"
+    }
+  ],
+  "runtime": {
+    "type": "node22",
+    "api": "nodejs-ipc",
+    "apiVersion": "0.0.0",
+    "entrypoint": "../src/main.js"
+  },
+  "legacyIds": [],
+  "manufacturer": "GreenCrew",
+  "products": [
+    "vTally Hub"
+  ],
+  "keywords": [
+    "tally",
+    "video",
+    "camera",
+    "program",
+    "preview",
+    "Companion"
+  ]
+}
