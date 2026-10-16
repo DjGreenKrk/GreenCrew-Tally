@@ -1,0 +1,42 @@
+name: Hub Node 24 migration probe
+
+on:
+  push:
+    branches: [feat/node24-modernization-poc]
+    paths:
+      - 'hub/**'
+      - '.github/workflows/hub-node24-probe.yml'
+  workflow_dispatch:
+
+jobs:
+  node24-compatibility:
+    runs-on: windows-2022
+    defaults:
+      run:
+        working-directory: hub
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Record environment
+        run: |
+          node --version
+          npm --version
+          python --version
+      - name: Install legacy dependency tree on Node 24
+        run: npm ci --legacy-peer-deps --foreground-scripts
+      - name: Run Hub unit tests
+        env:
+          CI: 'true'
+        run: npx react-scripts test --watchAll=false --runInBand
+      - name: Compile Hub backend
+        run: npm run build:backend
+      - name: Compile Hub frontend
+        run: npm run build:frontend
+      # Deliberately no pkg/EXE step: pkg targets Node 16 and native
+      # serialport/NodeMCU compatibility needs to be established first.
