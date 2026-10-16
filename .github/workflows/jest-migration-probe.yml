@@ -5,6 +5,11 @@ on:
     branches: [feat/node24-modernization-poc]
     paths:
       - '.github/workflows/jest-migration-probe.yml'
+      - 'hub/jest.standalone.cjs'
+      - 'hub/scripts/jest-file-mock.cjs'
+      - 'hub/src/**'
+      - 'hub/package.json'
+      - 'hub/package-lock.json'
   workflow_dispatch:
 
 jobs:
