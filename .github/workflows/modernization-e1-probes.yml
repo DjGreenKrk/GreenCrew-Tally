@@ -1,0 +1,28 @@
+name: Modernization E1 isolated feasibility
+on:
+  push:
+    branches: [feat/node24-modernization-poc]
+    paths:
+      - 'hub/scripts/modernization-e1-probe.cjs'
+      - '.github/workflows/modernization-e1-probes.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Run experiments on disposable npm trees
+        run: node hub/scripts/modernization-e1-probe.cjs
+      - name: Upload results including failed experiments
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: modernization-e1-windows
+          path: hub/dist/e1-probe/
+          if-no-files-found: error
