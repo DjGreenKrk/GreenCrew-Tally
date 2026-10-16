@@ -12,7 +12,7 @@
     "check": "node --check src/main.js && node --check src/actions.js && node --check src/feedbacks.js && node --check src/presets.js && node --check src/state.js"
   },
   "engines": {
-    "node": ">=22"
+    "node": "^22.20"
   },
   "dependencies": {
     "@companion-module/base": "2.0.4"
