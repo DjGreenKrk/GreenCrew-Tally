@@ -8,7 +8,7 @@ on:
       - 'hub/src/tally/TallyConfiguration.ts'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   proposal:
     runs-on: ubuntu-24.04
@@ -48,3 +48,13 @@ jobs:
             hub/package.json
             hub/package-lock.json
           if-no-files-found: error
+      - name: Commit tested manifest and lockfile atomically to PR branch
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git diff --cached --check
+          git diff --cached --quiet && exit 0
+          git commit -m "build(hub): enable clean Node 24 install with TypeScript 6 and maintained pkg"
+          git push origin HEAD:refs/heads/feat/node24-modernization-poc
