@@ -33,8 +33,8 @@ export function defineActions(self) {
         snapshot: {
             name: 'Set full Program / Preview snapshot',
             options: [
-                { type: 'textinput', id: 'programs', label: 'Program camera IDs (comma-separated)', default: '1' },
-                { type: 'textinput', id: 'previews', label: 'Preview camera IDs (comma-separated)', default: '2' },
+                { type: 'textinput', id: 'programs', label: 'Program camera IDs (comma-separated)', default: '1', useVariables: true },
+                { type: 'textinput', id: 'previews', label: 'Preview camera IDs (comma-separated)', default: '2', useVariables: true },
             ],
             callback: event => {
                 try {
