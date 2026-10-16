@@ -39,9 +39,16 @@ Invoke-RestMethod -Uri $uri -Method Post -ContentType 'application/json' -Body '
 - `400`: bad payload, `403`: non-local request, `409`: wrong mixer source.
 - HTTP source is not an OBS WebSocket adapter. Companion must reflect **actual**
   switcher state, including changes outside Companion.
-- The input has **no heartbeat or stale-state timeout yet**. A Companion crash
-  may leave the last state lit until another snapshot arrives or the source is
-  changed. The upcoming native module should implement heartbeat/fail-safe.
+- The Hub considers Companion **receiving** only after its first HTTP POST.
+  GET status includes `receiving`, `ageMs` and `timeoutMs` (4000 ms).
+- Without a new snapshot for more than **4 seconds**, the Hub marks the mixer
+  disconnected and propagates `UNKNOWN` (null Program/Preview), causing
+  operator tallies to show the existing blue warning pattern. Do not confuse
+  this with cameras actually being off-air.
+- The bundled local Companion module (`../companion-module-greencrew-vtally`)
+  sends complete snapshots every second and provides native actions, feedbacks,
+  presets and variables. The Generic HTTP module can still be used for manual
+  tests, but must send heartbeat snapshots repeatedly for long-lived states.
 
 
 ## Windows packaged build notes
