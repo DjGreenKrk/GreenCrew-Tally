@@ -1,10 +1,9 @@
 name: build
-on: 
-  push: 
-    branches: 
-      - '**'
-    tags:
-      - v[0-9]+.[0-9]+.[0-9]+*
+# Legacy upstream pipeline retained for reference only.
+# It is not compatible with the current fork CI (retired actions/runners).
+# Re-enable deliberately after migrating the firmware/Cypress jobs.
+on:
+  workflow_dispatch:
 env:
   NODEJS_VERSION: 12
   LUA: "5.1.4"
