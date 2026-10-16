@@ -35,7 +35,7 @@ test('Companion forwards state, deduplicates changes and clears on disconnect', 
 })
 
 test('missing HTTP heartbeats cause blackout, disconnect and recovery on next snapshot', () => {
-    jest.useFakeTimers()
+    jest.useFakeTimers('modern')
     try {
         const emitter = new EventEmitter()
         const configuration = new AppConfiguration(emitter)
@@ -61,8 +61,8 @@ test('missing HTTP heartbeats cause blackout, disconnect and recovery on next sn
         expect(connector.isConnected()).toBe(false)
         expect(connector.isActive()).toBe(true)
         expect(disconnected).toHaveBeenCalled()
-        expect(communicator.getCurrentPrograms()).toEqual([])
-        expect(communicator.getCurrentPreviews()).toEqual([])
+        expect(communicator.getCurrentPrograms()).toBeNull()
+        expect(communicator.getCurrentPreviews()).toBeNull()
 
         connector.setState(['3'], ['1'])
         expect(connector.isConnected()).toBe(true)
