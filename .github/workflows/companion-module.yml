@@ -1,0 +1,29 @@
+name: Companion module checks
+
+on:
+  push:
+    branches:
+      - feat/companion-http-tally
+    paths:
+      - 'companion-module-greencrew-vtally/**'
+      - '.github/workflows/companion-module.yml'
+  pull_request:
+    paths:
+      - 'companion-module-greencrew-vtally/**'
+      - '.github/workflows/companion-module.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: companion-module-greencrew-vtally
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install
+      - run: npm run check
+      - run: npm test
+      - run: npm run package
