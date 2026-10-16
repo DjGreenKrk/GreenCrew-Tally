@@ -6,13 +6,13 @@ test the control path:** use the Hub's existing Web Tally clients.
 
 ## Install on Windows for Companion 5.0.6
 
-Use Node **22 or 24** for this separate module (the legacy `hub/` build
+Use Node **22.20+ (22.x)** for this separate module (the legacy `hub/` build
 still uses Node 16). From the repo root:
 
 ```powershell
 git pull --ff-only
-fnm install 24.19.0
-fnm use 24.19.0
+fnm install 22.20.0
+fnm use 22.20.0
 cd .\companion-module-greencrew-vtally
 npm install
 npm run check
