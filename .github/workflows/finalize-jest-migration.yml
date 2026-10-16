@@ -9,6 +9,8 @@ on:
       - 'hub/src/hooks/useSocket.ts'
       - 'hub/src/hooks/tracker/**'
       - 'hub/vite.config.mjs'
+      - 'hub/package.json'
+      - 'hub/src/lib/AppConfigurationPersistence.spec.ts'
   workflow_dispatch:
 
 permissions:
