@@ -70,3 +70,19 @@ Invoke-RestMethod -Uri $uri -Method Post -ContentType 'application/json' -Body '
   flasher** is not available in that packaged build. This does not block
   web/UDP tally communication, but programming new ESP8266 units still
   needs a separate flashing workflow.
+
+### End-to-end smoke test without a D1 Mini
+
+With the updated Windows Hub running and `Companion (HTTP)` selected,
+**stop all other snapshot senders** so their heartbeats don't mask the timeout.
+From the `hub` directory:
+
+```powershell
+.\\scripts\\test-companion-http.ps1
+```
+
+This verifies camera 1/2, camera 2/3, the 4-second timeout to UNKNOWN,
+and recovery after a fresh POST. For the operator view, add Web Tallies
+patched to channels 1–3 in the Hub.
+
+For physical D1 Mini + WS2812B 4×4, see `../tally/D1-MINI-4X4.md`.
