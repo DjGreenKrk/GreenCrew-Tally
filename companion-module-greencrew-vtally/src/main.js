@@ -1,14 +1,15 @@
 import { InstanceBase, InstanceStatus } from '@companion-module/base'
+import { hubUrl } from './hub-address.js'
 import { blackout, configuredCameraIds, validateConfiguredState } from './state.js'
 import { defineActions } from './actions.js'
 import { defineFeedbacks, defineVariables, updateIndicators } from './feedbacks.js'
 import { definePresets } from './presets.js'
 
-// Loopback only: the vTally HTTP endpoint intentionally rejects remote hosts.
+// Localhost works without a token; remote Hub IPs require the Hub's LAN token.
 export default class GreenCrewVTally extends InstanceBase {
     constructor(internal) {
         super(internal)
-        this.config = { port: 3000, cameraCount: 3 }
+        this.config = { host: '127.0.0.1', port: 3000, cameraCount: 3, token: '' }
         this.desired = blackout()
         this.confirmed = null
         this.running = false
@@ -46,7 +47,9 @@ export default class GreenCrewVTally extends InstanceBase {
     normalizeConfig(config) {
         const cameraCount = Number(config?.cameraCount)
         return {
+            host: String(config?.host ?? '127.0.0.1').trim(),
             port: config?.port ?? 3000,
+            token: String(config?.token ?? '').trim(),
             cameraCount: Number.isInteger(cameraCount) && cameraCount >= 1 && cameraCount <= 8 ? cameraCount : 3,
         }
     }
@@ -66,6 +69,10 @@ export default class GreenCrewVTally extends InstanceBase {
     getConfigFields() {
         return [
             {
+                type: 'textinput', id: 'host', label: 'Hub IP address or hostname',
+                width: 6, default: '127.0.0.1',
+            },
+            {
                 type: 'number', id: 'port', label: 'Local Hub HTTP port',
                 width: 6, min: 1, max: 65535, default: 3000,
             },
@@ -73,13 +80,15 @@ export default class GreenCrewVTally extends InstanceBase {
                 type: 'number', id: 'cameraCount', label: 'Number of cameras',
                 width: 6, min: 1, max: 8, step: 1, default: 3,
             },
+            {
+                type: 'textinput', id: 'token', label: 'Hub access token (required for LAN, leave empty for localhost)',
+                width: 12, default: '',
+            },
         ]
     }
 
     get url() {
-        const port = Number(this.config.port || 3000)
-        if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid Hub port')
-        return `http://127.0.0.1:${port}/api/companion/tally`
+        return hubUrl(this.config)
     }
 
     markSourceInvalid(message) {
@@ -120,7 +129,10 @@ export default class GreenCrewVTally extends InstanceBase {
                 try {
                     const response = await fetch(this.url, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(this.config.token ? { Authorization: 'Bearer ' + this.config.token } : {}),
+                        },
                         body: JSON.stringify(state),
                         signal: AbortSignal.timeout(1500),
                     })
