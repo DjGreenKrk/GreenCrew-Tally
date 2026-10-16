@@ -36,7 +36,9 @@ jobs:
         run: npx react-scripts test --watchAll=false --runInBand
       - name: Compile Hub backend
         run: npm run build:backend
-      - name: Compile Hub frontend
-        run: npm run build:frontend
+      - name: Compile experimental Vite frontend
+        run: npx --yes vite@6 build
+      - name: Verify Vite output and frontend routes
+        run: node scripts/check-vite-output.cjs
       # Deliberately no pkg/EXE step: pkg targets Node 16 and native
       # serialport/NodeMCU compatibility needs to be established first.
