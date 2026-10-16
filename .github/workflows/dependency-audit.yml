@@ -1,0 +1,39 @@
+name: Dependency security audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/node24-modernization-poc]
+    paths:
+      - 'hub/package.json'
+      - 'hub/package-lock.json'
+      - '.github/workflows/dependency-audit.yml'
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: hub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install exact dependency tree without lifecycle scripts
+        run: npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - name: Audit production dependencies
+        shell: bash
+        run: |
+          npm audit --omit=dev --json > audit-production.json || true
+          node -e "const a=require('./audit-production.json'); console.log('Production vulnerability summary:',JSON.stringify(a.metadata?.vulnerabilities||{}))"
+      - name: Audit all dependencies
+        shell: bash
+        run: |
+          npm audit --json > audit-all.json || true
+          node -e "const a=require('./audit-all.json'); console.log('All vulnerability summary:',JSON.stringify(a.metadata?.vulnerabilities||{}))"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vtally-npm-audit
+          path: |
+            hub/audit-production.json
+            hub/audit-all.json
+          retention-days: 14
