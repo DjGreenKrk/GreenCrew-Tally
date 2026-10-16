@@ -60,10 +60,11 @@ class CompanionConnector implements Connector {
         const age = this.getSnapshotAgeMs()
         if (age !== null && age > CompanionConnector.TIMEOUT_MS) {
             this.receiving = false
-            // Black out stale data; actual on-air state is UNKNOWN after signal loss.
-            this.communicator.notifyProgramPreviewChanged([], [])
+            // Propagate UNKNOWN so connected operator-side tallies blink blue.
+            // We cannot infer that any camera is physically off-air.
+            this.communicator.notifyProgramPreviewChanged(null, null)
             this.communicator.notifyMixerIsDisconnected()
-            console.warn('Companion HTTP snapshots timed out; clearing stale Program/Preview state')
+            console.warn('Companion HTTP snapshots timed out; Program/Preview is UNKNOWN')
         }
     }
 }
