@@ -1,15 +1,15 @@
 {
   "name": "companion-module-greencrew-vtally",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "main": "src/main.js",
-  "description": "Local vTally HTTP tally integration for Bitfocus Companion 5",
+  "description": "LAN-capable Program/Preview tally integration for Bitfocus Companion 5",
   "license": "MIT",
   "scripts": {
     "package": "companion-module-build",
     "test": "node --test",
-    "check": "node --check src/main.js && node --check src/actions.js && node --check src/feedbacks.js && node --check src/presets.js && node --check src/state.js"
+    "check": "node --check src/main.js && node --check src/actions.js && node --check src/feedbacks.js && node --check src/presets.js && node --check src/state.js && node --check src/hub-address.js"
   },
   "engines": {
     "node": "^22.20"
