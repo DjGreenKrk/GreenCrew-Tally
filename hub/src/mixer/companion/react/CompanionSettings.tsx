@@ -1,8 +1,8 @@
 import React from 'react'
 import MixerSettingsWrapper from '../../../components/config/MixerSettingsWrapper'
 import { socket } from '../../../hooks/useSocket'
-import { SettingsProps } from '../../interfaces'
-import CompanionConnector from '../CompanionConnector'
+import type { SettingsProps } from '../../interfaces'
+import { MIXER_IDS } from '../../ids'
 
 function CompanionSettings(_props: SettingsProps) {
     return (
@@ -10,13 +10,13 @@ function CompanionSettings(_props: SettingsProps) {
             title="Companion HTTP Tally"
             testId="companion"
             description="Receive Program/Preview snapshots from Bitfocus Companion on this computer. API: /api/companion/tally (localhost only)."
-            onSave={() => socket.emit('config.change.companion', CompanionConnector.ID)}
+            onSave={() => socket.emit('config.change.companion', MIXER_IDS.companion)}
         />
     )
 }
 
 CompanionSettings.defaultProps = {
-    id: CompanionConnector.ID,
+    id: MIXER_IDS.companion,
     label: 'Companion (HTTP)',
 }
 
