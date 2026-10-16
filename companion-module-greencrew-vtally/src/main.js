@@ -1,11 +1,11 @@
-import { InstanceBase, InstanceStatus, runEntrypoint } from '@companion-module/base'
+import { InstanceBase, InstanceStatus } from '@companion-module/base'
 import { blackout } from './state.js'
 import { defineActions } from './actions.js'
 import { defineFeedbacks, defineVariables, updateIndicators } from './feedbacks.js'
 import { definePresets } from './presets.js'
 
 // Loopback only: the vTally HTTP endpoint intentionally rejects remote hosts.
-class GreenCrewVTally extends InstanceBase {
+export default class GreenCrewVTally extends InstanceBase {
     constructor(internal) {
         super(internal)
         this.config = { port: 3000 }
@@ -105,4 +105,4 @@ class GreenCrewVTally extends InstanceBase {
     }
 }
 
-runEntrypoint(GreenCrewVTally, [])
+export const UpgradeScripts = []
