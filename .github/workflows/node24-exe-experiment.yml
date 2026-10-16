@@ -35,6 +35,8 @@ jobs:
         run: |
           npm run build:backend
           npm run build:frontend
+      - name: Install maintained Node 24 EXE packager
+        run: npm install --no-save --legacy-peer-deps --ignore-scripts --no-audit --no-fund @yao-pkg/pkg
       - name: Build real Node 24 EXE with firmware and native bindings
         run: node scripts/package-windows.js
       - name: Verify firmware and EXE outputs
