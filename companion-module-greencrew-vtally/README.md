@@ -72,3 +72,45 @@ it is safe to move an on-air camera.
 Prototype, not yet verified with a live Companion 5.0.6 installation or
 the actual D1 Mini and WS2812B modules. The existing generic HTTP
 integration remains a reliable fallback for control-path tests.
+
+## Recommended OBS automation: ONE trigger, TWO events, ONE action
+
+Do **not** try to track Program and Preview with six separate
+`Set Program camera` / `Set Preview camera` triggers. During a
+Studio Mode transition OBS changes both buses and separate triggers may
+briefly disagree.
+
+In **Companion → Triggers**, create just one enabled trigger:
+
+1. **Events** (either event starts the same trigger):
+   - `On variable change`: `obs_local_2:scene_active`
+   - `On variable change`: `obs_local_2:scene_preview`
+2. **Conditions**: **none**. We need every valid OBS scene change.
+3. **Actions**: `GreenCrew vTally: Sync Program + Preview from OBS scenes (atomic)`
+   - Current OBS Program scene: `$(obs_local_2:scene_active)`
+   - Current OBS Preview scene: `$(obs_local_2:scene_preview)`
+   - OBS scene name for CAM 1: enter the *exact real scene name* (e.g. `Scena 1`)
+   - CAM 2: exact name (e.g. `Scena 2`)
+   - CAM 3: exact name (e.g. `Scena 3`)
+
+`obs_local_2` is an example connection ID. Use the ID shown by your
+own OBS Companion connection. You can browse variables in the action
+fields rather than typing the expressions.
+
+**Use OBS Studio Mode** to get a meaningful independent Preview bus.
+Disable the old per-camera tally triggers while testing the new one.
+For a deterministic first test, switch scenes in OBS and verify that
+both `programs` and `previews` change together in
+`http://127.0.0.1:3000/api/companion/tally`.
+
+The action fields accept Companion variables via Module API 2.0 automatic
+resolution. The scene mapping is exact (case and punctuation matter):
+if an OBS scene is not mapped, the module **stops sending heartbeats**
+instead of silently reporting an on-air camera as OFF. The Hub will
+show the **UNKNOWN** tally warning after four seconds. To recover, fix
+the mapping or scene and re-run the trigger.
+
+**Limitation:** this detects scene changes, not physical camera status
+inside multi-source scenes. An OBS disconnect that leaves the old
+variables cached may not fire an event; additionally monitor the OBS
+connection state if needed for production use.
