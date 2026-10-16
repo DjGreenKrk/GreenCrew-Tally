@@ -1,0 +1,50 @@
+name: vTally quality gate
+
+on:
+  push:
+    branches: [feat/node24-modernization-poc]
+    paths:
+      - 'hub/**'
+      - 'tally/**'
+      - '.github/workflows/vtally-quality-gate.yml'
+  pull_request:
+    paths:
+      - 'hub/**'
+      - 'tally/**'
+      - '.github/workflows/vtally-quality-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: TypeScript + Vite + Jest + HTTP smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: hub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: hub/package-lock.json
+      - name: Install locked dependencies
+        run: npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - name: Check browser-side Node events imports
+        run: |
+          if grep -R -n -E "from ['\"](node:)?events['\"]|require\\(['\"](node:)?events['\"]\\)" src/hooks src/lib/DisconnectedClientSideSocket.ts; then
+            echo 'Browser-side hooks must not import Node events' >&2
+            exit 1
+          fi
+      - name: Compile backend
+        run: npm run build:backend
+      - name: Build Vite production bundle
+        run: npm run build:frontend
+      - name: Run Jest unit tests
+        run: npm run test:ci
+      - name: Check built frontend and HTTP routes
+        run: npm run test:frontend:smoke
