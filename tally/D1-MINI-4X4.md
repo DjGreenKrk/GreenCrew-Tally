@@ -37,10 +37,34 @@ sygnale 3,3 V → WS2812B rozważ konwerter logiczny na 5 V.
 - Działający obraz firmware NodeMCU zawierający `ws2812`, `pwm2`,
   `wifi`, `net` i pozostałe moduły wymagane przez Lua.
 - Flashowanie NodeMCU Lua oraz przesłanie plików `.lua/.lc` na D1 Mini.
-  Wbudowany flasher spakowanego Windows EXE ma obecnie problem
-  z dynamicznym modułem `nodemcu-tool`.
+  W Windowsowym buildzie używamy teraz statycznego `require('nodemcu-tool')`,
+  dołączamy natywne wiązania `serialport` i kompletny folder
+  `dist/esp8266` z plikami Lua. Wymaga to testu na realnym D1 Mini;
+  automatyczny test uruchomienia spakowanego EXE nie zastępuje flashowania.
 - Zasilanie i start bootstrapa z podłączoną matrycą, kolejność kanałów
   GRB/RGB, rzeczywista jasność i zachowanie po utracie Wi-Fi.
 
 Nie traktować testów na Web Tally jako potwierdzenia poprawnego działania
 firmware na płytce.
+
+## Dwa etapy przygotowania nowej płytki
+
+Wbudowany flasher vTally **nie wgrywa bazowego obrazu firmware ESP8266**.
+Do nowej płytki trzeba najpierw wgrać odpowiednią wersję
+**NodeMCU Lua firmware** z modułami wymaganymi przez projekt
+(`file`, `gpio`, `net`, `node`, `pwm2`, `tmr`, `wifi`, `ws2812`).
+Można to zrobić za pomocą ESP8266 esptool / narzędzia do flashowania firmware
+i pliku `.bin` skompilowanego dla właściwej pamięci płytki.
+
+Dopiero do uruchomionego firmware NodeMCU Lua wgrywamy **pliki aplikacji**:
+`init.lua` + `my-*.lua` (lub prekompilowane `my-*.lc`).
+Ten drugi etap obsługuje flasher w vTally. Osobno zapisujemy
+`tally-settings.ini` (Wi-Fi, nazwa CAM, IP Huba i UDP 7411).
+
+Przy Windowsowej wersji standalone skopiuj **cały** katalog
+`dist/esp8266` razem z `dist/vtally.exe` w tym samym folderze nadrzędnym.
+Nie kopiuj samego EXE bez katalogu firmware.
+
+Na nowej płytce sprawdź kolejno: odczyt informacji o NodeMCU,
+wgranie kompletu Lua, zapisanie ustawień, restart, połączenie z Wi-Fi,
+odebranie UDP 7411 z Huba i zmianę kolorów WS2812B.
