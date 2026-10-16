@@ -42,3 +42,24 @@ Invoke-RestMethod -Uri $uri -Method Post -ContentType 'application/json' -Body '
 - The input has **no heartbeat or stale-state timeout yet**. A Companion crash
   may leave the last state lit until another snapshot arrives or the source is
   changed. The upcoming native module should implement heartbeat/fail-safe.
+
+
+## Windows packaged build notes
+
+- Build from the `hub` directory with `npm run build:windows`.
+- Run `dist/vtally.exe`. Packaged builds default to **production** and
+  serve the compiled `dist/frontend/` directory on port 3000; no React
+  development server on port 3001 is needed.
+- Previous builds that display `Serving frontend via proxy` can be started
+  temporarily in PowerShell with:
+  ```powershell
+  $env:NODE_ENV = 'production'
+  .\dist\vtally.exe
+  ```
+- The saved mixer selection may still be `obs`. Switch it to
+  **Companion (HTTP)** in the web interface; otherwise the old OBS connector
+  will continue attempting reconnects.
+- If `Cannot find module 'nodemcu-tool'` appears, the optional **Hub USB
+  flasher** is not available in that packaged build. This does not block
+  web/UDP tally communication, but programming new ESP8266 units still
+  needs a separate flashing workflow.
