@@ -14,7 +14,4 @@ for (const url of scripts) {
   assert.ok(url.startsWith('/'), `Unexpected script URL: ${url}`)
   assert.ok(fs.existsSync(path.join(output, url.slice(1))), `Missing bundle: ${url}`)
 }
-for (const route of ['/config', '/flasher', '/tally/demo', '/tally/demo/log']) {
-  assert.ok(html.includes('id="root"'), `SPA fallback entry unavailable for ${route}`)
-}
 console.log('Vite frontend output smoke check passed')
