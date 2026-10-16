@@ -51,3 +51,36 @@ export function cameraMode(state, camera) {
     if (state.previews.includes(id)) return 'preview'
     return 'off'
 }
+
+/**
+ * Convert OBS scene names into one atomic tally snapshot.
+ * Refuse unknown scene names: treating an unmapped on-air scene as OFF would
+ * be dangerous. The caller should stop heartbeats so Hub reports UNKNOWN.
+ */
+export function snapshotFromScenes(programScene, previewScene, sceneNames) {
+    const normalize = value => String(value ?? '').trim()
+    const sceneToId = new Map()
+    for (const [i, name] of sceneNames.entries()) {
+        const id = cameraId(i + 1)
+        const value = normalize(name)
+        if (!value) continue
+        if (sceneToId.has(value)) throw new Error(`Duplicate OBS scene mapping: "${value}"`)
+        sceneToId.set(value, id)
+    }
+
+    const resolveScene = (name, bus) => {
+        const value = normalize(name)
+        if (!value) {
+            if (bus === 'Preview') return []
+            throw new Error('OBS Program scene is empty or unavailable')
+        }
+        const id = sceneToId.get(value)
+        if (!id) throw new Error(`Unmapped OBS ${bus} scene: "${value}"`)
+        return [id]
+    }
+
+    return {
+        programs: resolveScene(programScene, 'Program'),
+        previews: resolveScene(previewScene, 'Preview'),
+    }
+}
