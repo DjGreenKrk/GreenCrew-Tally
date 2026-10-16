@@ -2,6 +2,7 @@ import TallyDevice from './TallyDevice'
 import TallySettingsIni from './TallySettingsIni'
 import tmp from 'tmp-promise'
 import { promises as fs } from 'fs'
+import { findFirmwareFiles } from './FirmwareAssets'
 
 const baudRate = 115200
 const fileName = "tally-settings.ini"
@@ -83,26 +84,10 @@ class NodeMcuConnector {
   }
 
   private static async getLocalFiles() {
-    let dirName = __dirname + "/../../esp8266" // path in release package
-    const files = await fs.readdir(dirName).catch(e => {
-      dirName = __dirname + "/../../../tally/out" // path during development
-      return fs.readdir(dirName)
-    })
-
-    console.debug(`Files from ${dirName} will be flashed.`)
-
-    const filteredFiles = files.filter(file => file.endsWith(".lc") || file.endsWith(".lua"))
-    return Promise.all(filteredFiles.map(async file => {
-      const stats = await fs.stat(dirName + "/" + file)
-      return {
-        fileName: file,
-        filePath: `${dirName}/${file}`,
-        fileSize: stats.size,
-      }
-    }))
+    return findFirmwareFiles()
   }
 
-  private static async doFilesNeedUpdate(filesOnNodemcu: {name: string, size: number}[]) : Promise<boolean> {
+    private static async doFilesNeedUpdate(filesOnNodemcu: {name: string, size: number}[]) : Promise<boolean> {
     const localFiles = await NodeMcuConnector.getLocalFiles()
     return localFiles.some(localFile => {  
       return filesOnNodemcu.every(nodeMcuFile => nodeMcuFile.name !== localFile.fileName || nodeMcuFile.size !== localFile.fileSize)
@@ -162,8 +147,14 @@ class NodeMcuConnector {
 
   async getDevice(): Promise<TallyDevice> {
     const tallyDevice = new TallyDevice()
-    const localFiles = await NodeMcuConnector.getLocalFiles()
-    const updatePossible = localFiles.length > 0
+    let updatePossible = false
+    try {
+      const localFiles = await NodeMcuConnector.getLocalFiles()
+      updatePossible = localFiles.length > 0
+    } catch (error) {
+      // Firmware availability must not prevent device detection or kill the Hub.
+      console.warn('ESP8266 firmware not available for flashing: ' + String(error))
+    }
     if (!updatePossible) {
       tallyDevice.update = "not-available"
     }
@@ -211,7 +202,17 @@ class NodeMcuConnector {
   }
 
   async program(path: string, onProgress: (state: TallyProgramProgressType) => void) {
-    const files = await NodeMcuConnector.getLocalFiles()
+    let files: Awaited<ReturnType<typeof findFirmwareFiles>>
+    try {
+      files = await NodeMcuConnector.getLocalFiles()
+    } catch (error) {
+      console.error('Cannot flash ESP8266: ' + String(error))
+      onProgress({
+        inititalizeDone: false, connectionDone: false, filesUploaded: 0,
+        filesTotal: 0, rebootDone: false, allDone: false, error: true,
+      })
+      return false
+    }
     const progress: TallyProgramProgressType = {
       inititalizeDone: false,
       connectionDone: false,
