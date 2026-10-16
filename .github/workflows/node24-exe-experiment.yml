@@ -1,0 +1,54 @@
+name: Experimental Node 24 EXE packaging
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feat/node24-modernization-poc]
+    paths:
+      - '.github/workflows/node24-exe-experiment.yml'
+      - 'hub/scripts/package-windows.js'
+      - 'hub/package.json'
+      - 'hub/package-lock.json'
+
+jobs:
+  node24-exe-experiment:
+    runs-on: windows-2022
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: hub
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install native dependencies on Node 24
+        run: npm ci --legacy-peer-deps --foreground-scripts
+      - name: Test native NodeMCU serialport bindings
+        run: node -e "const b=require('@serialport/bindings'); console.log('serialport loaded:',typeof b)"
+      - name: Test native MIDI bindings
+        run: node -e "const m=require('midi'); console.log('midi loaded:',typeof m.Input,typeof m.Output)"
+      - name: Compile backend and frontend
+        run: |
+          npm run build:backend
+          npm run build:frontend
+      - name: Install maintained pkg fork without changing lockfile
+        run: npm install --no-save --legacy-peer-deps --ignore-scripts --no-audit --no-fund @yao-pkg/pkg
+      - name: Attempt Node 24 EXE build
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          npx --no-install @yao-pkg/pkg dist/server.js --targets node24-win-x64 --output dist/vtally-node24-experimental.exe
+      - name: Confirm executable was generated
+        run: |
+          if (-not (Test-Path 'dist/vtally-node24-experimental.exe')) { throw 'Node 24 EXE missing' }
+          Get-Item dist/vtally-node24-experimental.exe | Select-Object Name,Length
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: vtally-node24-experimental-exe
+          path: hub/dist/vtally-node24-experimental.exe
+          retention-days: 7
