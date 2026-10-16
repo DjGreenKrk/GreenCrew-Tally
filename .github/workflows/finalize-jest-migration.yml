@@ -5,6 +5,8 @@ on:
     branches: [feat/node24-modernization-poc]
     paths:
       - '.github/workflows/finalize-jest-migration.yml'
+      - 'hub/src/lib/DisconnectedClientSideSocket.ts'
+      - 'hub/vite.config.mjs'
   workflow_dispatch:
 
 permissions:
