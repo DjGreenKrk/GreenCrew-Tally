@@ -32,7 +32,7 @@ export default function registerCompanionApi(app: express.Express, driver: Mixer
     const activeConnector = (): CompanionConnector | null => (
         driver.currentMixerId === CompanionConnector.ID &&
         driver.currentMixerInstance instanceof CompanionConnector &&
-        driver.currentMixerInstance.isConnected()
+        driver.currentMixerInstance.isActive()
     ) ? driver.currentMixerInstance : null
 
     app.use('/api/companion', (req, res, next) => {
@@ -45,9 +45,13 @@ export default function registerCompanionApi(app: express.Express, driver: Mixer
     })
 
     app.get('/api/companion/tally', (_req, res) => {
-        const active = activeConnector() !== null
+        const connector = activeConnector()
+        const active = connector !== null
         res.json({
             active,
+            receiving: connector ? connector.isConnected() : false,
+            ageMs: connector ? connector.getSnapshotAgeMs() : null,
+            timeoutMs: CompanionConnector.TIMEOUT_MS,
             programs: active ? (driver.getCurrentPrograms() || []) : [],
             previews: active ? (driver.getCurrentPreviews() || []) : [],
         })
@@ -65,6 +69,6 @@ export default function registerCompanionApi(app: express.Express, driver: Mixer
             return
         }
         connector.setState(state.programs, state.previews)
-        res.json({ active: true, programs: state.programs, previews: state.previews })
+        res.json({ active: true, receiving: true, programs: state.programs, previews: state.previews })
     })
 }
