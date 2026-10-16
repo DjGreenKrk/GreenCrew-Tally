@@ -33,7 +33,12 @@ jobs:
           # node-gyp 9 uses distutils, which was removed in Python 3.12.
           $env:PYTHON = (Get-Command python).Source
           python --version
-          npm ci --legacy-peer-deps
+          # npm ci may build midi and serialport in parallel. Fetch Node 16
+          # headers first to avoid races writing the same node-gyp cache.
+          $gyp = Join-Path (npm root -g) 'npm/node_modules/node-gyp/bin/node-gyp.js'
+          node $gyp install --target=16.20.2
+          if ($LASTEXITCODE -ne 0) { throw 'Node header preload failed' }
+          npm ci --legacy-peer-deps --foreground-scripts
       - name: Run firmware and Hub unit tests
         run: npm run test:ci -- --watchAll=false --runInBand
       - name: Build Hub EXE and flashable ESP8266 firmware
