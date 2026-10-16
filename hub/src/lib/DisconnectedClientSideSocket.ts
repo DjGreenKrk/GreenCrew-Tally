@@ -1,5 +1,5 @@
 // Browser-safe emitter for the disconnected/test socket; do not bundle Node's 'events'.
-class EventEmitter {
+export class EventEmitter {
     private listeners = new Map<string | symbol, Array<(...args: any[]) => void>>()
 
     on(event: string | symbol, listener: (...args: any[]) => void) {
