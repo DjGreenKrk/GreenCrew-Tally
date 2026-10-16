@@ -33,7 +33,7 @@ jobs:
           cache: npm
           cache-dependency-path: hub/package-lock.json
       - name: Install locked dependencies
-        run: npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Check browser-side Node events imports
         run: |
           if grep -R -n -E "from ['\"](node:)?events['\"]|require\\(['\"](node:)?events['\"]\\)" src/hooks src/lib/DisconnectedClientSideSocket.ts; then
@@ -42,6 +42,8 @@ jobs:
           fi
       - name: Guard browser dependencies against backend/hardware imports
         run: node scripts/check-browser-boundaries.cjs
+      - name: Typecheck application (TypeScript 6)
+        run: npx tsc --project tsconfig.json --noEmit
       - name: Compile backend
         run: npm run build:backend
       - name: Build Vite production bundle

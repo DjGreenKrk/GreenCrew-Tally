@@ -28,7 +28,7 @@ jobs:
       - name: Assert installed Chromium
         run: google-chrome --version
       - name: Install baseline lockfile (known transitional peer conflict E3)
-        run: npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Build production JS and CSS
         run: npm run build:frontend
       - name: Execute actual production JS and routes in Chrome

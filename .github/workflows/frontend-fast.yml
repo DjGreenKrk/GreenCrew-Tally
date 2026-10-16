@@ -44,11 +44,14 @@ jobs:
           cache: npm
           cache-dependency-path: hub/package-lock.json
       - name: Install dependencies without native build scripts
-        run: npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Build frontend with Vite
         run: npm run build:frontend
       - name: Verify emitted frontend assets
         run: node scripts/check-vite-output.cjs
+      - name: Execute production JavaScript in headless Chrome
+        timeout-minutes: 3
+        run: node scripts/check-production-browser.cjs
       - name: Verify frontend SPA routes over HTTP
         timeout-minutes: 2
         run: node scripts/check-vite-preview.cjs

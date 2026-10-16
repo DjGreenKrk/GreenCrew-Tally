@@ -37,7 +37,7 @@ jobs:
           npm --version
           python --version
       - name: Install legacy dependency tree on Node 24
-        run: npm ci --legacy-peer-deps --foreground-scripts
+        run: npm ci --foreground-scripts
       - name: Run Hub unit tests
         env:
           CI: 'true'
