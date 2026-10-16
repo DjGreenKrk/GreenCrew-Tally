@@ -1,15 +1,17 @@
 # GreenCrew vTally — Companion 5
 
-Connects Bitfocus Companion to a **vTally Hub on the same computer**.
+Connects Bitfocus Companion to a **local or remote vTally Hub**. Remote LAN connections require a Hub access token.
 
 ## Setup
 
 1. Start the updated vTally Hub and choose **Companion (HTTP)** as the mixer source.
 2. Load this module through Companion's **Developer Modules Path**, or import a built module package.
-3. Add the **GreenCrew vTally** connection in Companion. Hub port defaults to **3000**.
+3. Add the **GreenCrew vTally** connection in Companion. Set the Hub host/IP, port (default **3000**), camera count (1–8), and optional LAN access token.
 4. Drag the ready-made Program/Preview camera presets onto buttons, or add individual actions.
 
-This module connects to `http://127.0.0.1:<port>/api/companion/tally`; remote HTTP clients are intentionally denied by the Hub.
+The default local endpoint is `http://127.0.0.1:<port>/api/companion/tally`. A remote Hub requires `VTALLY_COMPANION_TOKEN` on the Hub and the matching token in this module. LAN transport is plain HTTP: use only a trusted, isolated network or secure tunnel. See the module README for setup.
+
+For source-driven operation (OBS/ATEM/vMix), trigger **Sync Program + Preview from Companion variables** when either upstream Program or Preview variable changes, and map exact source values to camera IDs. Do not use stale feedback-derived local variables as the source of truth.
 
 ## Actions
 
@@ -19,6 +21,7 @@ This module connects to `http://127.0.0.1:<port>/api/companion/tally`; remote HT
 - **TAKE** — swaps the Program/Preview lists.
 - **Clear all** — blanks every tally.
 - **Set full snapshot** — lists of camera IDs 1–8, separated by commas. Allows multiple Program/Preview cameras.
+- **Sync Program + Preview from Companion variables** — atomically maps upstream Program/Preview source values to configured camera IDs.
 
 ## Feedback & variables
 
