@@ -11,6 +11,7 @@ describe('getAllowedMixers', () => {
         expect(mixersProd.length).toBeGreaterThan(2)
         expect(mixersProd).toContain("null")
         expect(mixersProd).not.toContain("mock")
+        expect(mixersProd).toContain("companion")
     })
     test('does return the test mixer on testing, but not production', () => {
         const mixersDev = MixerDriver.getAllowedMixers(false, true)

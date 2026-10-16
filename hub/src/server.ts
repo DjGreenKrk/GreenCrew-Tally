@@ -27,6 +27,7 @@ import WebTallyDriver from './tally/WebTallyDriver'
 import { DefaultTallyConfiguration, TallyConfiguration } from './tally/TallyConfiguration'
 import NodeMcuConnector from './flasher/NodeMcuConnector'
 import VmixProjectManager from './lib/VmixProjectManager'
+import registerCompanionApi from './mixer/companion/CompanionApi'
 
 const argv = yargs.argv
 if (argv.env !== undefined) {
@@ -59,6 +60,9 @@ const myWebTallyDriver = new WebTallyDriver(myConfiguration, myTallyContainer)
 
 const myMixerDriver = new MixerDriver(myConfiguration, myEmitter)
 const myVmixProjectManager = new VmixProjectManager(myConfiguration, myTallyContainer, myEmitter)
+
+// Register before the frontend catch-all / development proxy routes.
+registerCompanionApi(app, myMixerDriver)
 
 const myNodeMcuConnector = new NodeMcuConnector()
 
@@ -272,6 +276,11 @@ io.on('connection', (socket: ServerSideSocket) => {
     }
   })
   socket.on('config.change.null', newMixerName => {
+    if (newMixerName) {
+      myConfiguration.setMixerSelection(newMixerName)
+    }
+  })
+  socket.on('config.change.companion', newMixerName => {
     if (newMixerName) {
       myConfiguration.setMixerSelection(newMixerName)
     }

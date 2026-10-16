@@ -70,6 +70,7 @@ export interface ClientSentEvents {
     'config.change.atem': (atemConfiguration: AtemConfigurationSaveType, newMixer?: "atem") => void
     'config.change.mock': (mockConfiguration: MockConfigurationSaveType, newMixer?: "mock") => void
     'config.change.null': (newMixer?: "null") => void
+    'config.change.companion': (newMixer?: "companion") => void
     'config.change.test': (testConfiguration: TestConfigurationSaveType, newMixer?: "test") => void
     'config.change.obs': (obsConfiguration: ObsConfigurationSaveType, newMixer?: "obs") => void
     'config.change.rolandV8HD': (rolandV8HDConfiguration: RolandV8HDConfigurationSaveType, newMixer?: "rolandV8HD") => void
