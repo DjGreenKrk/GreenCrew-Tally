@@ -1,6 +1,12 @@
 // Pure tally state helpers; deliberately independent of Companion itself.
 export const CAMERA_IDS = ['1', '2', '3', '4', '5', '6', '7', '8']
 
+export function configuredCameraIds(count) {
+    const n = Number(count)
+    if (!Number.isInteger(n) || n < 1 || n > CAMERA_IDS.length) throw new Error('Camera count must be 1..8')
+    return CAMERA_IDS.slice(0, n)
+}
+
 export function cameraId(value) {
     const id = String(value)
     if (!CAMERA_IDS.includes(id)) throw new Error(`Invalid camera ID: ${id}`)
