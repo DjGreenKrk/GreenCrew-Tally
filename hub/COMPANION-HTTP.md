@@ -1,7 +1,7 @@
 # Bitfocus Companion → vTally HTTP source (MVP)
 
 The **Companion (HTTP)** mixer source accepts Program/Preview from Bitfocus
-Companion running on the same Windows computer as vTally Hub. Existing web and
+Companion running on the Hub computer or on another computer in a trusted LAN (with a configured Hub token). Existing web and
 ESP8266/NodeMCU tally clients need no protocol changes.
 
 ## Setup
@@ -9,7 +9,7 @@ ESP8266/NodeMCU tally clients need no protocol changes.
 1. Run vTally Hub and open `http://localhost:3000` (or configured port).
 2. Under **Video Mixer**, select **Companion (HTTP)** and click **Save**.
 3. Patch camera tallies to channels 1, 2 and 3.
-4. Send HTTP snapshots from Companion, PowerShell, or another local process.
+4. Send HTTP snapshots from Companion, PowerShell, or another authorized process. For remote LAN access, configure `VTALLY_COMPANION_TOKEN` on the Hub and supply `Authorization: Bearer <token>` (see the Companion module README).
 
 ### API
 
@@ -34,9 +34,9 @@ Invoke-RestMethod -Uri $uri -Method Post -ContentType 'application/json' -Body '
 
 ### Security / limitations
 
-- Only direct loopback clients (`127.0.0.1`, `::1`) can access the API.
-  Hub and Companion must share a computer for this MVP.
-- `400`: bad payload, `403`: non-local request, `409`: wrong mixer source.
+- Loopback clients (`127.0.0.1`, `::1`) can access the API without a token. Remote clients need a Hub-configured `VTALLY_COMPANION_TOKEN` of at least 16 characters and a matching Bearer token.
+- LAN traffic uses unencrypted HTTP. Never expose the Hub port to the internet; use a trusted isolated LAN or secure tunnel.
+- `400`: bad payload, `403`: unauthorized remote request, `409`: wrong mixer source.
 - HTTP source is not an OBS WebSocket adapter. Companion must reflect **actual**
   switcher state, including changes outside Companion.
 - The Hub considers Companion **receiving** only after its first HTTP POST.
@@ -66,10 +66,7 @@ Invoke-RestMethod -Uri $uri -Method Post -ContentType 'application/json' -Body '
 - The saved mixer selection may still be `obs`. Switch it to
   **Companion (HTTP)** in the web interface; otherwise the old OBS connector
   will continue attempting reconnects.
-- If `Cannot find module 'nodemcu-tool'` appears, the optional **Hub USB
-  flasher** is not available in that packaged build. This does not block
-  web/UDP tally communication, but programming new ESP8266 units still
-  needs a separate flashing workflow.
+- If the packaged USB flasher reports missing NodeMCU/serialport dependencies or firmware assets, rebuild with Node 16 and ensure `dist/esp8266/` is present beside `dist/vtally.exe`. The Hub uploader transfers Lua application files; a new ESP8266 still requires a separately flashed base NodeMCU `.bin`. Physical flashing remains unverified.
 
 ### End-to-end smoke test without a D1 Mini
 
@@ -78,7 +75,7 @@ With the updated Windows Hub running and `Companion (HTTP)` selected,
 From the `hub` directory:
 
 ```powershell
-.\\scripts\\test-companion-http.ps1
+.\scripts\test-companion-http.ps1
 ```
 
 This verifies camera 1/2, camera 2/3, the 4-second timeout to UNKNOWN,
