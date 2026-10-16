@@ -1,0 +1,80 @@
+name: vTally Windows EXE smoke
+
+on:
+  push:
+    branches: [feat/companion-http-tally]
+    paths:
+      - 'hub/**'
+      - 'tally/src/**'
+      - '.github/workflows/hub-windows-smoke.yml'
+  pull_request:
+    paths:
+      - 'hub/**'
+      - 'tally/src/**'
+      - '.github/workflows/hub-windows-smoke.yml'
+
+jobs:
+  windows-exe:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: hub
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '16.20.2'
+      - name: Install Hub dependencies, including serialport
+        run: npm ci
+      - name: Run firmware and Hub unit tests
+        run: npm run test:ci -- --watchAll=false --runInBand
+      - name: Build Hub EXE and flashable ESP8266 firmware
+        run: npm run build:windows
+      - name: Check Windows firmware files and native dependency
+        run: |
+          if (-not (Test-Path 'dist/vtally.exe')) { throw 'vtally.exe was not created' }
+          $scripts = @(Get-ChildItem 'dist/esp8266' -File | Where-Object { $_.Extension -in @('.lua', '.lc') })
+          if ($scripts.Count -ne 8) { throw "Expected 8 firmware scripts, got $($scripts.Count)" }
+          if (-not (Test-Path 'dist/esp8266/init.lua')) { throw 'ESP8266 boot script missing' }
+          Write-Host "Firmware bundle OK: $($scripts.Name -join ', ')"
+      - name: Start packaged Hub and test firmware probe without ESP
+        run: |
+          $stdout = Join-Path $PWD 'dist/hub-smoke-out.log'
+          $stderr = Join-Path $PWD 'dist/hub-smoke-err.log'
+          $exe = Join-Path $PWD 'dist/vtally.exe'
+          $process = Start-Process -FilePath $exe -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 40; $i++) {
+              Start-Sleep -Milliseconds 500
+              if ($process.HasExited) { throw "Hub exited with code $($process.ExitCode)" }
+              try {
+                $null = Invoke-RestMethod -Uri 'http://127.0.0.1:3000/api/companion/tally' -TimeoutSec 2
+                $ready = $true
+                break
+              } catch {}
+            }
+            if (-not $ready) { throw 'Packaged Hub did not start on port 3000' }
+            # Ask the USB flasher to enumerate serial devices. No ESP is required;
+            # this loads nodemcu-tool and native serialport from inside pkg.
+            node -e "const s = require('socket.io-client')('http://127.0.0.1:3000'); const t = setTimeout(() => { console.error('flasher probe timeout'); process.exit(1) }, 10000); s.on('connect', () => s.emit('flasher.device.get')); s.on('flasher.device', d => { clearTimeout(t); console.log('flasher probe response', JSON.stringify(d)); s.disconnect(); process.exit(0) });"
+            if ($LASTEXITCODE -ne 0) { throw 'Serial flasher did not respond' }
+            Start-Sleep -Milliseconds 500
+            $logs = (Get-Content $stdout -Raw) + (Get-Content $stderr -Raw)
+            if ($logs -match 'Could not load the NodeMCU tool') { throw 'Native NodeMCU flasher failed to load inside the EXE' }
+            if ($logs -match 'Firmware unavailable') { throw 'Firmware files could not be found from the EXE' }
+          } finally {
+            if ($process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force }
+            Get-Content $stdout -ErrorAction SilentlyContinue
+            Get-Content $stderr -ErrorAction SilentlyContinue
+          }
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: vtally-windows-exe-with-esp8266-firmware
+          path: |
+            hub/dist/vtally.exe
+            hub/dist/frontend/**
+            hub/dist/esp8266/**
+          retention-days: 7
