@@ -1,0 +1,46 @@
+name: Modernization clean peer resolution and reproducible lockfile (diagnostic)
+on:
+  push:
+    branches: [feat/node24-modernization-poc]
+    paths:
+      - '.github/workflows/modernization-lockfile-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  proposal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: hub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Update compatible React fullscreen peer and declare maintained packer
+        run: |
+          node -e "const fs=require('fs');const f='package.json';const p=JSON.parse(fs.readFileSync(f));p.devDependencies['react-full-screen']='1.1.1';p.devDependencies['@yao-pkg/pkg']='6.23.0';delete p.devDependencies.pkg;p.engines.node='^24.0.0';p.engines.npm='>=10';fs.writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+      - name: Generate lockfile without forced peers or lifecycle scripts
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Exact locked install — no peer bypass
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify dependency tree
+        run: npm ls --depth=0
+      - name: Run existing TypeScript, Jest and frontend
+        run: |
+          npm run build:backend
+          npm run build:frontend
+          npm run test:ci
+      - name: Execute compiled frontend in Chrome
+        run: node scripts/check-production-browser.cjs
+      - name: Export reproducible manifest and lockfile together
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clean-dependency-peer-lockfile-proposal
+          path: |
+            hub/package.json
+            hub/package-lock.json
+          if-no-files-found: error
