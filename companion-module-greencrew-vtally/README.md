@@ -1,116 +1,108 @@
-# GreenCrew vTally — Bitfocus Companion 5 connection (prototype)
+# GreenCrew vTally Companion 5 module
 
-Local Companion module driving the vTally Hub over HTTP. Compatible with the
-new `Companion (HTTP)` mixer source in this fork. **No ESP8266 needed to
-test the control path:** use the Hub's existing Web Tally clients.
+Companion module for the vTally Hub `Companion (HTTP)` mixer connector.
+All communication with the Hub is loopback HTTP on the same machine; no direct
+OBS, ATEM, or vMix dependency is required. Hub forwards tally state to the
+configured Web/UDP tally clients.
 
-## Install on Windows for Companion 5.0.6
+## Version 0.3.0 (breaking configuration change)
 
-Use Node **22.20+ (22.x)** for this separate module (the legacy `hub/` build
-still uses Node 16). From the repo root:
+The old OBS-specific `sync_obs` action is intentionally **removed**.
+There is no compatibility layer. Existing triggers using that action must be
+reconfigured with the new `sync_sources` action.
+
+## Connection setup
+
+Create/edit the **GreenCrew vTally** connection in Companion:
+
+- **Local Hub HTTP port**: normally `3000`.
+- **Number of cameras**: integer from **1 to 8**, default **3**.
+
+Changing the number of cameras immediately rebuilds all action dropdowns,
+the source-mapping fields, feedback choices, module camera variables, and
+Program/Preview presets. For example, a 2-camera setup has only CAM 1 and
+CAM 2 throughout. Changing connection settings clears remembered tally states,
+preventing stale mappings from being carried into a different show configuration.
+
+The actual Web/UDP Tally-to-camera channel patch is configured separately in
+the vTally Hub, as before.
+
+## Universal Program + Preview synchronization
+
+For one source mixer, create a single Companion trigger that runs when the
+**current Program OR current Preview variable** changes. Leave conditions
+empty. Add one action:
+
+**GreenCrew vTally → Sync Program + Preview from Companion variables**
+
+Configure its two variable-valued fields from the source Companion connection
+(using the Companion variable selector, not feedback-derived Local Variables):
+
+- **Program source variable**: current PROGRAM scene/input name or number.
+- **Preview source variable**: current PREVIEW scene/input name or number.
+
+Then configure one mapping field for each camera:
+
+| Camera | Example from OBS | Example from ATEM or vMix |
+| --- | --- | --- |
+| CAM 1 | `Scena` | `5` |
+| CAM 2 | `Scena 2` | `7` |
+| CAM 3 | `Scena 3` | `9` |
+
+The numbers/names must match the values returned by the source module exactly.
+There is no OBS-specific logic; the same action handles any source exposing
+suitable Companion variables, including ATEM/vMix. Whether a mixer's reported
+PGM/PVW is the *final* output of a multi-device setup is a separate routing
+decision.
+
+**Example: OBS Studio Mode** (assuming connection ID `obs_local_2`):
+
+- Program variable: `$(obs_local_2:scene_active)`
+- Preview variable: `$(obs_local_2:scene_preview)`
+- Camera mapping: scene names matching OBS exactly
+- Events: `On variable change` of both of those variables
+
+Program and Preview are resolved into **one atomic snapshot**. Do not combine
+several independent Program/Preview triggers or feedback-derived local
+expressions: the latter were observed to report stale values in Companion
+during rapid scene switches.
+
+The module also offers direct manual Program, Preview, clear, TAKE and blackout
+actions, a full camera-ID snapshot action, confirmed-state feedbacks, and presets.
+They honor the connection's configured camera count.
+
+## Transport and safety
+
+The module sends a full snapshot on any requested state update and every
+**1 second** as heartbeat. The Hub's **4-second** watchdog reports UNKNOWN if
+snapshots stop arriving; it must not report a camera as safely OFF when the
+state is unknown. Unknown source names, duplicate mapping values and invalid
+camera IDs are errors; automatic source synchronization pauses heartbeat
+instead of pretending the camera is off-air.
+
+When the exact upstream connection state is lost but its variables remain
+cached, Companion may not fire another variable-change event. Monitor the
+upstream connection status separately for show-critical deployments.
+
+## Development and packaging
+
+This module uses Node **22.20+**; the older Hub build uses Node 16.
 
 ```powershell
-git pull --ff-only
-fnm install 22.20.0
-fnm use 22.20.0
-cd .\companion-module-greencrew-vtally
+cd companion-module-greencrew-vtally
 npm install
 npm run check
 npm test
 npm run package
 ```
 
-If `npm run package` fails, save the error log and use the existing
-**Generic HTTP Requests** connection until fixed. Do not change the
-legacy Hub's dependencies to fix this module.
+The latest greencrew-vtally Companion artifact is also built in GitHub Actions
+on the `feat/companion-http-tally` branch. Import the `.tgz` inside the artifact
+ZIP into Companion, then verify the module version is **0.3.0**.
 
-In the Companion Launcher, click the gear (Advanced Settings), select
-**Developer Modules Path** = the parent `wifi-tally` folder (the folder
-CONTAINING `companion-module-greencrew-vtally`, not the module folder
-itself), and enable **Developer Modules**. Restart/reload the launcher if
-necessary. Under Connections, look for **GreenCrew vTally** (dev).
-If the source folder is not accepted directly, import the output package
-created by `npm run package` through Companion's module-import UI.
+For a basic test, set the Hub mixer to **Companion (HTTP)**, create several
+Web Tallies with matching numbered channels, switch your source mixer, and
+inspect `GET http://127.0.0.1:3000/api/companion/tally`.
 
-In vTally select **Companion (HTTP)** as mixer; the Hub HTTP port is 3000.
-In the new Companion connection use port **3000**. The module connects to
-`127.0.0.1` only (same Windows computer).
-
-## Available functions
-
-- Actions: Program camera, Preview camera, clear camera, TAKE,
-  blackout, full Program/Preview snapshot (IDs 1–8).
-- Feedbacks: confirmed Program (red), Preview (green), connection status.
-- Variables: `connected`, `programs`, `previews`, `cam_1` .. `cam_8`.
-- Presets: preconfigured Program/Preview buttons for cameras 1–8 and
-  blackout.
-- Full snapshot heartbeat every **1 second**; Hub clears a stale tally
-  state when updates stop for **4 seconds**.
-
-The module's state comes from **its own actions**, not automatically from OBS
-or an ATEM. If you switch cameras outside these actions, additional
-Companion integration/triggers must relay the actual mixer's new state.
-Otherwise the tally does **not** faithfully reflect on-air status.
-
-### Test without hardware
-
-1. Start the rebuilt Hub `hub\dist\vtally.exe` and select Companion (HTTP).
-2. Add three **Web Tallies** in the Hub, assign one per channel 1, 2 and 3.
-3. Open their browser-based tally views and put them next to Companion.
-4. Hit the preset `CAM 1 PROGRAM` and `CAM 2 PREVIEW`. Observe red/green
-   in the Web Tallies and check `GET http://127.0.0.1:3000/api/companion/tally`.
-5. Shut down Companion (not the Hub); after about 4 seconds the Hub should
-   report `receiving:false` and the Program/Preview lists will be UNKNOWN (operator tally flashes blue).
-6. Restart Companion and check recovery. Test rapid Program changes too.
-
-**Fail-safe limitation:** signal loss means UNKNOWN physical on-air state;
-the Hub displays the warning state instead of pretending the camera is OFF. Never assume a blank lamp means
-it is safe to move an on-air camera.
-
-## Development status
-
-Prototype, not yet verified with a live Companion 5.0.6 installation or
-the actual D1 Mini and WS2812B modules. The existing generic HTTP
-integration remains a reliable fallback for control-path tests.
-
-## Recommended OBS automation: ONE trigger, TWO events, ONE action
-
-Do **not** try to track Program and Preview with six separate
-`Set Program camera` / `Set Preview camera` triggers. During a
-Studio Mode transition OBS changes both buses and separate triggers may
-briefly disagree.
-
-In **Companion → Triggers**, create just one enabled trigger:
-
-1. **Events** (either event starts the same trigger):
-   - `On variable change`: `obs_local_2:scene_active`
-   - `On variable change`: `obs_local_2:scene_preview`
-2. **Conditions**: **none**. We need every valid OBS scene change.
-3. **Actions**: `GreenCrew vTally: Sync Program + Preview from OBS scenes (atomic)`
-   - Current OBS Program scene: `$(obs_local_2:scene_active)`
-   - Current OBS Preview scene: `$(obs_local_2:scene_preview)`
-   - OBS scene name for CAM 1: enter the *exact real scene name* (e.g. `Scena 1`)
-   - CAM 2: exact name (e.g. `Scena 2`)
-   - CAM 3: exact name (e.g. `Scena 3`)
-
-`obs_local_2` is an example connection ID. Use the ID shown by your
-own OBS Companion connection. You can browse variables in the action
-fields rather than typing the expressions.
-
-**Use OBS Studio Mode** to get a meaningful independent Preview bus.
-Disable the old per-camera tally triggers while testing the new one.
-For a deterministic first test, switch scenes in OBS and verify that
-both `programs` and `previews` change together in
-`http://127.0.0.1:3000/api/companion/tally`.
-
-The action fields accept Companion variables via Module API 2.0 automatic
-resolution. The scene mapping is exact (case and punctuation matter):
-if an OBS scene is not mapped, the module **stops sending heartbeats**
-instead of silently reporting an on-air camera as OFF. The Hub will
-show the **UNKNOWN** tally warning after four seconds. To recover, fix
-the mapping or scene and re-run the trigger.
-
-**Limitation:** this detects scene changes, not physical camera status
-inside multi-source scenes. An OBS disconnect that leaves the old
-variables cached may not fire an event; additionally monitor the OBS
-connection state if needed for production use.
+This implementation has been tested with OBS via Companion and Web Tally.
+Hardware ESP/WS2812B, ATEM, and vMix have not yet been verified end-to-end.
