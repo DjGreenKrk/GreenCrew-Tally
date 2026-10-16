@@ -67,6 +67,7 @@
     "react-scripts": "4.0.1",
     "ts-node": "^9.0.0",
     "typescript": "4.4.4",
+    "vite": "6.4.4",
     "web-vitals": "^0.2.4"
   },
   "engines": {
