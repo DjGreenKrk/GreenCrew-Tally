@@ -26,7 +26,7 @@
     "build:windows": "npm run build:frontend && npm run build:backend && node scripts/package-windows.js",
     "build:tray": "npm run build:windows && electron-builder --win portable",
     "test": "react-scripts test",
-    "test:ci": "CI=true react-scripts test",
+    "test:ci": "cross-env CI=true react-scripts test",
     "cypress:open": "cypress open",
     "cypress:backend": "ts-node --project tsconfig.server.json src/server.ts --env=development --with-test",
     "lint": "eslint .",
