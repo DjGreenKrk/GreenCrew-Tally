@@ -4,6 +4,7 @@ on:
     branches: [feat/node24-modernization-poc]
     paths:
       - '.github/workflows/modernization-lockfile-probe.yml'
+      - 'hub/tsconfig*.json'
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,6 +29,8 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Verify dependency tree
         run: npm ls --depth=0
+      - name: Typecheck application separately
+        run: npx tsc --project tsconfig.json --noEmit
       - name: Run existing TypeScript, Jest and frontend
         run: |
           npm run build:backend
@@ -36,7 +39,7 @@ jobs:
       - name: Execute compiled frontend in Chrome
         run: node scripts/check-production-browser.cjs
       - name: Export reproducible manifest and lockfile together
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: clean-dependency-peer-lockfile-proposal
