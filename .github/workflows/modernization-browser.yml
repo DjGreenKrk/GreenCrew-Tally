@@ -1,0 +1,35 @@
+name: Modernization production Chromium smoke
+on:
+  push:
+    branches: [feat/node24-modernization-poc]
+    paths:
+      - 'hub/src/**'
+      - 'hub/index.html'
+      - 'hub/vite.config.mjs'
+      - 'hub/scripts/check-production-browser.cjs'
+      - '.github/workflows/modernization-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  production-javascript:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: hub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: hub/package-lock.json
+      - name: Assert installed Chromium
+        run: google-chrome --version
+      - name: Install baseline lockfile (known transitional peer conflict E3)
+        run: npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - name: Build production JS and CSS
+        run: npm run build:frontend
+      - name: Execute actual production JS and routes in Chrome
+        run: node scripts/check-production-browser.cjs
