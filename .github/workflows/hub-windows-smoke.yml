@@ -40,7 +40,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Node header preload failed' }
           npm ci --legacy-peer-deps --foreground-scripts
       - name: Run firmware and Hub unit tests
-        run: npm run test:ci -- --watchAll=false --runInBand
+        env:
+          CI: 'true'
+        run: npx react-scripts test --watchAll=false --runInBand
       - name: Build Hub EXE and flashable ESP8266 firmware
         run: npm run build:windows
       - name: Check Windows firmware files and native dependency
