@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: '16.20.2'
       - name: Install Hub dependencies, including serialport
-        run: npm ci
+        run: npm ci --legacy-peer-deps
       - name: Run firmware and Hub unit tests
         run: npm run test:ci -- --watchAll=false --runInBand
       - name: Build Hub EXE and flashable ESP8266 firmware
