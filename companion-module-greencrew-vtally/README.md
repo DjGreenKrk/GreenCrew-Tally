@@ -59,11 +59,11 @@ Otherwise the tally does **not** faithfully reflect on-air status.
 4. Hit the preset `CAM 1 PROGRAM` and `CAM 2 PREVIEW`. Observe red/green
    in the Web Tallies and check `GET http://127.0.0.1:3000/api/companion/tally`.
 5. Shut down Companion (not the Hub); after about 4 seconds the Hub should
-   report `receiving:false` and clear the Program/Preview lists.
+   report `receiving:false` and the Program/Preview lists will be UNKNOWN (operator tally flashes blue).
 6. Restart Companion and check recovery. Test rapid Program changes too.
 
-**Fail-safe limitation:** signal loss means UNKNOWN physical on-air state,
-even if the Hub blanks the displayed tally. Never assume a blank lamp means
+**Fail-safe limitation:** signal loss means UNKNOWN physical on-air state;
+the Hub displays the warning state instead of pretending the camera is OFF. Never assume a blank lamp means
 it is safe to move an on-air camera.
 
 ## Development status
