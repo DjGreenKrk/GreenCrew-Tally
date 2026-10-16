@@ -46,6 +46,12 @@ jobs:
         run: npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund
       - name: Run all 276 Jest tests
         run: npm run test:ci
+      - name: Reject Node EventEmitter imports in browser modules
+        run: |
+          if grep -R -n -E "from ['\"](node:)?events['\"]|require\\(['\"](node:)?events['\"]\\)" src/hooks src/lib/DisconnectedClientSideSocket.ts; then
+            echo 'Node EventEmitter imports remain in browser-side hooks' >&2
+            exit 1
+          fi
       - name: Build backend and Vite frontend
         run: |
           npm run build:backend
