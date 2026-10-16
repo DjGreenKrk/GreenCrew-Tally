@@ -1,12 +1,13 @@
-import { CAMERA_IDS, cameraMode } from './state.js'
+import { cameraMode } from './state.js'
 
 export function defineFeedbacks(self) {
+    const ids = self.getCameraIds()
     const cameraOption = () => ({
         type: 'dropdown',
         id: 'camera',
         label: 'Camera',
-        default: '1',
-        choices: CAMERA_IDS.map(id => ({ id, label: `CAM ${id}` })),
+        default: ids[0],
+        choices: ids.map(id => ({ id, label: `CAM ${id}` })),
     })
     self.setFeedbackDefinitions({
         program: {
@@ -34,21 +35,23 @@ export function defineFeedbacks(self) {
 }
 
 export function defineVariables(self) {
+    const ids = self.getCameraIds()
     self.setVariableDefinitions({
         connected: { name: 'Hub communication (1/0)' },
         programs: { name: 'Confirmed Program camera IDs' },
         previews: { name: 'Confirmed Preview camera IDs' },
-        ...Object.fromEntries(CAMERA_IDS.map(id => [`cam_${id}`, { name: `Camera ${id} state` }])),
+        ...Object.fromEntries(ids.map(id => [`cam_${id}`, { name: `Camera ${id} state` }])),
     })
 }
 
 export function updateIndicators(self) {
+    const ids = self.getCameraIds()
     const state = self.confirmed
     self.setVariableValues({
         connected: state ? '1' : '0',
         programs: state ? state.programs.join(',') : '',
         previews: state ? state.previews.join(',') : '',
-        ...Object.fromEntries(CAMERA_IDS.map(id => [`cam_${id}`, state ? cameraMode(state, id) : 'unknown'])),
+        ...Object.fromEntries(ids.map(id => [`cam_${id}`, state ? cameraMode(state, id) : 'unknown'])),
     })
     self.checkFeedbacks('program', 'preview', 'connected')
 }
