@@ -39,9 +39,31 @@ console.log('Bundled complete ESP8266 firmware: ' +
   (hasCompleteCompiledFirmware ? 'precompiled .lc' : 'raw .lua') +
   ' in ' + firmwareDir)
 
+// nodemcu-tool depends on the native serialport bindings addon. pkg follows
+// JS requires but needs a separate hint for dynamically resolved .node files.
+const serialportBindings = path.join(projectDir, 'node_modules', '@serialport', 'bindings')
+function findNativeAddons(directory) {
+  if (!fs.existsSync(directory)) return []
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+    const filename = path.join(directory, entry.name)
+    if (entry.isDirectory()) return findNativeAddons(filename)
+    return entry.isFile() && entry.name.endsWith('.node') ? [filename] : []
+  })
+}
+const nativeAddons = findNativeAddons(serialportBindings)
+if (!nativeAddons.length) {
+  throw new Error('NodeMCU flasher requires serialport native bindings, but no .node addon was installed. Reinstall dependencies with Node 16 before building.')
+}
+console.log('Including native serialport addon(s): ' + nativeAddons.map(file => path.relative(projectDir, file)).join(', '))
+
+const pkgArgs = [
+  'pkg', 'dist/server.js', '--targets', 'node16-win-x64',
+  '--output', 'dist/vtally.exe',
+  '--assets', nativeAddons.map(file => path.relative(projectDir, file).replace(/\\/g, '/')).join(','),
+]
 const result = spawnSync(
   process.platform === 'win32' ? 'npx.cmd' : 'npx',
-  ['pkg', 'dist/server.js', '--targets', 'node16-win-x64', '--output', 'dist/vtally.exe'],
+  pkgArgs,
   { cwd: projectDir, stdio: 'inherit' },
 )
 
