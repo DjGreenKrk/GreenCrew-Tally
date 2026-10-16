@@ -50,5 +50,10 @@ jobs:
         run: node scripts/check-vite-output.cjs
       - name: Verify SPA routes over HTTP
         run: node scripts/check-vite-preview.cjs
-      # Deliberately no pkg/EXE step: pkg targets Node 16 and native
-      # serialport/NodeMCU compatibility needs to be established first.
+      - name: Probe native NodeMCU serialport on Node 24
+        run: |
+          node -e "const p=require('@serialport/bindings'); console.log('Native serialport bindings loaded:', typeof p)"
+      - name: Probe MIDI native module on Node 24
+        run: |
+          node -e "const midi=require('midi'); console.log('Native MIDI loaded:', typeof midi.Input, typeof midi.Output)"
+      # EXE packaging is intentionally separate until the Node 24 native probes pass.
