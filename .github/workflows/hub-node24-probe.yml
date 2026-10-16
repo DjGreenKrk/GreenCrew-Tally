@@ -41,10 +41,10 @@ jobs:
       - name: Run Hub unit tests
         env:
           CI: 'true'
-        run: npx react-scripts test --watchAll=false --runInBand
+        run: npm run test:ci -- --watchAll=false --runInBand
       - name: Compile Hub backend
         run: npm run build:backend
-      - name: Compile experimental Vite frontend
+      - name: Compile production Vite frontend
         run: npm run build:frontend
       - name: Verify Vite bundle output
         run: node scripts/check-vite-output.cjs
