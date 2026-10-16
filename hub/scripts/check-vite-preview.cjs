@@ -5,8 +5,8 @@ const path = require('node:path')
 const port = 4179
 const host = '127.0.0.1'
 const base = `http://${host}:${port}`
-const command = process.platform === 'win32' ? 'npx.cmd' : 'npx'
-const child = spawn(command, ['--yes', 'vite@6.4.4', 'preview', '--host', host, '--port', String(port), '--strictPort'], {
+const command = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+const child = spawn(command, ['run', 'preview:frontend', '--', '--host', host, '--port', String(port), '--strictPort'], {
   cwd: path.resolve(__dirname, '..'),
   stdio: ['ignore', 'pipe', 'pipe'],
   shell: process.platform === 'win32',
