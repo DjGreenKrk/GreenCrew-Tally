@@ -1,8 +1,9 @@
-import { CAMERA_IDS, program, preview, cameraOff, take, blackout, snapshot, snapshotFromScenes } from './state.js'
+import { program, preview, cameraOff, take, blackout, snapshot, snapshotFromSources } from './state.js'
 
 export function defineActions(self) {
-    const cameras = CAMERA_IDS.map(id => ({ id, label: `CAM ${id}` }))
-    const cameraOption = () => ({ type: 'dropdown', id: 'camera', label: 'Camera', default: '1', choices: cameras })
+    const cameraIds = self.getCameraIds()
+    const cameras = cameraIds.map(id => ({ id, label: `CAM ${id}` }))
+    const cameraOption = () => ({ type: 'dropdown', id: 'camera', label: 'Camera', default: cameraIds[0], choices: cameras })
 
     self.setActionDefinitions({
         program: {
@@ -30,26 +31,29 @@ export function defineActions(self) {
             options: [],
             callback: () => self.setDesired(blackout()),
         },
-        sync_obs: {
-            name: 'Sync Program + Preview from OBS scenes (atomic)',
-            description: 'Use a single Companion trigger with two variable-change events: scene_active and scene_preview. Maps both current scene names into one tally snapshot.',
+        sync_sources: {
+            name: 'Sync Program + Preview from Companion variables',
+            description: 'Map the resolved Program and Preview values of any Companion connection (ATEM, vMix, OBS, etc.) to vTally camera numbers in one complete snapshot.',
             options: [
-                { type: 'textinput', id: 'programScene', label: 'Current OBS Program scene (variable)', default: '$(obs_local_2:scene_active)', useVariables: true },
-                { type: 'textinput', id: 'previewScene', label: 'Current OBS Preview scene (variable)', default: '$(obs_local_2:scene_preview)', useVariables: true },
-                { type: 'textinput', id: 'camera1', label: 'OBS scene name for CAM 1', default: 'Scene - 1' },
-                { type: 'textinput', id: 'camera2', label: 'OBS scene name for CAM 2', default: 'Scene - 2' },
-                { type: 'textinput', id: 'camera3', label: 'OBS scene name for CAM 3', default: 'Scene - 3' },
+                { type: 'textinput', id: 'programSource', label: 'Program source variable', default: '', useVariables: true },
+                { type: 'textinput', id: 'previewSource', label: 'Preview source variable', default: '', useVariables: true },
+                ...cameraIds.map(id => ({
+                    type: 'textinput',
+                    id: `source_${id}`,
+                    label: `Value identifying CAM ${id}`,
+                    default: id,
+                    description: 'Exact source value (scene name, input number or input name) returned by the selected connection',
+                })),
             ],
             callback: event => {
                 try {
                     const options = event.options
-                    const state = snapshotFromScenes(options.programScene, options.previewScene, [
-                        options.camera1, options.camera2, options.camera3,
-                    ])
+                    const mapped = cameraIds.map(id => options[`source_${id}`])
+                    const state = snapshotFromSources(options.programSource, options.previewSource, mapped)
                     self.setDesired(state)
                 } catch (error) {
                     const message = String(error.message || error)
-                    self.log('error', `OBS tally sync stopped: ${message}`)
+                    self.log('error', `Source synchronization failed: ${message}`)
                     self.markSourceInvalid(message)
                 }
             },
@@ -64,7 +68,9 @@ export function defineActions(self) {
                 try {
                     self.setDesired(snapshot(event.options.programs, event.options.previews))
                 } catch (error) {
-                    self.log('error', String(error.message || error))
+                    const message = String(error.message || error)
+                    self.log('error', `Invalid snapshot: ${message}`)
+                    self.markSourceInvalid(message)
                 }
             },
         },
