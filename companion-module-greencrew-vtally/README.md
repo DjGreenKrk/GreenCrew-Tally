@@ -11,6 +11,7 @@ still uses Node 16). From the repo root:
 
 ```powershell
 git pull --ff-only
+fnm install 24.19.0
 fnm use 24.19.0
 cd .\companion-module-greencrew-vtally
 npm install
