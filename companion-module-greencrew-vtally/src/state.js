@@ -63,14 +63,15 @@ export function cameraMode(state, camera) {
  * Refuse unknown scene names: treating an unmapped on-air scene as OFF would
  * be dangerous. The caller should stop heartbeats so Hub reports UNKNOWN.
  */
-export function snapshotFromScenes(programScene, previewScene, sceneNames) {
+export function snapshotFromSources(programScene, previewScene, sceneNames) {
+    const ids = configuredCameraIds(sceneNames.length)
     const normalize = value => String(value ?? '').trim()
     const sceneToId = new Map()
     for (const [i, name] of sceneNames.entries()) {
-        const id = cameraId(i + 1)
+        const id = ids[i]
         const value = normalize(name)
         if (!value) continue
-        if (sceneToId.has(value)) throw new Error(`Duplicate OBS scene mapping: "${value}"`)
+        if (sceneToId.has(value)) throw new Error(`Duplicate source mapping: "${value}"`)
         sceneToId.set(value, id)
     }
 
@@ -78,10 +79,10 @@ export function snapshotFromScenes(programScene, previewScene, sceneNames) {
         const value = normalize(name)
         if (!value) {
             if (bus === 'Preview') return []
-            throw new Error('OBS Program scene is empty or unavailable')
+            throw new Error('Program source is empty or unavailable')
         }
         const id = sceneToId.get(value)
-        if (!id) throw new Error(`Unmapped OBS ${bus} scene: "${value}"`)
+        if (!id) throw new Error(`Unmapped ${bus} source: "${value}"`)
         return [id]
     }
 
@@ -89,4 +90,12 @@ export function snapshotFromScenes(programScene, previewScene, sceneNames) {
         programs: resolveScene(programScene, 'Program'),
         previews: resolveScene(previewScene, 'Preview'),
     }
+}
+
+export function validateConfiguredState(state, cameraCount) {
+    const allowed = new Set(configuredCameraIds(cameraCount))
+    for (const id of [...state.programs, ...state.previews]) {
+        if (!allowed.has(id)) throw new Error('Camera ' + id + ' is outside the configured camera count')
+    }
+    return state
 }
