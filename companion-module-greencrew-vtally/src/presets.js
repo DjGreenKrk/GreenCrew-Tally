@@ -1,9 +1,8 @@
-import { CAMERA_IDS } from './state.js'
-
 // API 2.x presets are draggable onto the Companion button grid.
 export function definePresets(self) {
     const presets = {}
-    for (const id of CAMERA_IDS) {
+    const ids = self.getCameraIds()
+    for (const id of ids) {
         for (const mode of ['program', 'preview']) {
             const key = `${mode}_${id}`
             presets[key] = {
@@ -32,8 +31,8 @@ export function definePresets(self) {
         feedbacks: [],
     }
     self.setPresetDefinitions([
-        { id: 'program', name: 'Program', definitions: CAMERA_IDS.map(id => `program_${id}`) },
-        { id: 'preview', name: 'Preview', definitions: CAMERA_IDS.map(id => `preview_${id}`) },
+        { id: 'program', name: 'Program', definitions: ids.map(id => `program_${id}`) },
+        { id: 'preview', name: 'Preview', definitions: ids.map(id => `preview_${id}`) },
         { id: 'utility', name: 'Utility', definitions: ['blackout'] },
     ], presets)
 }
