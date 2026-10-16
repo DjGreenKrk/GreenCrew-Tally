@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/finalize-jest-migration.yml'
       - 'hub/src/lib/DisconnectedClientSideSocket.ts'
+      - 'hub/src/hooks/useSocket.ts'
       - 'hub/vite.config.mjs'
   workflow_dispatch:
 
