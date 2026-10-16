@@ -21,7 +21,7 @@ jobs:
           node-version: '24'
       - name: Update compatible React fullscreen peer and declare maintained packer
         run: |
-          node -e "const fs=require('fs');const f='package.json';const p=JSON.parse(fs.readFileSync(f));p.devDependencies['react-full-screen']='1.1.1';p.devDependencies['@yao-pkg/pkg']='6.23.0';delete p.devDependencies.pkg;p.engines.node='^24.0.0';p.engines.npm='>=10';fs.writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+          node -e "const fs=require('fs');const f='package.json';const p=JSON.parse(fs.readFileSync(f));p.devDependencies['react-full-screen']='1.1.1';p.devDependencies['typescript']='6.0.3';p.devDependencies['@types/node']='^24.0.0';p.devDependencies['@yao-pkg/pkg']='6.23.0';delete p.devDependencies.pkg;p.engines.node='^24.0.0';p.engines.npm='>=10';fs.writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
       - name: Generate lockfile without forced peers or lifecycle scripts
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Exact locked install — no peer bypass
