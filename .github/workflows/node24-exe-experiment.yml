@@ -13,7 +13,6 @@ on:
 jobs:
   node24-exe-experiment:
     runs-on: windows-2022
-    continue-on-error: true
     defaults:
       run:
         working-directory: hub
@@ -36,19 +35,19 @@ jobs:
         run: |
           npm run build:backend
           npm run build:frontend
-      - name: Install maintained pkg fork without changing lockfile
-        run: npm install --no-save --legacy-peer-deps --ignore-scripts --no-audit --no-fund @yao-pkg/pkg
-      - name: Attempt Node 24 EXE build
+      - name: Build real Node 24 EXE with firmware and native bindings
+        run: node scripts/package-windows.js
+      - name: Verify firmware and EXE outputs
         run: |
-          New-Item -ItemType Directory -Force dist | Out-Null
-          npx --no-install @yao-pkg/pkg dist/server.js --targets node24-win-x64 --output dist/vtally-node24-experimental.exe
-      - name: Confirm executable was generated
-        run: |
-          if (-not (Test-Path 'dist/vtally-node24-experimental.exe')) { throw 'Node 24 EXE missing' }
-          Get-Item dist/vtally-node24-experimental.exe | Select-Object Name,Length
+          if (-not (Test-Path 'dist/vtally.exe')) { throw 'Node 24 EXE missing' }
+          $firmware = @(Get-ChildItem 'dist/esp8266' -File | Where-Object { $_.Extension -in @('.lua', '.lc') })
+          if ($firmware.Count -ne 8) { throw "Expected 8 firmware files, got $($firmware.Count)" }
+          Get-Item dist/vtally.exe | Select-Object Name,Length
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: vtally-node24-experimental-exe
-          path: hub/dist/vtally-node24-experimental.exe
+          name: vtally-node24-exe-and-firmware
+          path: |
+            hub/dist/vtally.exe
+            hub/dist/esp8266/**
           retention-days: 7
