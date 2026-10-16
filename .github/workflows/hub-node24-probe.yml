@@ -45,7 +45,7 @@ jobs:
       - name: Compile Hub backend
         run: npm run build:backend
       - name: Compile experimental Vite frontend
-        run: npx --yes vite@6 build
+        run: npm run build:frontend
       - name: Verify Vite bundle output
         run: node scripts/check-vite-output.cjs
       - name: Verify SPA routes over HTTP
