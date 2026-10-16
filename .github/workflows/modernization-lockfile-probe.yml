@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/modernization-lockfile-probe.yml'
       - 'hub/tsconfig*.json'
+      - 'hub/src/tally/TallyConfiguration.ts'
   workflow_dispatch:
 permissions:
   contents: read

@@ -13,16 +13,17 @@ export type TallyConfigurationObjectType = {
  * representation of the default values if an individual tally does not override them
  */
 export class DefaultTallyConfiguration {
+  // Declare static defaults before instance field initializers for TypeScript 6.
+  static readonly defaultColorScheme : ColorSchemeId = DefaultColorScheme.id
+  static readonly minOperatorLightBrightness = 1
+  static readonly defaultBrightness = 100
+
   private _stageLightBrightness: number = DefaultTallyConfiguration.defaultBrightness
   private _stageColorScheme: ColorSchemeId = DefaultTallyConfiguration.defaultColorScheme
   private _operatorLightBrightness?: number = DefaultTallyConfiguration.defaultBrightness
   private _operatorColorScheme: ColorSchemeId = DefaultTallyConfiguration.defaultColorScheme
   private _stageShowsPreview: boolean = true
   private _operatorShowsIdle: boolean = true
-
-  static readonly defaultColorScheme : ColorSchemeId = DefaultColorScheme.id
-  static readonly minOperatorLightBrightness = 1
-  static readonly defaultBrightness = 100
 
   getStageLightBrightness() { return this._stageLightBrightness }
   setStageLightBrightness(value: number) { 
