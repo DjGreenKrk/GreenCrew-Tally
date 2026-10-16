@@ -33,12 +33,12 @@ try{
   fs.writeFileSync(path.join(ts,'eslint.config.cjs'),"module.exports=require('typescript-eslint').configs.recommended;\n")
   fs.writeFileSync(path.join(ts,'test.test.ts'),'test("TS",()=>{const n:number=3;expect(n).toBe(3)})\n')
   fs.writeFileSync(path.join(ts,'jest.config.cjs'),"module.exports={testEnvironment:'node',testMatch:['<rootDir>/test.test.ts'],transform:{'^.+\\\\.tsx?$':['babel-jest',{presets:['@babel/preset-env','@babel/preset-typescript']}]}};\n")
-  add('TS6 TSX compile',run(process.execPath,[path.join(ts,'node_modules/typescript/bin/tsc'),'--noEmit','--jsx','react-jsx','--moduleResolution','node','--target','ES2022','--skipLibCheck','probe.tsx'],ts))
+  add('TS6 TSX compile',run(process.execPath,[path.join(ts,'node_modules/typescript/bin/tsc'),'--noEmit','--jsx','react-jsx','--moduleResolution','nodenext','--module','nodenext','--target','ES2022','--skipLibCheck','probe.tsx'],ts))
   add('ESLint flat TypeScript',run(process.execPath,[path.join(ts,'node_modules/eslint/bin/eslint.js'),'probe.tsx'],ts))
   add('Jest Babel TS',run(process.execPath,[path.join(ts,'node_modules/jest/bin/jest.js'),'--config','jest.config.cjs','--runInBand'],ts))
  }
  const nat=path.join(tmp,'native')
- const ni=install(nat,['serialport@latest','midi@latest','escape-string-regexp@latest','@yao-pkg/pkg@latest'])
+ const ni=install(nat,['serialport@latest','midi@latest','escape-string-regexp@latest','@yao-pkg/pkg@latest','esbuild@latest'])
  add('native ESM packer install',ni)
  if(ni.code===0){
   fs.writeFileSync(path.join(nat,'probe.cjs'),[
@@ -53,6 +53,48 @@ try{
   "})().catch(e=>{console.error(e.stack||e);process.exitCode=1})"
   ].join('\n'))
   add('Node24 ESM+native enumeration',run(process.execPath,['probe.cjs'],nat))
+  // Distinguish ESM-in-snapshot failure from native addon failure: package
+  // independent native-only and prebundled ESM+native candidates.
+  if(process.platform==='win32'){
+   const pkgCli=path.join(nat,'node_modules/@yao-pkg/pkg/lib-es5/bin.js')
+   const isolated=path.join(tmp,'native-only-isolated')
+   fs.mkdirSync(isolated)
+   fs.writeFileSync(path.join(nat,'native-only.cjs'), [
+    "'use strict';",
+    "(async()=>{",
+    "const serial=require('serialport'),midi=require('midi');",
+    "const ports=await serial.SerialPort.list();",
+    "const input=new midi.Input(),count=input.getPortCount();",
+    "if(input.closePort)input.closePort();",
+    "console.log('E1_NATIVE='+JSON.stringify({runtime:process.version,ports:ports.map(x=>x.path),midi:count,packaged:!!process.pkg}))",
+    "})().catch(e=>{console.error(e.stack||e);process.exitCode=1})"
+   ].join('\n'))
+   const nativeExe=path.join(nat,'native-only.exe')
+   const nativeBuild=run(process.execPath,[pkgCli,'native-only.cjs','--targets','node24-win-x64','--output',nativeExe],nat)
+   add('pkg native-only build',nativeBuild)
+   if(nativeBuild.code===0){
+    fs.copyFileSync(nativeExe,path.join(isolated,'native-only.exe'))
+    add('isolated EXE native-only enumerations',run(path.join(isolated,'native-only.exe'),[],isolated,90000))
+   }
+   const bundled=path.join(nat,'bundled.cjs')
+   const bundle=run(process.execPath,[
+     path.join(nat,'node_modules/esbuild/bin/esbuild'),'probe.cjs',
+     '--bundle','--platform=node','--format=cjs','--target=node24',
+     '--external:serialport','--external:midi','--outfile=bundled.cjs'
+   ],nat)
+   add('bundle ESM-only dependency into CommonJS backend',bundle)
+   if(bundle.code===0){
+    const bundExe=path.join(nat,'bundled.exe')
+    const pack=run(process.execPath,[pkgCli,'bundled.cjs','--targets','node24-win-x64','--output',bundExe],nat)
+    add('pkg prebundled ESM+native build',pack)
+    if(pack.code===0){
+     const iso=path.join(tmp,'bundled-isolated')
+     fs.mkdirSync(iso)
+     fs.copyFileSync(bundExe,path.join(iso,'bundled.exe'))
+     add('isolated EXE prebundled ESM+native',run(path.join(iso,'bundled.exe'),[],iso,90000))
+    }
+   }
+  }
   if(process.platform==='win32'){
    const exe=path.join(nat,'probe.exe')
    const pk=run(process.execPath,[path.join(nat,'node_modules/@yao-pkg/pkg/lib-es5/bin.js'),'probe.cjs','--targets','node24-win-x64','--output',exe],nat)
