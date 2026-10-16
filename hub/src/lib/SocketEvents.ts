@@ -96,7 +96,9 @@ export interface ServerSideSocket {
         event: EventName,
         listener: ClientSentEvents[EventName]
     ): this
-    on(event: "disconnect", listener: () => void) // @TODO: shouldn't this be defined in the parent?
+    on(event: "disconnect", listener: () => void): this
+
+    off(event: "disconnect", listener: () => void): this
 
     off<EventName extends keyof ClientSentEvents>(
         event: EventName,
