@@ -54,8 +54,8 @@ async function run() {
     const response = await fetch(base + route, { signal: abort.signal })
     assert.equal(response.status, 200, `HTTP status for ${route}`)
     const html = await response.text()
-    assert.match(html, /<div id="root"><\\/div>/, `React root missing at ${route}`)
-    assert.match(html, /<script[^>]+src="\\/assets\\//, `Bundle missing at ${route}`)
+    assert.ok(html.includes('<div id="root"></div>'), `React root missing at ${route}`)
+    assert.ok(html.includes('src="/assets/'), `Bundle missing at ${route}`)
   }
   console.log('Vite preview SPA routes smoke check passed')
 }
