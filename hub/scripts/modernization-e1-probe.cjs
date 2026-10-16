@@ -6,8 +6,12 @@ fs.mkdirSync(out,{recursive:true})
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'vtally-e1-'))
 const report={platform:process.platform,node:process.version,at:new Date().toISOString(),checks:[]}
 const npm=process.platform==='win32'?'npm.cmd':'npm'
+// Node 24 on Windows does not reliably spawn .cmd files directly (EINVAL).
+// Invoke the Windows command interpreter explicitly, as in the Hub's CI packaging scripts.
 function run(bin,args,cwd=tmp,timeout=600000){
- const r=cp.spawnSync(bin,args,{cwd,encoding:'utf8',timeout,maxBuffer:1024*1024*4,windowsHide:true})
+ const shellArgs=(process.platform==='win32' && bin===npm) ? ['/d','/c','npm',...args] : args
+ const executable=(process.platform==='win32' && bin===npm) ? (process.env.ComSpec||'cmd.exe') : bin
+ const r=cp.spawnSync(executable,shellArgs,{cwd,encoding:'utf8',timeout,maxBuffer:1024*1024*4,windowsHide:true})
  return {command:[bin,...args].join(' '),code:r.status,error:r.error&&String(r.error),stdout:(r.stdout||'').slice(-9000),stderr:(r.stderr||'').slice(-9000)}
 }
 function add(name,r){report.checks.push({name,...r});console.log(name+': '+(r.code===0?'OK':'BLOCKED'))}
