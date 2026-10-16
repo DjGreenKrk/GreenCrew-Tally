@@ -31,3 +31,14 @@ The first milestone is to establish whether the **existing Hub source** installs
 ## Rollback
 
 Keep `feat/companion-http-tally` unchanged as the working baseline. The migration branch is experimental. A failed compatibility probe is an expected diagnostic result, not grounds to suppress the job or weaken the acceptance gates.
+
+## Node 24 probe result — 2026-10-16
+
+GitHub Actions run [38933024577](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38933024577/job/117081477811) completed with a frontend build failure on Node.js 24.21.0:
+
+- `npm ci --legacy-peer-deps --foreground-scripts`: passed.
+- Hub unit tests: 30 suites passed, 276 tests passed, 1 skipped.
+- `npm run build:backend`: passed.
+- `npm run build:frontend`: failed with `ERR_OSSL_EVP_UNSUPPORTED` in `webpack/lib/util/createHash.js` from the `react-scripts@4` toolchain.
+
+**Conclusion:** the first confirmed blocker is the old Webpack 4 / OpenSSL hashing path, not backend TypeScript compilation. Do not permanently enable `--openssl-legacy-provider` merely to make CI green. Migrate the frontend bundler (preferably Vite), then rerun the same probe. Successful npm install does **not** prove native serialport upload or Windows EXE packaging on Node 24.
