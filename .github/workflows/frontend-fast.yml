@@ -32,7 +32,7 @@ jobs:
   frontend:
     name: Frontend build and HTTP smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
     defaults:
       run:
         working-directory: hub
@@ -50,4 +50,5 @@ jobs:
       - name: Verify emitted frontend assets
         run: node scripts/check-vite-output.cjs
       - name: Verify frontend SPA routes over HTTP
+        timeout-minutes: 2
         run: node scripts/check-vite-preview.cjs
