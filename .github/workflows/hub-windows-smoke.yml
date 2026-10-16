@@ -35,8 +35,7 @@ jobs:
           python --version
           # npm ci may build midi and serialport in parallel. Fetch Node 16
           # headers first to avoid races writing the same node-gyp cache.
-          $gyp = Join-Path (npm root -g) 'npm/node_modules/node-gyp/bin/node-gyp.js'
-          node $gyp install --target=16.20.2
+          npx --yes node-gyp@9.1.0 install --target=16.20.2
           if ($LASTEXITCODE -ne 0) { throw 'Node header preload failed' }
           npm ci --legacy-peer-deps --foreground-scripts
       - name: Run firmware and Hub unit tests
