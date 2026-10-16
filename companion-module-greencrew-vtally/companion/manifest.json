@@ -4,7 +4,7 @@
   "name": "GreenCrew vTally",
   "shortname": "vTally",
   "description": "Local HTTP Program/Preview tally bridge to vTally Hub",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": "MIT",
   "repository": "git+https://github.com/DjGreenKrk/wifi-tally.git",
   "bugs": "https://github.com/DjGreenKrk/wifi-tally/issues",
