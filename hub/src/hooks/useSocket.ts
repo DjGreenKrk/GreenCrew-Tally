@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import io from 'socket.io-client'
-import {EventEmitter} from 'events'
+import { EventEmitter } from '../lib/DisconnectedClientSideSocket'
 import { ClientSentEvents, ClientSideSocket } from '../lib/SocketEvents'
 import DisconnectedClientSideSocket from '../lib/DisconnectedClientSideSocket'
 
