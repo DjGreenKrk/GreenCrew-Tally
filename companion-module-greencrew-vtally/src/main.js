@@ -14,6 +14,7 @@ export default class GreenCrewVTally extends InstanceBase {
         this.running = false
         this.sending = false
         this.pending = false
+        this.sourceValid = true
         this.lastError = ''
         this.heartbeat = null
     }
@@ -40,6 +41,7 @@ export default class GreenCrewVTally extends InstanceBase {
     async configUpdated(config) {
         this.config = config
         this.desired = blackout()
+        this.sourceValid = true
         this.confirmed = null
         updateIndicators(this)
         this.send()
@@ -58,7 +60,20 @@ export default class GreenCrewVTally extends InstanceBase {
         return `http://127.0.0.1:${port}/api/companion/tally`
     }
 
+    markSourceInvalid(message) {
+        // Do not send a remembered Program/Preview snapshot forever if the
+        // OBS source is unknown. With no heartbeats the Hub transitions to
+        // UNKNOWN after its four-second watchdog.
+        this.sourceValid = false
+        this.pending = false
+        this.confirmed = null
+        this.lastError = message
+        this.updateStatus(InstanceStatus.ConnectionFailure, message)
+        updateIndicators(this)
+    }
+
     setDesired(state) {
+        this.sourceValid = true
         this.desired = { programs: [...state.programs], previews: [...state.previews] }
         this.send()
     }
@@ -66,10 +81,10 @@ export default class GreenCrewVTally extends InstanceBase {
     // Single in-flight POST ensures rapid button presses cannot reorder snapshots.
     async send() {
         this.pending = true
-        if (!this.running || this.sending) return
+        if (!this.running || !this.sourceValid || this.sending) return
         this.sending = true
         try {
-            while (this.running && this.pending) {
+            while (this.running && this.sourceValid && this.pending) {
                 this.pending = false
                 const state = { programs: [...this.desired.programs], previews: [...this.desired.previews] }
                 try {
@@ -82,7 +97,7 @@ export default class GreenCrewVTally extends InstanceBase {
                     if (!response.ok) throw new Error(`Hub responded HTTP ${response.status}`)
                     const result = await response.json()
                     if (!result.active) throw new Error('Select Companion (HTTP) as the Hub mixer')
-                    if (!this.running) return
+                    if (!this.running || !this.sourceValid) return
                     if (!this.pending) {
                         this.confirmed = state
                         this.lastError = ''
