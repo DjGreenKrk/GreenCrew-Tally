@@ -1,0 +1,53 @@
+name: Frontend fast CI
+
+on:
+  push:
+    branches: [feat/node24-modernization-poc]
+    paths:
+      - 'hub/src/**'
+      - 'hub/public/**'
+      - 'hub/index.html'
+      - 'hub/vite.config.mjs'
+      - 'hub/scripts/check-vite-*.cjs'
+      - 'hub/package.json'
+      - 'hub/package-lock.json'
+      - '.github/workflows/frontend-fast.yml'
+  pull_request:
+    paths:
+      - 'hub/src/**'
+      - 'hub/public/**'
+      - 'hub/index.html'
+      - 'hub/vite.config.mjs'
+      - 'hub/scripts/check-vite-*.cjs'
+      - 'hub/package.json'
+      - 'hub/package-lock.json'
+      - '.github/workflows/frontend-fast.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-fast-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend build and HTTP smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: hub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: hub/package-lock.json
+      - name: Install dependencies without native build scripts
+        run: npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+      - name: Build frontend with Vite
+        run: npx --yes vite@6 build
+      - name: Verify emitted frontend assets
+        run: node scripts/check-vite-output.cjs
+      - name: Verify frontend SPA routes over HTTP
+        run: node scripts/check-vite-preview.cjs
