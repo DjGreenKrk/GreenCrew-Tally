@@ -4,7 +4,15 @@ on:
   push:
     branches: [feat/node24-modernization-poc]
     paths:
-      - 'hub/**'
+      - 'hub/package.json'
+      - 'hub/package-lock.json'
+      - 'hub/tsconfig*.json'
+      - 'hub/src/server.ts'
+      - 'hub/src/flasher/**'
+      - 'hub/src/mixer/**'
+      - 'hub/src/tally/**'
+      - 'hub/src/lib/**'
+      - 'hub/scripts/package-windows.js'
       - '.github/workflows/hub-node24-probe.yml'
   workflow_dispatch:
 
