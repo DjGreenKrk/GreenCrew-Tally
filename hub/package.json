@@ -104,6 +104,10 @@
       {
         "from": "tray-icon.png",
         "to": "tray-icon.png"
+      },
+      {
+        "from": "dist/esp8266",
+        "to": "esp8266"
       }
     ],
     "win": {
