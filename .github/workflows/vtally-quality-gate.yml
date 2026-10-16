@@ -40,6 +40,8 @@ jobs:
             echo 'Browser-side hooks must not import Node events' >&2
             exit 1
           fi
+      - name: Guard browser dependencies against backend/hardware imports
+        run: node scripts/check-browser-boundaries.cjs
       - name: Compile backend
         run: npm run build:backend
       - name: Build Vite production bundle
