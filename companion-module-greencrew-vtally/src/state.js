@@ -59,36 +59,35 @@ export function cameraMode(state, camera) {
 }
 
 /**
- * Convert OBS scene names into one atomic tally snapshot.
- * Refuse unknown scene names: treating an unmapped on-air scene as OFF would
- * be dangerous. The caller should stop heartbeats so Hub reports UNKNOWN.
+ * Resolve any mixer source names/IDs into one atomic Program/Preview snapshot.
+ * Unknown sources are errors: callers must not report them as safely OFF.
  */
-export function snapshotFromSources(programScene, previewScene, sceneNames) {
-    const ids = configuredCameraIds(sceneNames.length)
+export function snapshotFromSources(programSource, previewSource, sources) {
+    const ids = configuredCameraIds(sources.length)
     const normalize = value => String(value ?? '').trim()
-    const sceneToId = new Map()
-    for (const [i, name] of sceneNames.entries()) {
+    const sourceToId = new Map()
+    for (const [i, name] of sources.entries()) {
         const id = ids[i]
         const value = normalize(name)
         if (!value) continue
-        if (sceneToId.has(value)) throw new Error(`Duplicate source mapping: "${value}"`)
-        sceneToId.set(value, id)
+        if (sourceToId.has(value)) throw new Error(`Duplicate source mapping: "${value}"`)
+        sourceToId.set(value, id)
     }
 
-    const resolveScene = (name, bus) => {
+    const resolveSource = (name, bus) => {
         const value = normalize(name)
         if (!value) {
             if (bus === 'Preview') return []
             throw new Error('Program source is empty or unavailable')
         }
-        const id = sceneToId.get(value)
+        const id = sourceToId.get(value)
         if (!id) throw new Error(`Unmapped ${bus} source: "${value}"`)
         return [id]
     }
 
     return {
-        programs: resolveScene(programScene, 'Program'),
-        previews: resolveScene(previewScene, 'Preview'),
+        programs: resolveSource(programSource, 'Program'),
+        previews: resolveSource(previewSource, 'Preview'),
     }
 }
 
