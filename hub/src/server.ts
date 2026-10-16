@@ -34,6 +34,10 @@ if (argv.env !== undefined) {
   // @ts-ignore @TODO: setting the env is not nice, but the easiest way to be cross-platform compatible
   // @see https://github.com/wifi-tally/wifi-tally/issues/18
   process.env.NODE_ENV = argv.env
+} else if ((process as NodeJS.Process & { pkg?: unknown }).pkg) {
+  // A pkg-built EXE contains its own frontend, not the React dev server.
+  // Default to production so launching vtally.exe directly does not proxy to :3001.
+  process.env.NODE_ENV = 'production'
 }
 if (argv['with-test'] !== undefined) {
   process.env.HUB_WITH_TEST = "true"
