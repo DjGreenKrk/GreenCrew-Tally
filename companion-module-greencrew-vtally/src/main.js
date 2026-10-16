@@ -1,5 +1,5 @@
 import { InstanceBase, InstanceStatus } from '@companion-module/base'
-import { blackout } from './state.js'
+import { blackout, configuredCameraIds, validateConfiguredState } from './state.js'
 import { defineActions } from './actions.js'
 import { defineFeedbacks, defineVariables, updateIndicators } from './feedbacks.js'
 import { definePresets } from './presets.js'
@@ -8,7 +8,7 @@ import { definePresets } from './presets.js'
 export default class GreenCrewVTally extends InstanceBase {
     constructor(internal) {
         super(internal)
-        this.config = { port: 3000 }
+        this.config = { port: 3000, cameraCount: 3 }
         this.desired = blackout()
         this.confirmed = null
         this.running = false
@@ -20,13 +20,9 @@ export default class GreenCrewVTally extends InstanceBase {
     }
 
     async init(config) {
-        this.config = config || { port: 3000 }
+        this.config = this.normalizeConfig(config)
         this.running = true
-        defineVariables(this)
-        defineActions(this)
-        defineFeedbacks(this)
-        definePresets(this)
-        updateIndicators(this)
+        this.refreshDefinitions()
         this.updateStatus(InstanceStatus.Connecting)
         this.heartbeat = setInterval(() => this.send(), 1000)
         this.send() // Never restore an old on-air state on module startup.
@@ -39,19 +35,45 @@ export default class GreenCrewVTally extends InstanceBase {
     }
 
     async configUpdated(config) {
-        this.config = config
+        this.config = this.normalizeConfig(config)
         this.desired = blackout()
         this.sourceValid = true
         this.confirmed = null
-        updateIndicators(this)
+        this.refreshDefinitions()
         this.send()
     }
 
+    normalizeConfig(config) {
+        const cameraCount = Number(config?.cameraCount)
+        return {
+            port: config?.port ?? 3000,
+            cameraCount: Number.isInteger(cameraCount) && cameraCount >= 1 && cameraCount <= 8 ? cameraCount : 3,
+        }
+    }
+
+    getCameraIds() {
+        return configuredCameraIds(this.config.cameraCount)
+    }
+
+    refreshDefinitions() {
+        defineVariables(this)
+        defineActions(this)
+        defineFeedbacks(this)
+        definePresets(this)
+        updateIndicators(this)
+    }
+
     getConfigFields() {
-        return [{
-            type: 'number', id: 'port', label: 'Local Hub HTTP port',
-            width: 6, min: 1, max: 65535, default: 3000,
-        }]
+        return [
+            {
+                type: 'number', id: 'port', label: 'Local Hub HTTP port',
+                width: 6, min: 1, max: 65535, default: 3000,
+            },
+            {
+                type: 'number', id: 'cameraCount', label: 'Number of cameras',
+                width: 6, min: 1, max: 8, step: 1, default: 3,
+            },
+        ]
     }
 
     get url() {
@@ -73,6 +95,14 @@ export default class GreenCrewVTally extends InstanceBase {
     }
 
     setDesired(state) {
+        try {
+            validateConfiguredState(state, this.config.cameraCount)
+        } catch (error) {
+            const message = String(error.message || error)
+            this.log('error', message)
+            this.markSourceInvalid(message)
+            return
+        }
         this.sourceValid = true
         this.desired = { programs: [...state.programs], previews: [...state.previews] }
         this.send()
