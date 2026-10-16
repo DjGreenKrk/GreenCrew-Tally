@@ -26,9 +26,9 @@ Program, Preview and Hub connection feedback use the latest **HTTP-acknowledged*
 
 ## Heartbeat & safety
 
-The module sends a full snapshot to the Hub every **1 second**. The Hub clears the state if **no snapshot is received for 4 seconds**.
+The module sends a full snapshot to the Hub every **1 second**. The Hub marks Program/Preview **UNKNOWN** if **no snapshot is received for 4 seconds** (blue operator tally warning).
 
-**Important:** after a timeout, the real switcher's on-air camera is *unknown*, not necessarily OFF. A dark tally is not a guarantee that the camera is off-air.
+**Important:** after a timeout, the real switcher's on-air camera is *unknown*, not necessarily OFF. An UNKNOWN warning is not a guarantee that the camera is off-air.
 
 This module controls the vTally state. It does **not automatically observe OBS, ATEM or vMix**. If other devices/software can change the real switcher's Program/Preview, configure the corresponding Companion actions or triggers to send the actual state. Do not treat manual tally buttons as authoritative real-world on-air detection.
 
