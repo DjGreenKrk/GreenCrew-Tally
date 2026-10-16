@@ -26,14 +26,14 @@ try{
  }
  add('TS7 peer experiment',install(path.join(tmp,'ts7'),['typescript@latest','eslint@latest','typescript-eslint@latest','@eslint/js@latest']))
  const ts=path.join(tmp,'ts6')
- const ti=install(ts,['typescript@6','eslint@latest','typescript-eslint@latest','@eslint/js@latest','jest@latest','babel-jest@latest','@babel/core@latest','@babel/preset-env@latest','@babel/preset-typescript@latest'])
+ const ti=install(ts,['typescript@6','eslint@latest','typescript-eslint@latest','@eslint/js@latest','jest@latest','babel-jest@latest','@babel/core@latest','@babel/preset-env@latest','@babel/preset-typescript@latest','react@latest','@types/react@latest'])
  add('TS6 lint Jest Babel install',ti)
  if(ti.code===0){
-  fs.writeFileSync(path.join(ts,'probe.tsx'),'type Item={n:number};const item:Item={n:1};export const v=<span>{item.n}</span>;\n')
+  fs.writeFileSync(path.join(ts,'probe.tsx'),"import * as React from 'react'; type Item={n:number};const item:Item={n:1};export const v=<span>{item.n}</span>;\n")
   fs.writeFileSync(path.join(ts,'eslint.config.cjs'),"module.exports=require('typescript-eslint').configs.recommended;\n")
   fs.writeFileSync(path.join(ts,'test.test.ts'),'test("TS",()=>{const n:number=3;expect(n).toBe(3)})\n')
   fs.writeFileSync(path.join(ts,'jest.config.cjs'),"module.exports={testEnvironment:'node',testMatch:['<rootDir>/test.test.ts'],transform:{'^.+\\\\.tsx?$':['babel-jest',{presets:['@babel/preset-env','@babel/preset-typescript']}]}};\n")
-  add('TS6 TSX compile',run(process.execPath,[path.join(ts,'node_modules/typescript/bin/tsc'),'--noEmit','--jsx','preserve','--target','ES2022','--skipLibCheck','probe.tsx'],ts))
+  add('TS6 TSX compile',run(process.execPath,[path.join(ts,'node_modules/typescript/bin/tsc'),'--noEmit','--jsx','react-jsx','--moduleResolution','node','--target','ES2022','--skipLibCheck','probe.tsx'],ts))
   add('ESLint flat TypeScript',run(process.execPath,[path.join(ts,'node_modules/eslint/bin/eslint.js'),'probe.tsx'],ts))
   add('Jest Babel TS',run(process.execPath,[path.join(ts,'node_modules/jest/bin/jest.js'),'--config','jest.config.cjs','--runInBand'],ts))
  }
@@ -42,7 +42,7 @@ try{
  add('native ESM packer install',ni)
  if(ni.code===0){
   fs.writeFileSync(path.join(nat,'probe.cjs'),[
-  "'use strict'",
+  "'use strict';",
   "(async()=>{",
   "const e=(await import('escape-string-regexp')).default;",
   "const s=require('serialport'),m=require('midi');",
