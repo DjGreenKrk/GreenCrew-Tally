@@ -64,7 +64,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add hub/package.json hub/package-lock.json hub/src/react-app-env.d.ts
+          git add package.json package-lock.json src/react-app-env.d.ts
           if ! git diff --cached --quiet; then
             git commit -m "build: replace CRA test runner with standalone Jest on Node 24"
             git push
