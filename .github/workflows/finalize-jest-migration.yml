@@ -7,6 +7,7 @@ on:
       - '.github/workflows/finalize-jest-migration.yml'
       - 'hub/src/lib/DisconnectedClientSideSocket.ts'
       - 'hub/src/hooks/useSocket.ts'
+      - 'hub/src/hooks/tracker/**'
       - 'hub/vite.config.mjs'
   workflow_dispatch:
 
