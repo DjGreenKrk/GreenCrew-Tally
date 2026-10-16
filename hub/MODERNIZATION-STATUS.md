@@ -7,12 +7,12 @@ Date: 2026-10-16. Starting HEAD: ff34a9f75d333ccc43287bcebb24597f24bba025. Histo
 ## Stages
 | ID | Status | Next acceptance |
 |---|---|---|
-| E0 | In progress | Contracts inventoried below; repeat 276 pass + 1 skip baseline on modern stack |
+| E0 | Completed (contract baseline) | Contract inventory, updated PR description, 32 suites / 280 pass / 1 skip on current baseline; final modern-stack replay still required in E8 |
 | E1 | In progress | Isolated Node24 compiler/lint/test/ESM/native/EXE probes in separate diagnostic CI; analyze recorded outcomes |
 | E2 | Not started | Clean TS/Jest/lint/typecheck |
-| E3 | Not started | Modern browser code, production JS in Chromium |
+| E3 | Partial | Removed direct runtime mixer imports from browser and added Chromium production-render gate; React/router/MUI migrations still open |
 | E4 | Not started | Live Hub HTTP → Socket.IO and UDP, timeout and recovery |
-| E5 | Not started | NodeMCU serialport, MIDI, firmware and recovery |
+| E5 | Partial | Bounded NodeMCU hard reset mock and no Hub exit on vMix lost source; native EXE and physical tests open |
 | E6 | Not started | Exact published Windows ZIP, isolated EXE and tray |
 | E7 | Not started | Final CI, package audit, Companion host-compatible runtime |
 | E8 | Not started | Physical and release sign-off |
@@ -43,3 +43,35 @@ Hub Node24 LTS; TS6 + typescript-eslint8 + ESLint10 (compare against TS7 peer co
 
 ## Physical acceptance: NOT TESTED
 ESP8266 real COM enumeration, 8 Lua files upload/readback, ini, reset, rediscovery and live tally; Roland MIDI real interface enumeration and messages; hardware OBS/ATEM/vMix/Roland state/disconnection; unpack the *published* Windows ZIP on machine without Node and test EXE native addons, frontend Chromium, Web/UDP and tray shutdown. Record model, software, image SHA, command, result. Mocks are not hardware tests.
+
+
+## E0 acceptance evidence and partial E1–E5 implementation, 2026-10-16
+
+**Actual committed work** (PR #2 branch; no merge/release):
+
+| SHA | Change | Verification |
+|---|---|---|
+| [80fa257](https://github.com/DjGreenKrk/wifi-tally/commit/80fa257dda3f6e15a7bfb654f62b1327f4042a0f) | E0 contracts + E1 isolated CI | Original diagnostic incorrectly spawned npm.cmd; untrusted until fixed |
+| [ef00444](https://github.com/DjGreenKrk/wifi-tally/commit/ef00444bab9a9d275b0b676285b3e11aed71b2f2) | Node24 Windows cmd.exe npm launch | [E1 report](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38971757398) |
+| [a02c850](https://github.com/DjGreenKrk/wifi-tally/commit/a02c850ff33c7073849e2dbaa533e12763945faf) | bounded NodeMCU hard reset, no process.exit on vMix outage, mocks | [Quality gate](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38971946212) |
+| [5438eda](https://github.com/DjGreenKrk/wifi-tally/commit/5438eda6d372ce9aec3decd173402caf129cbfae) | browser-safe mixer IDs, OBS UI no longer imports backend, useEffect | [Vite browser gate](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38972441478) |
+| [53b0cb3](https://github.com/DjGreenKrk/wifi-tally/commit/53b0cb389f4e4baf3051f3d1082b69692756e1c6) | corrected E1 TSX and ESM native fixture | [Repeat E1](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38972370924) |
+| [9712934](https://github.com/DjGreenKrk/wifi-tally/commit/9712934cb2ac04de99bce28df5409c110541874e) | Chrome production-bundle runner | Chrome 155 on Ubuntu24.04; /, /config, /flasher, /tally/demo rendered, [CI](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38972441478) |
+| [f004e67](https://github.com/DjGreenKrk/wifi-tally/commit/f004e67a9705c98289069bf516821905b2ad572a) | real disconnect/reconnect indicators + test | Ubuntu24.04 Node24 [32 suites, 280 PASS, 1 SKIP](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38972509434) |
+| [42f449e](https://github.com/DjGreenKrk/wifi-tally/commit/42f449e40ab435f48d440f6387ba37c3d1f3112f) | actual Hub process end-to-end test | [PASS](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38972670746): 4 program events, 4 WebTally events, 62 UDP frames, heartbeat, UNKNOWN, recovery |
+| [5e38ab4](https://github.com/DjGreenKrk/wifi-tally/commit/5e38ab4212bd17697e870f2f9ed1921b85a9ecec) | disconnect subscription leak fix + test | [quality](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38972884569) |
+| [25b2266](https://github.com/DjGreenKrk/wifi-tally/commit/25b2266f81919058a032ec4eb4d8e0b6ab5aa348) | E1 isolated native-only EXE vs esbuild ESM fallback | [CI](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38972999732); pending detailed verdict |
+| [48808d0](https://github.com/DjGreenKrk/wifi-tally/commit/48808d076e10a406fb108e76dace4f45b7eb8a40) | transpiled browser dependency graph guard in quality gate | [quality](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38973233736) |
+| [2c09383](https://github.com/DjGreenKrk/wifi-tally/commit/2c09383dbf55795d173096d00eb9140685b6982b) | strict no-bypass lockfile experiment with TS6/@types/node24 | [CI](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38973293441), pending |
+
+**Observed Windows E1 Node 24.21.0:** \`npm view\` queried live npm registry; TypeScript7.0.2 + typescript-eslint8.71.2 had a **verified ERESOLVE**: typescript-eslint peers TypeScript >=4.8.4 <6.1.0. Choosing TypeScript 6.x is justified until the official parser's peer range permits 7. No override/force is acceptable. Latest packages observed: ESLint10.13.0, Vite8.3.4, Jest30.5.2, Express5.3.0, Socket.IO4.8.4, OBS websocket5.0.8, serialport13.0.0, midi2.0.0, @yao-pkg/pkg6.23.0, react-full-screen1.1.1.
+
+Isolated \`npm install\` TS6+ESLint10+Jest30 worked without bypass flags (with npm *warnings* about overridden transitive peers); flat ESLint and Jest TS/Babel passed. An initial TSX probe lacked React typings, and second run failed due TypeScript6 deprecated \`moduleResolution=node\` default. E1 follow-up sets \`moduleResolution=nodenext\`; production TS compile remains unverified.
+
+Serialport13 and MIDI2 loaded **outside** EXE on Windows Node24.21; serialport listed COM2, MIDI listed 0 ports (no physical device), \`escape-string-regexp\` ESM import succeeded. @yao-pkg/pkg6.23 produced an EXE with Node24.20 runtime; launching isolated EXE with \`import()\` resulted in \`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING\`. This is a concrete packager limitation; no successful native enumeration **inside** EXE yet. E1 follow-up independently packages native-only and bundled ESM inputs, then a packager/bundling decision must be recorded.
+
+**Clean peer-dependency installation still blocked:** initial [strict lockfile attempt](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38973107883) failed ERESOLVE on \`@types/node@12\` vs Vite6.4.4 peerOptional \`^18 || ^20 || >=22\`, even after fixing react-full-screen peer. Follow-up proposes TypeScript6 and Node24 typings, does NOT force or bypass peers; proposed manifest+lockfile must be reviewed together and committed atomically only after CI acceptance.
+
+**Commands/environments:** Chrome test: \`npm ci --legacy-peer-deps --ignore-scripts; npm run build:frontend; node scripts/check-production-browser.cjs\` on Ubuntu24.04/Node24/Chrome155; no hardware. Live Hub: \`npm ci --legacy-peer-deps --ignore-scripts; npm run build:backend; node scripts/check-live-companion-integration.cjs\` on Ubuntu24.04/Node24. Node24 native tests: \`node hub/scripts/modernization-e1-probe.cjs\` on Windows-2022/Node24.21. npm registry queries used \`npm view <package>@latest version engines peerDependencies --json\`. All old-stack \`--legacy-peer-deps\` here are baseline-only, **not final acceptance**.
+
+**Known blockers after E0:** no committed clean modern manifest+lockfile; current React17/Router5/MUI4 and legacy OBS4 + Socket.IO2 remain; no isolated published Windows EXE native enumerations, no physical ESP/MIDI or mixer tests. Some current legacy workflows rely on Node16/CRA and fail or remain incomplete. Do not call E2–E8 finished.
