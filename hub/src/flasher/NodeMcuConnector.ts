@@ -2,7 +2,7 @@ import TallyDevice from './TallyDevice'
 import TallySettingsIni from './TallySettingsIni'
 import tmp from 'tmp-promise'
 import { promises as fs } from 'fs'
-import { findFirmwareFiles } from './FirmwareAssets'
+import { findFirmwareFiles, FirmwareFile } from './FirmwareAssets'
 
 const baudRate = 115200
 const fileName = "tally-settings.ini"
@@ -202,7 +202,7 @@ class NodeMcuConnector {
   }
 
   async program(path: string, onProgress: (state: TallyProgramProgressType) => void) {
-    let files: Awaited<ReturnType<typeof findFirmwareFiles>>
+    let files: FirmwareFile[]
     try {
       files = await NodeMcuConnector.getLocalFiles()
     } catch (error) {
