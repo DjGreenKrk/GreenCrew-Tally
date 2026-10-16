@@ -1,6 +1,10 @@
 name: Install Vite and update lockfile
 
 on:
+  push:
+    branches: [feat/node24-modernization-poc]
+    paths:
+      - '.github/workflows/install-vite-lockfile.yml'
   workflow_dispatch:
 
 permissions:
