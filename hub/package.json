@@ -23,7 +23,7 @@
     "start:backend": "ts-node --project tsconfig.server.json src/server.ts --env=development",
     "build:frontend": "node scripts/write-build-info.js && vite build",
     "build:backend": "tsc --project tsconfig.server.json",
-    "build:windows": "npm run build:frontend && npm run build:backend && node scripts/package-windows.js",
+    "build:windows": "node scripts/build-windows.cjs",
     "build:tray": "npm run build:windows && electron-builder --win portable",
     "test": "react-scripts test",
     "test:ci": "cross-env CI=true react-scripts test",
