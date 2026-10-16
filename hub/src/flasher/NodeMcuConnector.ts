@@ -69,8 +69,9 @@ class NodeMcuConnector {
       this.nodemcu = nodemcu
     } else {
       try {
-        const nodemcuModuleName = ['nodemcu', '-tool'].join('')
-        this.nodemcu = process.mainModule?.require(nodemcuModuleName)
+        // Keep the require literal so pkg can discover and include the
+        // NodeMCU flasher and its serialport dependency in vtally.exe.
+        this.nodemcu = require('nodemcu-tool')
       } catch (error) {
         console.error(`Could not load the NodeMCU tool: ${error}`)
         this.nodemcu = undefined
