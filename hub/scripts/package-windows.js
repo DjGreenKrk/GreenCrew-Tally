@@ -59,8 +59,9 @@ console.log('Including native serialport addon(s): ' + nativeAddons.map(file => 
 const pkgArgs = [
   'dist/server.js', '--targets', 'node24-win-x64',
   '--output', 'dist/vtally.exe',
-  '--assets', nativeAddons.map(file => path.relative(projectDir, file).replace(/\\/g, '/')).join(','),
 ]
+// The maintained pkg fork reads asset globs from package.json's pkg.assets;
+// its CLI no longer supports the legacy --assets flag.
 const pkgCli = require.resolve('@yao-pkg/pkg/lib-es5/bin.js')
 const result = spawnSync(
   process.execPath,
