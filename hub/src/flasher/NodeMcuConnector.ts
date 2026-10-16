@@ -42,6 +42,9 @@ class NodeMcuConnector {
   nodemcu: any
 
   withMutex<T> (fn: () => T): Promise<T> {
+    if (!this.nodemcu) {
+      return Promise.reject(new Error('NodeMCU serial tool is unavailable. Verify serialport is installed and bundled in vtally.exe.'))
+    }
     return new Promise((resolve, reject) => {
       const interval = setInterval(() => {
         const mutexAquired = tryToAquireMutex()
