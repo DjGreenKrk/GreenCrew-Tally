@@ -104,15 +104,30 @@ class NodeMcuConnector {
     })
   }
 
+  // Reject failed serial operations as promises; a late native completion is ignored.
+  private async withTimeout<T>(operation: () => Promise<T>, ms: number, message: string): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      return await Promise.race([
+        Promise.resolve().then(operation),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error(message)), ms)
+        }),
+      ])
+    } finally {
+      if (timer !== undefined) clearTimeout(timer)
+    }
+  }
+
   // gracefull connection that retries a few times
   private async connect(path: string) {
-    await this.nodemcu.connect(path, baudRate, false)
+    await this.withTimeout(() => this.nodemcu.connect(path, baudRate, false), 5000, 'NodeMCU serial connect timed out')
 
     // check connection does not always work the first time, so we try it multiple times if necessary
     let retries = 3
     while (true) {
       try {
-        return await this.nodemcu.checkConnection()
+        return await this.withTimeout(() => this.nodemcu.checkConnection(), 3000, 'NodeMCU check timed out')
       } catch (e){
         if (retries === 0) {
           throw e
@@ -326,27 +341,30 @@ class NodeMcuConnector {
   }
 
   private async hardReset(path: string) {
-    await this.nodemcu.hardreset()
-    await this.nodemcu.disconnect()
-    await new Promise(resolve => { setTimeout(resolve, 1000) }) // sleep
+    await this.withTimeout(() => this.nodemcu.hardreset(), 5000, 'NodeMCU hard reset timed out')
+    await this.withTimeout(() => this.nodemcu.disconnect(), 5000, 'NodeMCU serial disconnect timed out')
+    await this.sleep(1000)
     await this.connect(path)
+    await this.sleep(3000)
 
-    await new Promise(resolve => { setTimeout(resolve, 3000) }) // sleep
-
-    const failTimeout = setTimeout(() => {
-      throw new Error("Could not connect to NodeMCU after hardreset.")
-    }, 10000)
-
-    let rebootSuccess = false
-    while(!rebootSuccess) {
+    // Do not throw from a timeout callback or poll the transport forever.
+    const deadline = Date.now() + 10000
+    let lastError: unknown
+    while (Date.now() < deadline) {
       try {
-        await this.nodemcu.checkConnection()
-        rebootSuccess = true
-      } catch (e) {
-        rebootSuccess = false
+        await this.withTimeout(
+          () => this.nodemcu.checkConnection(),
+          Math.max(1, Math.min(1500, deadline - Date.now())),
+          'NodeMCU check after reset timed out',
+        )
+        return
+      } catch (error) {
+        lastError = error
+        const remaining = deadline - Date.now()
+        if (remaining > 0) await this.sleep(Math.min(250, remaining))
       }
     }
-    clearTimeout(failTimeout)
+    throw new Error('Could not connect to NodeMCU after hardreset: ' + String(lastError))
   }
 
   /**

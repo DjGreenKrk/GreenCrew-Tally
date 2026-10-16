@@ -48,12 +48,16 @@ class VmixConnector implements Connector {
         }
 
         const reconnectClient = () => {
+            if (this.disconnectRequested || this.client !== client) return
             if (this.reconnectStartedAt === undefined) {
                 this.reconnectStartedAt = Date.now()
             }
             if (VmixConnector.hasReachedReconnectLimit(this.reconnectStartedAt)) {
                 console.error("Could not reconnect to vMix within 10 minutes. Reconnect attempts stopped.")
-                process.exit(1)
+                this.communicator.notifyProgramPreviewChanged(null, null)
+                this.communicator.notifyMixerIsDisconnected()
+                // Losing vMix must never terminate unrelated Hub services.
+                void this.disconnect().catch(error => console.error('vMix cleanup failed:', error))
                 return
             }
             this.disconnect().then(() =>
