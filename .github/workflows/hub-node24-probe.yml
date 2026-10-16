@@ -38,7 +38,9 @@ jobs:
         run: npm run build:backend
       - name: Compile experimental Vite frontend
         run: npx --yes vite@6 build
-      - name: Verify Vite output and frontend routes
+      - name: Verify Vite bundle output
         run: node scripts/check-vite-output.cjs
+      - name: Verify SPA routes over HTTP
+        run: node scripts/check-vite-preview.cjs
       # Deliberately no pkg/EXE step: pkg targets Node 16 and native
       # serialport/NodeMCU compatibility needs to be established first.
