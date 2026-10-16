@@ -20,7 +20,7 @@ class CompanionConnector implements Connector {
         this.receiving = false
         this.lastSnapshotTime = null
         this.communicator.notifyChannelNames(8)
-        this.communicator.notifyProgramPreviewChanged([], [])
+        this.communicator.notifyProgramPreviewChanged(null, null)
         this.communicator.notifyMixerIsDisconnected()
         this.watchdog = setInterval(() => this.checkTimeout(), 250)
     }
