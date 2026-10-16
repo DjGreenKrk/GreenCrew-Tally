@@ -44,19 +44,20 @@ jobs:
           printf '/// <reference types="vite/client" />\n' > src/react-app-env.d.ts
       - name: Verify reproducible install
         run: npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund
-      - name: Run all 276 Jest tests
-        run: npm run test:ci
-      - name: Reject Node EventEmitter imports in browser modules
+      - name: Reject Node EventEmitter imports in browser hooks
         run: |
           if grep -R -n -E "from ['\"](node:)?events['\"]|require\\(['\"](node:)?events['\"]\\)" src/hooks src/lib/DisconnectedClientSideSocket.ts; then
             echo 'Node EventEmitter imports remain in browser-side hooks' >&2
             exit 1
           fi
-      - name: Build backend and Vite frontend
+      - name: Compile backend and production frontend first
         run: |
           npm run build:backend
           npm run build:frontend
-          npm run test:frontend:smoke
+      - name: Run standalone Jest suite
+        run: npm run test:ci
+      - name: Verify built frontend over HTTP
+        run: npm run test:frontend:smoke
       - name: Commit dependency migration
         run: |
           git config user.name "github-actions[bot]"
