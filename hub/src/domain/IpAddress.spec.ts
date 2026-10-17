@@ -29,8 +29,8 @@ describe('it fails on invalid ip addresses', () => {
     ].forEach((address) => {
         it(`"${address}"`, () => {
             expect(() => {
-                // @ts-ignore test invalid types on purpose
-                IpAddress(address)
+                // Exercise runtime validation without hiding type errors.
+                Reflect.apply(IpAddress, undefined, [address])
             }).toThrow()
         })
     })

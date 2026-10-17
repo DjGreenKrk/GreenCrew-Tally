@@ -53,7 +53,8 @@ class CommandCreator {
       stepDuration = 250
     } else {
       // typescript will fail if we missed a case
-      ((_:never) => {})(state)
+      const unreachable: never = state
+      throw new Error(`Unrecognized tally state: ${String(unreachable)}`)
     }
 
     const operatorBrightness = tally.configuration.getOperatorLightBrightness() !== undefined ? tally.configuration.getOperatorLightBrightness() : defaultConfiguration.getOperatorLightBrightness()

@@ -39,7 +39,8 @@ class UdpTallyDriver {
                     this.container.addLog(tallyName, "udp", log)
                 } else {
                     // typescript should complain if we missed a command
-                    ((_: never) => {})(command)
+                    const unreachable: never = command
+                    throw new Error(`Unsupported tally command: ${String(unreachable)}`)
                 }
             } catch (e) {
                 if (e instanceof InvalidCommandError) {

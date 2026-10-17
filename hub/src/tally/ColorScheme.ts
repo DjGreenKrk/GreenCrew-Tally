@@ -71,7 +71,8 @@ const ColorSchemes = {
       return YellowPinkColorScheme
     } else {
       // if typescript complaints, we missed an option
-      ((_:never) => {})(id)
+      const unreachable: never = id
+      throw new Error(`Unrecognized color scheme: ${String(unreachable)}`)
     }
   }
 }
