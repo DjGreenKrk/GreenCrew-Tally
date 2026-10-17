@@ -132,4 +132,10 @@ export interface ClientSideSocket {
         event: EventName,
         listener: ServerSentEvents[EventName]
     ): void
+
+    // Socket.IO lifecycle listeners must also be removable, especially when
+    // Web Tally pages unmount or reconnect. These are transport events, not
+    // application ServerSentEvents.
+    off(event: "connect" | "disconnect" | "connect_error" | "connect_timeout" | "disconnected" |
+        "reconnect" | "reconnecting" | "reconnect_error" | "reconnect_failed", listener: () => void): void
 }
