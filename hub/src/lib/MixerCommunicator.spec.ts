@@ -73,7 +73,6 @@ describe('MixerCommunicator', () => {
 
             emitter.on("config.changed", () => eventSeen++)
             const config = new AppConfiguration(emitter)
-            config.save = async () => {} // mock it away
 
             const communicator = new MixerCommunicator(config, emitter)
 
@@ -100,7 +99,6 @@ describe('MixerCommunicator', () => {
 
             emitter.on("config.changed", () => eventSeen++)
             const config = new AppConfiguration(emitter)
-            config.save = async () => {} // mock it away
 
             const communicator = new MixerCommunicator(config, emitter)
 
@@ -140,7 +138,6 @@ describe('MixerCommunicator', () => {
             emitter.on("mixer.connected", () => connectEventSeen++)
             emitter.on("mixer.disconnected", () => disconnectEventSeen++)
             const config = new AppConfiguration(emitter)
-            config.save = async () => {} // mock it away
 
             const communicator = new MixerCommunicator(config, emitter)
 
@@ -163,7 +160,6 @@ describe('MixerCommunicator', () => {
             emitter.on("mixer.connected", () => connectEventSeen++)
             emitter.on("mixer.disconnected", () => disconnectEventSeen++)
             const config = new AppConfiguration(emitter)
-            config.save = async () => {} // mock it away
 
             const communicator = new MixerCommunicator(config, emitter)
 

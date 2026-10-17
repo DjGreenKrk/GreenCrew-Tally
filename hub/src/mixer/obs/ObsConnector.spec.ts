@@ -1,9 +1,12 @@
 import ObsConnector from './ObsConnector'
+import { MixerCommunicator } from '../../lib/MixerCommunicator'
+import { AppConfiguration } from '../../lib/AppConfiguration'
+import ServerEventEmitter from '../../lib/ServerEventEmitter'
 import WebSocket from 'ws'
 import ObsConfiguration from './ObsConfiguration'
 
 const waitUntil = (fn) => {
-    return new Promise((resolve, _) => {
+    return new Promise<void>((resolve, _) => {
         setInterval(() => {
             if (fn() === true) {
                 resolve()
@@ -12,7 +15,11 @@ const waitUntil = (fn) => {
     })
 }
 
-class MockCommunicator {
+class MockCommunicator extends MixerCommunicator {
+    constructor() {
+        const emitter = new ServerEventEmitter()
+        super(new AppConfiguration(emitter), emitter)
+    }
     programs = null
     previews = null
     channels = null
@@ -43,6 +50,10 @@ class MockCommunicator {
         this.isConnected = false
     }
 }
+
+const sameChannels = (actual: string[] | null, expected: string[]) =>
+    Array.isArray(actual) && actual.length === expected.length &&
+    actual.every((name, index) => name === expected[index])
 
 const defaultScene = {
     name: null,
@@ -226,7 +237,7 @@ describe('ObsConnector', () => {
                 }
             }
 
-            return new Promise((resolve, reject) => {
+            return new Promise<void>((resolve, reject) => {
                 global.obsServer.server = new WebSocket.Server({port: 0}, err => {
                     if (err) { 
                         reject(err)
@@ -254,7 +265,7 @@ describe('ObsConnector', () => {
         })
         afterEach(() => {
             if (global.obsServer.server) {
-                return new Promise((resolve, reject) => {
+                return new Promise<void>((resolve, reject) => {
                     global.obsServer.server.close((error) => {
                         if (error) {
                             console.error(error)
@@ -287,7 +298,7 @@ describe('ObsConnector', () => {
                 expect(communicator.channels[1].name).toEqual("Scene 2")
 
                 server.cut("Scene 2")
-                await waitUntil(() => communicator.programs !== ["Scene 1"])
+                await waitUntil(() => sameChannels(communicator.programs, ["Scene 2"]))
                 expect(communicator.programs).toEqual(["Scene 2"])
             } finally {
                 await obs.disconnect()
@@ -314,7 +325,7 @@ describe('ObsConnector', () => {
                 expect(communicator.previews).toEqual(["Scene 2"])
 
                 server.preview("Scene 3")
-                await waitUntil(() => communicator.previews !== ["Scene 2"])
+                await waitUntil(() => sameChannels(communicator.previews, ["Scene 3"]))
                 expect(communicator.previews).toEqual(["Scene 3"])
             } finally {
                 await obs.disconnect()
@@ -336,7 +347,7 @@ describe('ObsConnector', () => {
                 expect(communicator.programs).toEqual(["Scene 1"])
 
                 server.cut("Scene 2")
-                await waitUntil(() => communicator.programs !== ["Scene 1"])
+                await waitUntil(() => sameChannels(communicator.programs, ["Scene 2"]))
                 expect(communicator.programs).toEqual(["Scene 2"])
             } finally {
                 await obs.disconnect()
@@ -375,11 +386,11 @@ describe('ObsConnector', () => {
                 expect(communicator.programs).toEqual(["Cam 1"])
 
                 server.cut("Cam 2")
-                await waitUntil(() => communicator.programs !== ["Cam 1"])
+                await waitUntil(() => sameChannels(communicator.programs, ["Cam 2"]))
                 expect(communicator.programs).toEqual(["Cam 2"])
 
                 server.cut("Picture In Picture")
-                await waitUntil(() => communicator.programs !== ["Cam 2"])
+                await waitUntil(() => sameChannels(communicator.programs, ["Picture In Picture", "Cam 1", "Cam 2"]))
                 expect(communicator.programs).toEqual(["Picture In Picture", "Cam 1", "Cam 2"])
             } finally {
                 await obs.disconnect()
@@ -401,12 +412,12 @@ describe('ObsConnector', () => {
                 expect(communicator.programs).toEqual(["Cam 1"])
 
                 server.transitionBegin("Cam 2")
-                await waitUntil(() => communicator.programs !== ["Cam 1"])
+                await waitUntil(() => sameChannels(communicator.programs, ["Cam 1", "Cam 2"]))
                 expect(communicator.programs).toEqual(["Cam 1", "Cam 2"])
 
                 
                 server.transitionEnd("Cam 2")
-                await waitUntil(() => communicator.programs !== ["Cam 1", "Cam 2"])
+                await waitUntil(() => sameChannels(communicator.programs, ["Cam 2"]))
                 expect(communicator.programs).toEqual(["Cam 2"])
             } finally {
                 await obs.disconnect()
@@ -428,9 +439,9 @@ describe('ObsConnector', () => {
                 expect(communicator.programs).toEqual(["Cam 1"])
 
                 server.transitionBegin("Cam 2")
-                await waitUntil(() => communicator.programs !== ["Cam 1"])
+                await waitUntil(() => sameChannels(communicator.programs, ["Cam 1"]))
                 server.transitionBegin("Cam 1")
-                await waitUntil(() => communicator.programs !== ["Cam 1", "Cam 2"])
+                await waitUntil(() => sameChannels(communicator.programs, ["Cam 1"]))
                 expect(communicator.programs).toEqual(["Cam 1"])
             } finally {
                 await obs.disconnect()
@@ -517,7 +528,7 @@ describe('ObsConnector', () => {
                 expect(communicator.previews).toEqual(["Scene 2"])
 
                 server.exitStudioMode()
-                await waitUntil(() => communicator.previews !== ["Scene 2"])
+                await waitUntil(() => sameChannels(communicator.previews, []))
                 expect(communicator.previews).toEqual([])
             } finally {
                 await obs.disconnect()
@@ -546,13 +557,13 @@ describe('ObsConnector', () => {
                     expect(communicator.previews).toEqual(["Scene 1"])
 
                     server.startStream()
-                    await waitUntil(() => communicator.previews !== [])
+                    await waitUntil(() => sameChannels(communicator.programs, ["Scene 1"]))
                     expect(communicator.isConnected).toBe(true)
                     expect(communicator.programs).toEqual(["Scene 1"])
                     expect(communicator.previews).toEqual(["Scene 2"])
 
                     server.stopStream()
-                    await waitUntil(() => communicator.previews !== ["Scene 1"])
+                    await waitUntil(() => sameChannels(communicator.programs, []))
                     expect(communicator.isConnected).toBe(true)
                     expect(communicator.programs).toEqual([])
                     expect(communicator.previews).toEqual(["Scene 1"])
@@ -581,25 +592,25 @@ describe('ObsConnector', () => {
                     expect(communicator.previews).toEqual(["Scene 1"])
 
                     server.startRecording()
-                    await waitUntil(() => communicator.previews !== [])
+                    await waitUntil(() => sameChannels(communicator.programs, ["Scene 1"]))
                     expect(communicator.isConnected).toBe(true)
                     expect(communicator.programs).toEqual(["Scene 1"])
                     expect(communicator.previews).toEqual(["Scene 2"])
 
                     server.pauseRecording()
-                    await waitUntil(() => communicator.previews !== ["Scene 1"])
+                    await waitUntil(() => sameChannels(communicator.programs, []))
                     expect(communicator.isConnected).toBe(true)
                     expect(communicator.programs).toEqual([])
                     expect(communicator.previews).toEqual(["Scene 1"])
 
                     server.unpauseRecording()
-                    await waitUntil(() => communicator.previews !== [])
+                    await waitUntil(() => sameChannels(communicator.programs, ["Scene 1"]))
                     expect(communicator.isConnected).toBe(true)
                     expect(communicator.programs).toEqual(["Scene 1"])
                     expect(communicator.previews).toEqual(["Scene 2"])
 
                     server.stopRecording()
-                    await waitUntil(() => communicator.previews !== ["Scene 1"])
+                    await waitUntil(() => sameChannels(communicator.programs, []))
                     expect(communicator.isConnected).toBe(true)
                     expect(communicator.programs).toEqual([])
                     expect(communicator.previews).toEqual(["Scene 1"])
@@ -628,25 +639,25 @@ describe('ObsConnector', () => {
                     expect(communicator.previews).toEqual(["Scene 1"])
 
                     server.startRecording()
-                    await waitUntil(() => communicator.previews !== [])
+                    await waitUntil(() => sameChannels(communicator.programs, ["Scene 1"]))
                     expect(communicator.isConnected).toBe(true)
                     expect(communicator.programs).toEqual(["Scene 1"])
                     expect(communicator.previews).toEqual(["Scene 2"])
 
                     server.stopRecording()
-                    await waitUntil(() => communicator.previews !== ["Scene 1"])
+                    await waitUntil(() => sameChannels(communicator.programs, []))
                     expect(communicator.isConnected).toBe(true)
                     expect(communicator.programs).toEqual([])
                     expect(communicator.previews).toEqual(["Scene 1"])
 
                     server.startStream()
-                    await waitUntil(() => communicator.previews !== [])
+                    await waitUntil(() => sameChannels(communicator.programs, ["Scene 1"]))
                     expect(communicator.isConnected).toBe(true)
                     expect(communicator.programs).toEqual(["Scene 1"])
                     expect(communicator.previews).toEqual(["Scene 2"])
 
                     server.stopStream()
-                    await waitUntil(() => communicator.previews !== ["Scene 1"])
+                    await waitUntil(() => sameChannels(communicator.programs, []))
                     expect(communicator.isConnected).toBe(true)
                     expect(communicator.programs).toEqual([])
                     expect(communicator.previews).toEqual(["Scene 1"])
