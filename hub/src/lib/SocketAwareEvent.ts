@@ -1,10 +1,6 @@
 import ServerEventEmitter, { EventHandlersDataMap } from './ServerEventEmitter'
 import { ServerSideSocket } from './SocketEvents'
 
-export interface SocketAwareEvent<EventName extends keyof EventHandlersDataMap> {
-    constructor(eventEmitter: ServerEventEmitter, eventName: EventName, socket: ServerSideSocket, fnc: (socket: ServerSideSocket, ...args: Parameters<EventHandlersDataMap[EventName]>) => void)
-}
-
 /* Takes care that an event on the server is passed through
  * a socket to the browser.
  * 
@@ -12,11 +8,11 @@ export interface SocketAwareEvent<EventName extends keyof EventHandlersDataMap> 
  * and unregistered accordingly. This should prevent dangling event
  * listeners as much as possible.
  */
-export class SocketAwareEvent<EventName> {
+export class SocketAwareEvent<EventName extends keyof EventHandlersDataMap> {
     eventEmitter: ServerEventEmitter
     socket: ServerSideSocket
     eventName: EventName
-    eventListener // @TODO: i failed to infere the correct type here :(
+    eventListener: EventHandlersDataMap[EventName]
     isRegistered: boolean
     private disconnectListener: () => void
     

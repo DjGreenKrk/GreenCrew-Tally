@@ -4,7 +4,7 @@ import Channel from "../domain/Channel"
 import { AppConfiguration } from "./AppConfiguration"
 import ServerEventEmitter from "./ServerEventEmitter"
 
-const haveValuesChanged = (lastArray: any, newArray: any) => {
+const haveValuesChanged = (lastArray: ChannelList, newArray: ChannelList) => {
     if(Array.isArray(lastArray) && Array.isArray(newArray)) {
         return lastArray.length !== newArray.length || lastArray.some((value, index) => value !== newArray[index])
     } else {

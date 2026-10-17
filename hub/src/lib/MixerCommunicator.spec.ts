@@ -35,7 +35,7 @@ describe('MixerCommunicator', () => {
         test('debounces', () => {
             const emitter = new EventEmitter()
             let eventSeen = 0
-            emitter.on("program.changed", _ => eventSeen++)
+            emitter.on("program.changed", () => eventSeen++)
             const config = new AppConfiguration(emitter)
 
             const communicator = new MixerCommunicator(config, emitter)

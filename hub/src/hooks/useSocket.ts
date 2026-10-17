@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import io from 'socket.io-client'
 import { EventEmitter } from '../lib/DisconnectedClientSideSocket'
-import { ClientSentEvents, ClientSideSocket } from '../lib/SocketEvents'
+import { ClientSideSocket, ServerSentEvents } from '../lib/SocketEvents'
 import DisconnectedClientSideSocket from '../lib/DisconnectedClientSideSocket'
 
 // @TODO: remove socket event emitter. It does not have any purpose apart from announcing connection and disconnection
@@ -32,13 +32,11 @@ if (typeof window !== 'undefined') {
 }
 
 /** @deprecated */
-const useSocket = function<EventName extends keyof ClientSentEvents>(eventName: EventName, cb: (...args: any[]) => void) {
+const useSocket = function<EventName extends keyof ServerSentEvents>(eventName: EventName, cb: ServerSentEvents[EventName]) {
   useEffect(() => {
-    //@ts-ignore
     socket.on(eventName, cb)
 
     return function useSocketCleanup() {
-      // @ts-ignore
       socket.off(eventName, cb)
     }
   }, [eventName, cb])

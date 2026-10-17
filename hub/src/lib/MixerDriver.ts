@@ -13,7 +13,7 @@ import { Configuration, Connector } from '../mixer/interfaces'
 import TestConnector from '../mixer/test/TestConnector'
 import CompanionConnector from '../mixer/companion/CompanionConnector'
 
-const haveValuesChanged = (one: any, two: any) => {
+const haveValuesChanged = (one: unknown, two: unknown) => {
     //@TODO: this could probably be more performant
     return JSON.stringify(one) !== JSON.stringify(two)
 }
