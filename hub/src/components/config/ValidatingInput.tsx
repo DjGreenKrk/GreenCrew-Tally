@@ -20,7 +20,7 @@ const useStyles = makeStyles(theme => ({
 }))
 
 
-const upperCaseFirst = (value: string) => `${value.substr(0, 1).toUpperCase()}${value.substr(1)}`
+const upperCaseFirst = (value: string) => `${value.charAt(0).toUpperCase()}${value.slice(1)}`
 
 /* an active component that allows easy editing of values of Configuration objects
  * 
@@ -33,7 +33,8 @@ function ValidatingInput({label, testId, object, propertyName, errorMessage, war
     if (typeof object[getterName] !== "function") { throw new Error(`${getterName} is not a function`) }
     if (typeof object[setterName] !== "function") { throw new Error(`${setterName} is not a function`) }
 
-    const theObjectValue = object[getterName]().toString()
+    const rawObjectValue = object[getterName]()
+    const theObjectValue = rawObjectValue == null ? null : String(rawObjectValue)
     const [value, setValue] = useState<string|null>(theObjectValue)
     const [isValid, setIsValid] = useState(true)
     const classes = useStyles()
