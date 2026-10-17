@@ -57,7 +57,7 @@ if (!nativeAddons.length) {
 console.log('Including native serialport addon(s): ' + nativeAddons.map(file => path.relative(projectDir, file)).join(', '))
 
 const pkgArgs = [
-  'dist/server.js', '--targets', 'node24-win-x64',
+  'dist/server.js', '--config', 'package.json', '--targets', 'node24-win-x64',
   '--output', 'dist/vtally.exe',
 ]
 // The maintained pkg fork reads asset globs from package.json's pkg.assets;
