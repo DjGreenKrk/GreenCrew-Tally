@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: '24'
       - name: Align Jest 29 declarations, ESLint 10 and TypeScript 6 parser
-        run: npm install --save-dev --save-exact --ignore-scripts --no-audit --no-fund @types/jest@29.5.14 eslint@10.13.0 @eslint/js@10.0.0 typescript-eslint@8.71.2 eslint-plugin-react-hooks@7.1.1 globals@16.5.0
+        run: npm install --save-dev --save-exact --ignore-scripts --no-audit --no-fund @types/jest@29.5.14 eslint@10.13.0 @eslint/js@10.0.1 typescript-eslint@8.71.2 eslint-plugin-react-hooks@7.1.1 eslint-plugin-cypress@7.0.0 globals@17.9.0
       - name: Confirm clean locked install (no peer bypass)
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Confirm dependency resolution
