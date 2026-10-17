@@ -5,6 +5,8 @@ on:
     branches: [feat/node24-modernization-poc]
     paths:
       - '.github/workflows/modernization-e2-jest30.yml'
+      - 'hub/src/**/*.spec.*'
+      - 'hub/jest.standalone.cjs'
   workflow_dispatch:
 
 permissions:
