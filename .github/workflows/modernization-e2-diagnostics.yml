@@ -1,0 +1,46 @@
+name: E2 strict Jest TypeScript and ESLint diagnostic
+on:
+  push:
+    branches: [feat/node24-modernization-poc]
+    paths:
+      - '.github/workflows/modernization-e2-diagnostics.yml'
+      - 'hub/tsconfig.test.json'
+      - 'hub/eslint.config.*'
+      - 'hub/package.json'
+      - 'hub/package-lock.json'
+      - 'hub/src/**/*.spec.*'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  e2-tests-lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: hub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: hub/package-lock.json
+      - name: Clean install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Strict test compilation (do not suppress errors)
+        id: test-types
+        continue-on-error: true
+        run: ./node_modules/.bin/tsc --project tsconfig.test.json --noEmit
+      - name: Repository lint (must use installed ESLint)
+        id: lint
+        continue-on-error: true
+        run: npm run lint
+      - name: Fail on missing target toolchain
+        if: always()
+        shell: bash
+        run: |
+          echo 'Jest test types: ${{ steps.test-types.outcome }}' >> "$GITHUB_STEP_SUMMARY"
+          echo 'ESLint: ${{ steps.lint.outcome }}' >> "$GITHUB_STEP_SUMMARY"
+          test "${{ steps.test-types.outcome }}" = success
+          test "${{ steps.lint.outcome }}" = success
