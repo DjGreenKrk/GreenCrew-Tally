@@ -45,10 +45,18 @@ jobs:
           Write-Host "Firmware bundle OK: $($scripts.Name -join ', ')"
       - name: Start packaged Hub and test firmware probe without ESP
         run: |
-          $stdout = Join-Path $PWD 'dist/hub-smoke-out.log'
-          $stderr = Join-Path $PWD 'dist/hub-smoke-err.log'
-          $exe = Join-Path $PWD 'dist/vtally.exe'
-          $process = Start-Process -FilePath $exe -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          # Execute the real Hub EXE and all its files from a different directory.
+          # This catches accidental reads of repo, node_modules, build or tally/src.
+          $isolated = Join-Path $env:RUNNER_TEMP ('vtally-isolated-' + [guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $isolated -Force | Out-Null
+          Copy-Item -LiteralPath 'dist/vtally.exe' -Destination $isolated
+          Copy-Item -LiteralPath 'dist/frontend' -Destination $isolated -Recurse
+          Copy-Item -LiteralPath 'dist/esp8266' -Destination $isolated -Recurse
+          if (Test-Path (Join-Path $isolated 'node_modules')) { throw 'Isolation compromised by node_modules' }
+          $stdout = Join-Path $isolated 'hub-smoke-out.log'
+          $stderr = Join-Path $isolated 'hub-smoke-err.log'
+          $exe = Join-Path $isolated 'vtally.exe'
+          $process = Start-Process -FilePath $exe -WorkingDirectory $isolated -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
           try {
             $ready = $false
             for ($i = 0; $i -lt 40; $i++) {
@@ -73,6 +81,7 @@ jobs:
             if ($process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force }
             Get-Content $stdout -ErrorAction SilentlyContinue
             Get-Content $stderr -ErrorAction SilentlyContinue
+            if ($isolated -and (Test-Path $isolated)) { Remove-Item -LiteralPath $isolated -Recurse -Force }
           }
       - uses: actions/upload-artifact@v4
         if: success()
