@@ -1,4 +1,5 @@
 import NodeMcuConnector from './NodeMcuConnector'
+import * as FirmwareAssets from './FirmwareAssets'
 
 // Serial transport mock only. This is NOT physical ESP8266 acceptance.
 describe('NodeMCU reset recovery', () => {
@@ -40,8 +41,15 @@ describe('NodeMCU reset recovery', () => {
 })
 
 describe('NodeMCU timeout quarantine and transport cleanup (simulated device)', () => {
-  beforeEach(() => jest.useFakeTimers())
-  afterEach(() => jest.useRealTimers())
+  beforeEach(() => {
+    jest.useFakeTimers()
+    // No real filesystem I/O while advancing a simulated serial transport clock.
+    jest.spyOn(FirmwareAssets, 'findFirmwareFiles').mockResolvedValue([])
+  })
+  afterEach(() => {
+    jest.restoreAllMocks()
+    jest.useRealTimers()
+  })
 
   test('late connect after timeout is closed before another job starts and mutex is released', async () => {
     let open = false
