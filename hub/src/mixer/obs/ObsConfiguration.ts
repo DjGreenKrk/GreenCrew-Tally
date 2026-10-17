@@ -26,7 +26,7 @@ class ObsConfiguration extends Configuration {
     fromJson(data: ObsConfigurationSaveType): void {
         this.loadIpAddress("ip", this.setIp.bind(this), data)
         this.loadIpPort("port", this.setPort.bind(this), data)
-        data.liveMode && this.setLiveMode(data.liveMode)
+        if (data.liveMode) this.setLiveMode(data.liveMode)
     }
     toJson(): ObsConfigurationSaveType {
         return {

@@ -5,7 +5,7 @@ import { LogCommand, TallyHoCommand } from './CommandParser'
 test('fails if command is invalid #1', () => {
     expect(() => {
         CommandParser.parse("this is an invalid command")
-    }).toThrowError("Received an invalid command: \"this is an invalid command\"")
+    }).toThrow("Received an invalid command: \"this is an invalid command\"")
 })
 
 describe('tally-ho command', () => {
@@ -19,7 +19,7 @@ describe('tally-ho command', () => {
     test('fails if command is invalid', () => {
         expect(() => {
             CommandParser.parse("tally-ho Tally")
-        }).toThrowError("Received an invalid command: \"tally-ho Tally\"")
+        }).toThrow("Received an invalid command: \"tally-ho Tally\"")
     })
 })
 describe('log command', () => {
@@ -43,6 +43,6 @@ describe('log command', () => {
     test('fails if command is invalid', () => {
         expect(() => {
             CommandParser.parse("log this invalid log")
-        }).toThrowError("Received an invalid command: \"log this invalid log\"")
+        }).toThrow("Received an invalid command: \"log this invalid log\"")
     })
 })

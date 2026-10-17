@@ -68,12 +68,12 @@ export class DefaultTallyConfiguration {
     }
   }
   fromJson(valueObject: TallyConfigurationObjectType) {
-    valueObject.opBrightness !== undefined && this.setOperatorLightBrightness(valueObject.opBrightness)
-    valueObject.stBrightness !== undefined && this.setStageLightBrightness(valueObject.stBrightness)
-    valueObject.stColor !== undefined && this.setStageColorScheme(valueObject.stColor)
-    valueObject.opColor !== undefined && this.setOperatorColorScheme(valueObject.opColor)
-    valueObject.stPreview !== undefined && this.setStageShowsPreview(valueObject.stPreview)
-    valueObject.opIdle !== undefined && this.setOperatorShowsIdle(valueObject.opIdle)
+    if (valueObject.opBrightness !== undefined) this.setOperatorLightBrightness(valueObject.opBrightness)
+    if (valueObject.stBrightness !== undefined) this.setStageLightBrightness(valueObject.stBrightness)
+    if (valueObject.stColor !== undefined) this.setStageColorScheme(valueObject.stColor)
+    if (valueObject.opColor !== undefined) this.setOperatorColorScheme(valueObject.opColor)
+    if (valueObject.stPreview !== undefined) this.setStageShowsPreview(valueObject.stPreview)
+    if (valueObject.opIdle !== undefined) this.setOperatorShowsIdle(valueObject.opIdle)
   }
 
   clone(): DefaultTallyConfiguration {

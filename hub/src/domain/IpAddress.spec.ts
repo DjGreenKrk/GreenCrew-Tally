@@ -31,7 +31,7 @@ describe('it fails on invalid ip addresses', () => {
             expect(() => {
                 // @ts-ignore test invalid types on purpose
                 IpAddress(address)
-            }).toThrowError()
+            }).toThrow()
         })
     })
 })

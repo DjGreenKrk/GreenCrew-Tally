@@ -34,7 +34,7 @@ describe('it fails on invalid port', () => {
             expect(() => {
                 // @ts-ignore test invalid types on purpose
                 IpPort(ipPort)
-            }).toThrowError()
+            }).toThrow()
         })
     })
 })
