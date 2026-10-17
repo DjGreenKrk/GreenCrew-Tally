@@ -8,7 +8,11 @@ on:
       - 'hub/eslint.config.*'
       - 'hub/package.json'
       - 'hub/package-lock.json'
-      - 'hub/src/**/*.spec.*'
+      - 'hub/src/**'
+      - 'hub/cypress/**'
+      - 'hub/scripts/**'
+      - 'hub/tray-main.js'
+      - 'hub/jest.standalone.cjs'
   workflow_dispatch:
 permissions:
   contents: read
