@@ -439,7 +439,7 @@ describe('ObsConnector', () => {
                 expect(communicator.programs).toEqual(["Cam 1"])
 
                 server.transitionBegin("Cam 2")
-                await waitUntil(() => sameChannels(communicator.programs, ["Cam 1"]))
+                await waitUntil(() => sameChannels(communicator.programs, ["Cam 1", "Cam 2"]))
                 server.transitionBegin("Cam 1")
                 await waitUntil(() => sameChannels(communicator.programs, ["Cam 1"]))
                 expect(communicator.programs).toEqual(["Cam 1"])
