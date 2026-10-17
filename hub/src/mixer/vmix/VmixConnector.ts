@@ -192,8 +192,8 @@ class VmixConnector implements Connector {
             console.error("Tally OK command was ill formed")
         } else {
             const state = result[1]
-            let programs: string[] = []
-            let previews: string[] = []
+            const programs: string[] = []
+            const previews: string[] = []
             // vMix encodes tally states as numbers:
             // @see https://www.vmix.com/help20/index.htm?TCPAPI.html
             // 0 = off

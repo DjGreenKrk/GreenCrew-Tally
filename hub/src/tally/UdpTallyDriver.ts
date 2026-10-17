@@ -94,7 +94,7 @@ class UdpTallyDriver {
     }
     private tallyReported(tallyName: string, rinfo: dgram.RemoteInfo) {
         this.lastTallyReport.set(tallyName, new Date())
-        let tally = this.container.getOrCreate(tallyName, "udp") as UdpTally
+        const tally = this.container.getOrCreate(tallyName, "udp") as UdpTally
         const oldState = tally.state
         const oldAddress = tally.address
         const oldPort = tally.port

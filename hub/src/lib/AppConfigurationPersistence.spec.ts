@@ -12,7 +12,7 @@ describe('load()', () => {
         console.warn = () => { warningsLogged++ }
         
         const emitter = new EventEmitter()
-        let config = new AppConfiguration(emitter)
+        const config = new AppConfiguration(emitter)
         expect(() => {
             new AppConfigurationPersistence(config, emitter, "/tmp/this/file/does/not/exist.json")
         }).not.toThrow(SyntaxError)
@@ -28,7 +28,7 @@ describe('load()', () => {
             if (err) { throw err }
             
             const emitter = new EventEmitter()
-            let config = new AppConfiguration(emitter)
+            const config = new AppConfiguration(emitter)
             expect(() => {
                 new AppConfigurationPersistence(config, emitter, path)
             }).not.toThrow(SyntaxError)

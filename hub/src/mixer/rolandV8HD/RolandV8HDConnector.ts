@@ -36,10 +36,10 @@ class RolandV8HDConnector implements Connector {
         return
       }
         this.midi_input = new this.midi.Input()
-        let inputPortCount = this.midi_input.getPortCount()
+        const inputPortCount = this.midi_input.getPortCount()
         // select correct port
         for(let i = 0; i < inputPortCount; i++){
-          let name = this.midi_input.getPortName(i)
+          const name = this.midi_input.getPortName(i)
           if (name.includes("V-8HD")){
             this.midi_input.openPort(i)
             console.log(`Opened Midi Port ${i}: ${name}`)
@@ -48,10 +48,10 @@ class RolandV8HDConnector implements Connector {
         }
 
         this.midi_output = new this.midi.Output()
-        let outputPortCount = this.midi_output.getPortCount()
+        const outputPortCount = this.midi_output.getPortCount()
         // select correct port
         for(let i = 0; i < outputPortCount; i++){
-          let name = this.midi_output.getPortName(i)
+          const name = this.midi_output.getPortName(i)
           if (name.includes("V-8HD")){
             this.midi_output.openPort(i)
             console.log(`Opened Midi Output Port ${i}: ${name}`)
@@ -67,9 +67,9 @@ class RolandV8HDConnector implements Connector {
           //Check tally parameter area
           if(message[8] === 12){
               // hdmi input id in byte 11
-              let channel_idx = message[10]
+              const channel_idx = message[10]
               // tally information in byte 12
-              let input_status = message[11]
+              const input_status = message[11]
             this.input_status[channel_idx] = input_status
 
             // only notify program status change after full iteration (8 chans)
@@ -90,8 +90,8 @@ class RolandV8HDConnector implements Connector {
     }
 
     private processInputStatus(communicator: MixerCommunicator){
-      let programs: string[] = []
-      let previews: string[] = []
+      const programs: string[] = []
+      const previews: string[] = []
       // iterate through input status array
       for(let i = 0; i < 8; i++){
         // process program
@@ -108,7 +108,7 @@ class RolandV8HDConnector implements Connector {
 
     private checkRolandV8HDStatus(communicator: MixerCommunicator, midi_out: any){
       // Base SysEx message to RolandV8HD V-8HD
-      let sysex_msg = [0xF0, 0x41,0x10,0x00,0x00,0x00,0x68,0x11,0x0C,0x00,0x00,0x00,0x00,0x03,0x71,0xF7]
+      const sysex_msg = [0xF0, 0x41,0x10,0x00,0x00,0x00,0x68,0x11,0x0C,0x00,0x00,0x00,0x00,0x03,0x71,0xF7]
       // iterate through all 8 input chans
     	for (let i = 0; i < 8; i++){
         if (midi_out){

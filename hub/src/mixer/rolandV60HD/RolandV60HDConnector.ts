@@ -81,8 +81,8 @@ class RolandV60HDConnector implements Connector {
     }
 
     private processInputStatus(communicator: MixerCommunicator){
-      let programs: string[] = []
-      let previews: string[] = []
+      const programs: string[] = []
+      const previews: string[] = []
       // iterate through input status array
       for(let i = 0; i < 8; i++){
         // process program

@@ -104,7 +104,7 @@ class TallyContainer {
   }
 
   updateSettings(tallyName: string, tallyType: TallyType, settings: TallyConfiguration) {
-    let tally = this.get(tallyName, tallyType)
+    const tally = this.get(tallyName, tallyType)
     if (tally) {
       tally.configuration = settings
       this.update(tally)
