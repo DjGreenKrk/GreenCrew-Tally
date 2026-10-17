@@ -1,7 +1,7 @@
 import { Configuration } from "../interfaces";
 
 class NullConfiguration extends Configuration {
-    fromJson(data: object): void {
+    fromJson(): void {
         // empty. Has no settings, so nothing to load
     }
     toJson(): object {

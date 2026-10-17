@@ -1,6 +1,5 @@
 const { app, Menu, nativeImage, shell, Tray } = require('electron')
 const { spawn } = require('child_process')
-const fs = require('fs')
 const path = require('path')
 
 const hubUrl = 'http://localhost:3000'
