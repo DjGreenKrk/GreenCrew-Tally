@@ -88,7 +88,7 @@ function Tally({ tally, className }: TallyProps) {
     }
 
     const classRoot: string[] = []
-    className && classRoot.push(className)
+    if (className) classRoot.push(className)
     classRoot.push(classes.tally)
     const classHead = [classes.tallyHead]
     let dataColor = "idle"

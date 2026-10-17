@@ -1,5 +1,5 @@
 import { makeStyles, FormControlLabel, Checkbox } from '@material-ui/core';
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Tally from '../domain/Tally';
 import { useDefaultTallyConfiguration } from '../hooks/useConfiguration';
 import { socket } from '../hooks/useSocket';
@@ -34,7 +34,7 @@ function TallySettings({ tally, open, onClose }: TallySettingsProps) {
   const [isObDefault, setObDefault] = useState(settings && settings.getOperatorLightBrightness() === undefined)
   // stageBrightness
   const [sb, setSb] = useState<number>(settings && settings.getStageLightBrightness())
-  const [isSbDefault, setSbDefault] = useState(settings && settings.getOperatorLightBrightness() === undefined)
+  const [isSbDefault, setSbDefault] = useState(settings && settings.getStageLightBrightness() === undefined)
   // operatorColor
   const [oc, setOc] = useState<ColorSchemeId>(settings ? settings.getOperatorColorScheme() : undefined)
   const [isOcDefault, setOcDefault] = useState(settings && settings.getOperatorColorScheme() === undefined)
@@ -47,7 +47,7 @@ function TallySettings({ tally, open, onClose }: TallySettingsProps) {
   // operatorShowIdle
   const [oi, setOi] = useState<boolean>(settings ? settings.getOperatorShowsIdle() : undefined)
   const [isOiDefault, setOiDefault] = useState(settings && settings.getOperatorShowsIdle() === undefined)
-  useMemo(() => {
+  useEffect(() => {
     // when default settings change
     if (defaultSettings) {
       if (isObDefault) { setOb(defaultSettings.getOperatorLightBrightness()) }
@@ -58,7 +58,7 @@ function TallySettings({ tally, open, onClose }: TallySettingsProps) {
       if (isOiDefault) { setOi(defaultSettings.getOperatorShowsIdle()) }
     }
   }, [defaultSettings, isObDefault, isSbDefault, isOcDefault, isScDefault, isSpDefault, isOiDefault])
-  useMemo(() => {
+  useEffect(() => {
     // when settings are changed
     if (settings) {
       const newIsObDefault = settings.getOperatorLightBrightness() === undefined
@@ -96,7 +96,7 @@ function TallySettings({ tally, open, onClose }: TallySettingsProps) {
     settings.setStageShowsPreview((!tally.hasStageLight || isSpDefault) ? undefined : sp)
     settings.setOperatorShowsIdle((isOiDefault) ? undefined : oi)
     socket.emit('tally.settings', tally.name, tally.type, settings.toJson())
-    onClose && onClose()
+    onClose?.()
   }
 
   return (

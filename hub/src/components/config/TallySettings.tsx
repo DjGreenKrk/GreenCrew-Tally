@@ -1,5 +1,5 @@
 import { Button, Checkbox, FormControlLabel, makeStyles, Typography } from '@material-ui/core'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useDefaultTallyConfiguration } from '../../hooks/useConfiguration'
 import { socket } from '../../hooks/useSocket'
 import { ColorSchemeId } from '../../tally/ColorScheme'
@@ -33,7 +33,7 @@ function TallySettings() {
   const [stageColorScheme, setStageColorScheme] = useState<ColorSchemeId>(undefined)
   const [stageShowsPreview, setStageShowsPreview] = useState<boolean>(undefined)
   const [operatorShowsIdle, setOperatorShowsIdle] = useState<boolean>(undefined)
-  useMemo(() => {
+  useEffect(() => {
     // called when setting changed
     setOperatorBrightness(settings?.getOperatorLightBrightness())
     setStageBrightness(settings?.getStageLightBrightness())
@@ -48,12 +48,12 @@ function TallySettings() {
 
   const handleSubmit = (event) => {
     event.preventDefault()
-    operatorBrightness !== undefined && settings.setOperatorLightBrightness(operatorBrightness)
-    stageBrightness !== undefined && settings.setStageLightBrightness(stageBrightness)
-    operatorColorScheme !== undefined && settings.setOperatorColorScheme(operatorColorScheme)
-    stageColorScheme !== undefined && settings.setStageColorScheme(stageColorScheme)
-    stageShowsPreview !== undefined && settings.setStageShowsPreview(stageShowsPreview)
-    operatorShowsIdle !== undefined && settings.setOperatorShowsIdle(operatorShowsIdle)
+    if (operatorBrightness !== undefined) settings.setOperatorLightBrightness(operatorBrightness)
+    if (stageBrightness !== undefined) settings.setStageLightBrightness(stageBrightness)
+    if (operatorColorScheme !== undefined) settings.setOperatorColorScheme(operatorColorScheme)
+    if (stageColorScheme !== undefined) settings.setStageColorScheme(stageColorScheme)
+    if (stageShowsPreview !== undefined) settings.setStageShowsPreview(stageShowsPreview)
+    if (operatorShowsIdle !== undefined) settings.setOperatorShowsIdle(operatorShowsIdle)
 
     socket.emit('config.change.tallyconfig', settings.toJson())
   }
