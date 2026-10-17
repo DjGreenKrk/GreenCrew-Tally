@@ -5,12 +5,10 @@ on:
     branches: [feat/node24-modernization-poc]
     paths:
       - '.github/workflows/modernization-e2-jest30.yml'
-      - 'hub/src/**/*.spec.*'
+      - 'hub/src/**'
       - 'hub/jest.standalone.cjs'
       - 'hub/package.json'
       - 'hub/package-lock.json'
-      - 'hub/src/lib/SocketEvents.ts'
-      - 'hub/src/pages/WebTallyPage.tsx'
   workflow_dispatch:
 
 permissions:
