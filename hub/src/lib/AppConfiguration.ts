@@ -109,10 +109,10 @@ export class AppConfiguration extends Configuration {
             this.mockConfiguration.fromJson(data.mock)
         }
         if (data.null) {
-            this.nullConfiguration.fromJson(data.null)
+            this.nullConfiguration.fromJson()
         }
         if (data.companion) {
-            this.companionConfiguration.fromJson(data.companion)
+            this.companionConfiguration.fromJson()
         }
         if (data.obs) {
             this.obsConfiguration.fromJson(data.obs)

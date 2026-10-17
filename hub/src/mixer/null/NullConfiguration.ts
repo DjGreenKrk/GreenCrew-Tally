@@ -9,7 +9,7 @@ class NullConfiguration extends Configuration {
     }
     clone(): NullConfiguration {
         const clone = new NullConfiguration()
-        clone.fromJson(this.toJson())
+        clone.fromJson()
         return clone
     }
 
