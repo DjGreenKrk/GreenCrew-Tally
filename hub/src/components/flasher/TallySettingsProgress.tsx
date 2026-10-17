@@ -3,53 +3,26 @@ import { TallySettingsIniProgressType } from '../../flasher/NodeMcuConnector'
 import useTallies from '../../hooks/useTallies'
 import StepDisplay, { StepType } from './StepDisplay'
 
-function getSteps(progress: TallySettingsIniProgressType, isTallyConnected: boolean): StepType[] {
-  const steps: any = [
-    {
-      id: "initialize",
-      label: "Initializing",
-      done: progress?.inititalizeDone,
-    },
-    {
-      id: "connection",
-      label: "Establishing connection",
-      done: progress?.connectionDone,
-    },
-    {
-      id: "upload",
-      label: "Uploading tally-settings.ini",
-      done: progress?.uploadDone,
-    },
-    {
-      id: "reboot",
-      label: "Rebooting Tally to apply settings",
-      done: progress?.rebootDone,
-    },
-    {
-      id: "done",
-      label: "Upload Done",
-      done: progress?.allDone,
-    },
-    {
-      id: "connected",
-      label: "Tally is connected to Hub",
-      done: progress?.allDone && isTallyConnected,
-    },
+export function getSteps(progress: TallySettingsIniProgressType | undefined, isTallyConnected: boolean): StepType[] {
+  const steps: Array<Pick<StepType, 'id' | 'label' | 'done'>> = [
+    { id: 'initialize', label: 'Initializing', done: Boolean(progress?.inititalizeDone) },
+    { id: 'connection', label: 'Establishing connection', done: Boolean(progress?.connectionDone) },
+    { id: 'upload', label: 'Uploading tally-settings.ini', done: Boolean(progress?.uploadDone) },
+    { id: 'reboot', label: 'Rebooting Tally to apply settings', done: Boolean(progress?.rebootDone) },
+    { id: 'done', label: 'Upload Done', done: Boolean(progress?.allDone) },
+    { id: 'connected', label: 'Tally is connected to Hub', done: Boolean(progress?.allDone && isTallyConnected) },
   ]
 
-  let lastDone = true
-  let hadError = false
-  for (const step of steps) {
-    step.active = lastDone && step.done === false
-    step.error = step.active && progress?.error
-    step.skipped = hadError
-    if (!hadError) {
-      // first step that errored
-      hadError = true
-    }
-    lastDone = step.done
-  }
-  return steps
+  let precedingDone = true
+  let previousError = false
+  return steps.map(step => {
+    const active = precedingDone && !step.done && !previousError
+    const error = active && Boolean(progress?.error)
+    const skipped = previousError
+    precedingDone = precedingDone && step.done
+    previousError = previousError || error
+    return { ...step, active, error, skipped }
+  })
 }
 
 type Props = {
