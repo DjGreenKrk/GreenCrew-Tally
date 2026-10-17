@@ -21,9 +21,11 @@ export class SocketAwareEvent<EventName extends keyof EventHandlersDataMap> {
         this.socket = socket
         this.eventName = eventName
 
-        this.eventListener = (...args: Parameters<EventHandlersDataMap[EventName]>) : void => {
+        // Parameters<> preserves the runtime contract, but TypeScript cannot
+        // infer the mapped function type through a generic key without this assertion.
+        this.eventListener = ((...args: Parameters<EventHandlersDataMap[EventName]>) : void => {
             fnc(socket, ...args)
-        }
+        }) as EventHandlersDataMap[EventName]
         this.isRegistered = false
         this.disconnectListener = () => this.unregister()
 
