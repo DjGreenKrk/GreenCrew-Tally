@@ -1,15 +1,17 @@
 import { Configuration } from "../interfaces";
 
 class NullConfiguration extends Configuration {
-    fromJson(): void {
-        // empty. Has no settings, so nothing to load
+    fromJson(data: object): void {
+        // Preserve the Configuration.fromJson(payload) contract, even though
+        // Null mixer has no recognized settings.
+        if (data === null || typeof data !== 'object') return
     }
     toJson(): object {
         return {}
     }
     clone(): NullConfiguration {
         const clone = new NullConfiguration()
-        clone.fromJson()
+        clone.fromJson(this.toJson())
         return clone
     }
 
