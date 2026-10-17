@@ -1,4 +1,4 @@
-name: E2 upgrade Jest 30 with strict regression gate
+name: E2 Jest 30 permanent regression gate
 
 on:
   push:
@@ -7,12 +7,14 @@ on:
       - '.github/workflows/modernization-e2-jest30.yml'
       - 'hub/src/**/*.spec.*'
       - 'hub/jest.standalone.cjs'
+      - 'hub/package.json'
+      - 'hub/package-lock.json'
       - 'hub/src/lib/SocketEvents.ts'
       - 'hub/src/pages/WebTallyPage.tsx'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   jest30:
@@ -23,13 +25,9 @@ jobs:
         working-directory: hub
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: true
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Update Jest runner, jsdom, Babel transformer and Jest types as one toolchain
-        run: npm install --save-dev --save-exact --ignore-scripts --no-audit --no-fund jest@30.5.2 jest-environment-jsdom@30.5.2 babel-jest@30.5.2 @types/jest@latest
       - name: Verify lockfile and peer dependency graph without bypasses
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
@@ -54,14 +52,3 @@ jobs:
           set -e
           tail -n 7 /tmp/jest30-lint.log
           echo "ESLint exit status: $status (pre-existing debt; no waiver)" >> "$GITHUB_STEP_SUMMARY"
-      - name: Publish tested Jest manifest and lockfile together
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json
-          git diff --cached --check
-          if ! git diff --cached --quiet; then
-            git commit -m "build(e2): migrate Jest runner types and transform to v30"
-            git push origin HEAD:refs/heads/feat/node24-modernization-poc
-          fi
