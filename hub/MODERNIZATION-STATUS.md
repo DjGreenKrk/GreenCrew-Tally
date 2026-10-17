@@ -8,10 +8,10 @@ Date: 2026-10-16. Starting HEAD: ff34a9f75d333ccc43287bcebb24597f24bba025. Histo
 | ID | Status | Next acceptance |
 |---|---|---|
 | E0 | Completed (contract baseline) | Contract inventory, updated PR description, 32 suites / 280 pass / 1 skip on current baseline; final modern-stack replay still required in E8 |
-| E1 | In progress | Isolated Node24 compiler/lint/test/ESM/native/EXE probes in separate diagnostic CI; analyze recorded outcomes |
+| E1 | Completed as feasibility/decision stage; distribution remains blocked in E6 | Node24/TS6/lint/Jest/native probes performed; pkg native snapshot and dynamic import failed; ADR selects Node SEA, not yet implemented |
 | E2 | Partial | Commit 0679e13: Node24/types24 + TypeScript6, clean npm ci with no peer bypass, compiler + baseline tests; ESLint10/Jest30/Cypress16 and full test typecheck open |
 | E3 | Partial | Removed direct runtime mixer imports from browser and added Chromium production-render gate; React/router/MUI migrations still open |
-| E4 | Not started | Live Hub HTTP → Socket.IO and UDP, timeout and recovery |
+| E4 | Partial | Live Hub Companion HTTP → Socket.IO/Web Tally and UDP with heartbeat, timeout, UNKNOWN and recovery passed in CI 38974020564; Express5, Socket.IO4, OBS5 and remaining protocol migrations open |
 | E5 | Partial | Bounded NodeMCU hard reset mock and no Hub exit on vMix lost source; native EXE and physical tests open |
 | E6 | Not started | Exact published Windows ZIP, isolated EXE and tray |
 | E7 | Not started | Final CI, package audit, Companion host-compatible runtime |
@@ -90,3 +90,7 @@ Serialport13 and MIDI2 loaded **outside** EXE on Windows Node24.21; serialport l
 ## Packaging decision E1 (2026-10-16)
 
 [Pełny ADR](MODERNIZATION-E1-PACKAGING-DECISION.md). Dodatkowy [test pkg assets](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38974191864) zakończył się **FAIL**: binaria \`.node\` były obecne, lecz izolowany Windows EXE zgłaszał \`No native build was found\` dla \`@serialport/bindings-cpp\`. Pozostałe próby pkg miały \`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING\` albo analogiczny błąd native. **Zatrzymano E1 pkg; do E6 wybrano kierunek oficjalnego Node SEA, jeszcze bez działającego artefaktu.** E6/E8 nadal otwarte. Żadnych wyników testu fizycznego ESP lub MIDI.
+
+## Status reconciliation — 2026-10-17
+
+Rechecked the PR #2 description, implementation plan, audit, package manifest and prior CI evidence. Updated the stage table to reflect the already documented E1 packager decision and E4 live Hub integration pass, without claiming their later implementation stages are complete. E1's native Windows EXE experiment remains failed; Node SEA is a **proposed architecture**, not a verified deliverable. E4's passing test uses the old Express/Socket.IO/OBS stack, so the new API migration is still open. No new Node24 build, package installation, hardware test, Windows EXE or CI run was executed during this reconciliation; environment has no outbound GitHub DNS or Windows runner. Source of results: https://github.com/DjGreenKrk/wifi-tally/actions/runs/38974020564 and https://github.com/DjGreenKrk/wifi-tally/actions/runs/38974191864 . No release or merge.
