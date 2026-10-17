@@ -1,0 +1,63 @@
+name: E2 upgrade Jest 30 with strict regression gate
+
+on:
+  push:
+    branches: [feat/node24-modernization-poc]
+    paths:
+      - '.github/workflows/modernization-e2-jest30.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  jest30:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: hub
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Update Jest runner, jsdom, Babel transformer and Jest types as one toolchain
+        run: npm install --save-dev --save-exact --ignore-scripts --no-audit --no-fund jest@30.5.2 jest-environment-jsdom@30.5.2 babel-jest@30.5.2 @types/jest@latest
+      - name: Verify lockfile and peer dependency graph without bypasses
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm ls --depth=0
+          node -e "for (const p of ['jest','babel-jest','jest-environment-jsdom']) { const v = require(p + '/package.json').version; if(v !== '30.5.2') throw Error(p + '=' + v) }"
+      - name: Typecheck application and all Jest tests
+        run: |
+          npx tsc --project tsconfig.json --noEmit
+          npx tsc --project tsconfig.test.json --noEmit
+      - name: Rebuild and test real project without exemptions
+        run: |
+          npm run build:backend
+          npm run build:frontend
+          npm run test:ci
+          npm run test:frontend:smoke
+      - name: Record current lint debt (not considered green)
+        shell: bash
+        run: |
+          set +e
+          npm run lint > /tmp/jest30-lint.log 2>&1
+          status=$?
+          set -e
+          tail -n 7 /tmp/jest30-lint.log
+          echo "ESLint exit status: $status (pre-existing debt; no waiver)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish tested Jest manifest and lockfile together
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git commit -m "build(e2): migrate Jest runner types and transform to v30"
+            git push origin HEAD:refs/heads/feat/node24-modernization-poc
+          fi
