@@ -23,6 +23,7 @@ jobs:
           node-version: '24'
       - name: Clean reproducible npm install
         run: npm ci --ignore-scripts --no-audit --no-fund
+      # Keep git diff --check mandatory: mixed indentation has been fixed in the source.
       - name: Apply only automatically fixable ESLint recommendations
         shell: bash
         run: |

@@ -66,10 +66,10 @@ class RolandV8HDConnector implements Connector {
         this.midi_input.on('message', (deltaTime, message) => {
           //Check tally parameter area
           if(message[8] === 12){
-        		// hdmi input id in byte 11
-        		let channel_idx = message[10]
-        		// tally information in byte 12
-        		let input_status = message[11]
+              // hdmi input id in byte 11
+              let channel_idx = message[10]
+              // tally information in byte 12
+              let input_status = message[11]
             this.input_status[channel_idx] = input_status
 
             // only notify program status change after full iteration (8 chans)
