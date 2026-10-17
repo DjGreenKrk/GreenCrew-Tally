@@ -5,6 +5,7 @@ on:
     paths:
       - 'hub/src/**'
       - 'hub/scripts/check-live-companion-integration.cjs'
+      - 'hub/scripts/udp-phase-assertions*.cjs'
       - '.github/workflows/modernization-integration.yml'
   workflow_dispatch:
 permissions:
@@ -27,5 +28,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Compile running backend
         run: npm run build:backend
+      - name: Assert UDP frame phase guards
+        run: node scripts/udp-phase-assertions.test.cjs
       - name: Live Hub and UDP acceptance
         run: node scripts/check-live-companion-integration.cjs
