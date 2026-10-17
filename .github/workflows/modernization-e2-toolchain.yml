@@ -1,0 +1,44 @@
+name: E2 refresh Jest typings and ESLint toolchain
+on:
+  push:
+    branches: [feat/node24-modernization-poc]
+    paths:
+      - '.github/workflows/modernization-e2-toolchain.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: hub
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Align Jest 29 declarations, ESLint 10 and TypeScript 6 parser
+        run: npm install --save-dev --save-exact --ignore-scripts --no-audit --no-fund @types/jest@29.5.14 eslint@10.13.0 @eslint/js@10.0.0 typescript-eslint@8.71.2 eslint-plugin-react-hooks@7.1.1 globals@16.5.0
+      - name: Confirm clean locked install (no peer bypass)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Confirm dependency resolution
+        run: npm ls --depth=0
+      - name: Typecheck all tests without excluding failures
+        run: npx tsc --project tsconfig.test.json --noEmit
+      - name: Confirm all Jest tests still work
+        run: npm run test:ci
+      - name: Publish atomic tested manifest and lockfile to same modernization branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git diff --cached --check
+          if ! git diff --cached --quiet; then
+            git commit -m "build(e2): align Jest declarations and install current ESLint 10 toolchain"
+            git push origin HEAD:refs/heads/feat/node24-modernization-poc
+          fi
