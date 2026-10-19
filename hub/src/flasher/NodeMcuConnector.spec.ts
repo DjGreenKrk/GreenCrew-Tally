@@ -1,4 +1,4 @@
-import NodeMcuConnector, { isSupportedSerialPort } from './NodeMcuConnector'
+import NodeMcuConnector, { isSupportedSerialPort, TallyProgramProgressType, TallySettingsIniProgressType } from './NodeMcuConnector'
 import * as FirmwareAssets from './FirmwareAssets'
 
 // Serial transport mock only. This is NOT physical ESP8266 acceptance.
@@ -202,5 +202,70 @@ describe('NodeMCU serial port detection', () => {
     }
     const result = await new NodeMcuConnector(device).getDevice()
     expect(JSON.parse(JSON.stringify(result.toJson())).errorMessage).toBe('port busy')
+  })
+})
+
+// Serial transport mock only. This is NOT physical ESP8266 acceptance.
+describe('NodeMCU uploads with the tally app paused (simulated device)', () => {
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+
+  const simulatedDevice = (corruptDownloads = false) => {
+    const log: string[] = []
+    const stored = new Map<string, Buffer>()
+    let open = false
+    return {
+      log,
+      onError: jest.fn(),
+      isConnected: jest.fn(() => open),
+      connect: jest.fn(async () => { open = true; log.push('connect') }),
+      disconnect: jest.fn(async () => { open = false }),
+      purge: jest.fn().mockResolvedValue(undefined),
+      checkConnection: jest.fn().mockResolvedValue(true),
+      hardreset: jest.fn(async () => { log.push('reset') }),
+      execute: jest.fn(async (command: string) => { log.push('exec ' + command); return { echo: command, response: 'ok' } }),
+      upload: jest.fn(async (localName: string, remoteName: string) => {
+        log.push('upload ' + remoteName)
+        stored.set(remoteName, await jest.requireActual('fs').promises.readFile(localName))
+      }),
+      download: jest.fn(async (remoteName: string) => corruptDownloads ? Buffer.from('') : stored.get(remoteName)),
+    }
+  }
+
+  const settle = async <T>(operation: Promise<T>) => {
+    let done = false
+    void operation.finally(() => { done = true })
+    for (let i = 0; i < 200 && !done; i++) await jest.advanceTimersByTimeAsync(1000)
+    return operation
+  }
+
+  test('program pauses the app, writes init.lua last and only then reboots into it', async () => {
+    const device = simulatedDevice()
+    const progress: TallyProgramProgressType[] = []
+    await settle(new NodeMcuConnector(device).program('COM1', p => progress.push({ ...p })))
+    expect(progress[progress.length - 1]).toMatchObject({ allDone: true, error: false, filesUploaded: 8 })
+
+    const pause = device.log.findIndex(line => line.includes('file.rename("init.lua", "init.paused")'))
+    const firstUpload = device.log.findIndex(line => line.startsWith('upload'))
+    const uploads = device.log.filter(line => line.startsWith('upload'))
+    expect(pause).toBeGreaterThan(-1)
+    expect(device.log.slice(pause, firstUpload)).toContain('reset')
+    expect(uploads[uploads.length - 1]).toBe('upload init.lua.swp')
+    expect(device.log.slice(device.log.lastIndexOf('upload init.lua.swp'))).toEqual(expect.arrayContaining([
+      'exec if file.exists("init.paused") then file.remove("init.paused") end; print("ok")',
+      'reset',
+    ]))
+  })
+
+  test('a failed settings upload restores autostart so the tally keeps its old settings', async () => {
+    const device = simulatedDevice(true)
+    const progress: TallySettingsIniProgressType[] = []
+    const ini = 'station.ssid=Net\nstation.password=secret\nhub.ip=10.0.0.1\ntally.name=CAM9\n'
+    await settle(new NodeMcuConnector(device).writeTallySettingsIni('COM1', ini, p => progress.push({ ...p })))
+    expect(progress[progress.length - 1]).toMatchObject({ error: true, allDone: false })
+    const pause = device.log.findIndex(line => line.includes('file.rename("init.lua", "init.paused")'))
+    const resume = device.log.findIndex(line => line.includes('file.rename("init.paused", "init.lua")'))
+    expect(pause).toBeGreaterThan(-1)
+    expect(resume).toBeGreaterThan(pause)
   })
 })

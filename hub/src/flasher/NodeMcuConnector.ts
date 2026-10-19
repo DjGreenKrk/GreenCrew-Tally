@@ -6,6 +6,10 @@ import { findFirmwareFiles, FirmwareFile } from './FirmwareAssets'
 
 const baudRate = 115200
 const fileName = "tally-settings.ini"
+const initFile = "init.lua"
+// While files are written the tally app must not run: its Wi-Fi, UDP and
+// timers compete for the little heap left and can trip the watchdog.
+const pausedInitFile = "init.paused"
 
 // USB-UART bridges used on ESP8266 boards. nodemcu-tool only knows CH340 and
 // CP2102, which hides FTDI-based boards such as D1 Mini clones with FT232R.
@@ -333,11 +337,24 @@ class NodeMcuConnector {
         progress.connectionDone = true
         onProgress(progress)
 
-        for(const file of files) {
-          await this.saveFileUpload(file.fileName, file.filePath)
-          progress.filesUploaded = progress.filesUploaded + 1
-          onProgress(progress)
+        await this.pauseApplication(path)
+        // init.lua goes last: until every module is in place the ESP boots
+        // into the bare Lua prompt and stays reachable for another attempt.
+        const modules = files.filter(file => file.fileName !== initFile)
+        const init = files.filter(file => file.fileName === initFile)
+        try {
+          for (const file of [...modules, ...init]) {
+            await this.saveFileUpload(file.fileName, file.filePath)
+            progress.filesUploaded = progress.filesUploaded + 1
+            onProgress(progress)
+          }
+        } catch (e) {
+          // Old modules are intact until the first one is replaced, so the
+          // previous app can still boot. A mixed set must not autostart.
+          if (progress.filesUploaded === 0) await this.resumeApplication()
+          throw e
         }
+        await this.removeFileIfExists(pausedInitFile)
 
         await this.hardReset(path)
 
@@ -390,11 +407,17 @@ class NodeMcuConnector {
         progress.connectionDone = true
         onProgress(progress)
 
-        await this.saveContentUpload(fileName, settingsIniString)
+        await this.pauseApplication(path)
+        try {
+          await this.saveContentUpload(fileName, settingsIniString)
+        } finally {
+          // The tally must keep booting with its old settings if this failed.
+          await this.resumeApplication()
+        }
 
         progress.uploadDone = true
         onProgress(progress)
-        
+
         await this.hardReset(path)
 
         progress.rebootDone = true
@@ -497,6 +520,16 @@ class NodeMcuConnector {
       await this.removeFileIfExists(copyFileName)
     }
   }
+  /** Restarts the ESP with the tally app's autostart disabled. */
+  private async pauseApplication(path: string) {
+    await this.execute(`if file.exists("${initFile}") then file.remove("${pausedInitFile}") file.rename("${initFile}", "${pausedInitFile}") end`)
+    await this.hardReset(path)
+  }
+
+  private async resumeApplication() {
+    await this.execute(`if file.exists("${pausedInitFile}") and not file.exists("${initFile}") then file.rename("${pausedInitFile}", "${initFile}") end`)
+  }
+
   private async removeFileIfExists(filePath: string) {
     return this.execute(`if file.exists("${filePath}") then file.remove("${filePath}") end`)
   }
