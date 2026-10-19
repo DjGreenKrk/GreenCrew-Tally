@@ -31,9 +31,9 @@ import registerCompanionApi from './mixer/companion/CompanionApi'
 
 const argv = yargs.argv
 if (argv.env !== undefined) {
-  // @ts-ignore @TODO: setting the env is not nice, but the easiest way to be cross-platform compatible
+  // @TODO: setting the env is not nice, but the easiest way to be cross-platform compatible
   // @see https://github.com/wifi-tally/wifi-tally/issues/18
-  process.env.NODE_ENV = argv.env
+  process.env.NODE_ENV = String(argv.env)
 } else if ((process as NodeJS.Process & { pkg?: unknown }).pkg) {
   // A pkg-built EXE contains its own frontend, not the React dev server.
   // Default to production so launching vtally.exe directly does not proxy to :3001.
@@ -369,7 +369,7 @@ if (myConfiguration.isDev()) {
     target: `http://localhost:${proxyPort}`, 
     changeOrigin: true, 
     ws: true,
-    onError: (err: any, req, res) => {
+    onError: (err: Error & { code?: string }, req, res) => {
       if (typeof res.writeHead === "function") {
         res.writeHead(500, {
           'Content-Type': 'text/plain',

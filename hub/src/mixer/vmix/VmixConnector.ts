@@ -12,7 +12,7 @@ class VmixConnector implements Connector {
     client?: net.Socket
     wasHelloReceived: boolean
     wasSubcribeOkReceived: boolean
-    intervalHandle: any
+    intervalHandle?: NodeJS.Timeout
     xmlQueryInterval: number
     waitForHelloPeriod: number
     reconnectTimeout?: NodeJS.Timeout
@@ -258,7 +258,7 @@ class VmixConnector implements Connector {
         return this.client !== undefined && !this.client.destroyed && this.wasHelloReceived && this.wasSubcribeOkReceived
     }
     
-    static readonly ID: "vmix" = "vmix"
+    static readonly ID = "vmix" as const
     static readonly reconnectInterval = 3000
     static readonly reconnectLimit = 10 * 60 * 1000
 

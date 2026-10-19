@@ -1,10 +1,9 @@
 import React from 'react'
 import MixerSettingsWrapper from '../../../components/config/MixerSettingsWrapper'
 import { socket } from '../../../hooks/useSocket'
-import type { SettingsProps } from '../../interfaces'
 import { MIXER_IDS } from '../../ids'
 
-function CompanionSettings(_props: SettingsProps) {
+function CompanionSettings() {
     return (
         <MixerSettingsWrapper
             title="Companion HTTP Tally"

@@ -76,7 +76,6 @@ try{
     fs.copyFileSync(nativeExe,path.join(isolated,'native-only.exe'))
     add('isolated EXE native-only enumerations',run(path.join(isolated,'native-only.exe'),[],isolated,90000))
    }
-   const bundled=path.join(nat,'bundled.cjs')
    const bundle=run(process.execPath,[
      path.join(nat,'node_modules/esbuild/bin/esbuild'),'probe.cjs',
      '--bundle','--platform=node','--format=cjs','--target=node24',

@@ -290,7 +290,6 @@ describe('Web Tally Creation', () => {
       
       // waiting here is appropriate here. We need to make sure that the state has not
       // changed even after some time.
-      // eslint-disable-next-line cypress/no-unnecessary-waiting
       cy.wait(500).then(() => {
         cy.getTestId("tally-settings-ob-toggle")
         .should('have.attr', 'data-selected', 'false')

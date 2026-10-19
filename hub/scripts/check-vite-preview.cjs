@@ -30,7 +30,7 @@ function stop() {
     const killer = spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
     killer.unref()
   } else if (child.pid) {
-    try { process.kill(-child.pid, 'SIGKILL') } catch {}
+    try { process.kill(-child.pid, 'SIGKILL') } catch { /* process group already exited */ }
   }
   child.stdout.destroy()
   child.stderr.destroy()

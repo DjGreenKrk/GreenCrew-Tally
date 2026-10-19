@@ -7,7 +7,7 @@ import RolandV60HDConfiguration from './RolandV60HDConfiguration'
 class RolandV60HDConnector implements Connector {
     configuration: RolandV60HDConfiguration
     communicator: MixerCommunicator
-    sourceConnections: any
+    sourceConnections: NodeJS.Timeout[]
     connected: boolean
     input_status: number[]
 
@@ -71,7 +71,7 @@ class RolandV60HDConnector implements Connector {
       }
     }
 
-    private processResponseError(error: any){
+    private processResponseError(error: unknown){
       // set mixer as disconnected
       console.log(`RolandV60HD Smart Tally Error: ${error}`)
       this.communicator.notifyMixerIsDisconnected()
@@ -112,7 +112,7 @@ class RolandV60HDConnector implements Connector {
         return this.connected
     }
 
-    static readonly ID: "rolandV60HD" = "rolandV60HD"
+    static readonly ID = "rolandV60HD" as const
 }
 
 export default RolandV60HDConnector

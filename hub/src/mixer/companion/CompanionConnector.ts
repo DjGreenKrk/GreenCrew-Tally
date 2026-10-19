@@ -5,7 +5,7 @@ import CompanionConfiguration from './CompanionConfiguration'
 // Uses the existing Program/Preview events and the Hub's UDP/Web tally clients.
 // A selected mixer is not proof that Companion is still sending live snapshots.
 class CompanionConnector implements Connector {
-    static readonly ID: 'companion' = 'companion'
+    static readonly ID = 'companion' as const
     static readonly TIMEOUT_MS = 4000
 
     private active = false

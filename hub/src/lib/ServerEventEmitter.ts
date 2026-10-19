@@ -56,6 +56,6 @@ interface ServerEventEmitter extends EventEmitter {
     ): this
 }
 
-class ServerEventEmitter extends EventEmitter {}
+const ServerEventEmitter = EventEmitter as new () => ServerEventEmitter
 
 export default ServerEventEmitter

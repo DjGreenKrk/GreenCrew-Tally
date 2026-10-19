@@ -17,7 +17,7 @@ child.stderr.on('data',x=>{serverLogs+=x.toString()})
 const delay=(ms)=>new Promise(resolve=>setTimeout(resolve,ms))
 function stop(){
  if(process.platform!=='win32'&&child.pid){
-  try{process.kill(-child.pid,'SIGKILL')}catch{}
+  try{process.kill(-child.pid,'SIGKILL')}catch{/* process group already exited */}
  }else if(child.pid){child.kill('SIGKILL')}
 }
 async function main(){
@@ -27,7 +27,7 @@ async function main(){
  const deadline=Date.now()+30000
  while(Date.now()<deadline){
   if(child.exitCode!==null)throw Error('Vite preview exited early: '+serverLogs)
-  try{const r=await fetch(base+'/');if(r.ok)break}catch{}
+  try{const r=await fetch(base+'/');if(r.ok)break}catch{/* server not accepting connections yet; retry */}
   await delay(200)
  }
  if(Date.now()>=deadline)throw Error('Vite preview did not start: '+serverLogs)
