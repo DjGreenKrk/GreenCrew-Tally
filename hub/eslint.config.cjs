@@ -47,6 +47,13 @@ module.exports = tseslint.config(
     },
   },
   {
+    // The NodeMCU flasher loads its native serial stack inside try/catch so a
+    // missing addon cannot stop the Hub; pkg needs the literal require() to
+    // bundle it. Only this module is allowed, nothing else.
+    files: ['src/flasher/NodeMcuConnector.ts'],
+    rules: { '@typescript-eslint/no-require-imports': ['error', { allow: ['^nodemcu-tool$'] }] },
+  },
+  {
     files: ['cypress/**/*.{js,jsx,ts,tsx}'],
     plugins: { cypress },
     rules: { 'cypress/no-assigning-return-values': 'error' },

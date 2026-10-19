@@ -7,6 +7,17 @@ import { findFirmwareFiles, FirmwareFile } from './FirmwareAssets'
 const baudRate = 115200
 const fileName = "tally-settings.ini"
 
+// USB-UART bridges used on ESP8266 boards. nodemcu-tool only knows CH340 and
+// CP2102, which hides FTDI-based boards such as D1 Mini clones with FT232R.
+const supportedUsbVendorIds = [
+  '1A86', // QinHeng CH340/CH341
+  '10C4', // Silicon Labs CP2102
+  '0403', // FTDI FT232R
+]
+
+export const isSupportedSerialPort = (port: {vendorId?: string}) =>
+  !!port.vendorId && supportedUsbVendorIds.includes(port.vendorId.toUpperCase())
+
 let mutex = false
 
 const tryToAquireMutex = () => {
@@ -40,8 +51,30 @@ export interface TallyProgramProgressType {
 
 class NodeMcuTimeoutError extends Error {}
 
+export interface SerialPortInfo {
+  path: string
+  vendorId?: string
+  productId?: string
+}
+
+/** The subset of the nodemcu-tool API used by the Hub. */
+export interface NodeMcuTool {
+  onError(handler: (error: unknown) => void): void
+  isConnected(): boolean
+  connect(path: string, baudRate: number, applyConnectionCheck: boolean): Promise<void>
+  disconnect(): Promise<void>
+  checkConnection(): Promise<boolean>
+  listDevices(showAll: boolean): Promise<SerialPortInfo[]>
+  deviceInfo(): Promise<{chipID: string, flashID: string, version: string, modules: string | null}>
+  fsinfo(): Promise<{files: {name: string, size: number}[]}>
+  download(remoteName: string): Promise<Buffer>
+  upload(localName: string, remoteName: string, options: object, progressCb: () => void): Promise<void>
+  execute(command: string): Promise<{echo: string, response: string} | null>
+  hardreset(): Promise<void>
+}
+
 class NodeMcuConnector {
-  nodemcu: any
+  nodemcu: NodeMcuTool
   // Native operations may finish AFTER their public timeout; the transport
   // remains locked until the operation settles and the port is closed.
   private pendingNativeOperations = new Set<Promise<unknown>>()
@@ -93,21 +126,22 @@ class NodeMcuConnector {
   }
 
   // injectable for easier testing
-  constructor(nodemcu?: any) {
+  // Tests inject fakes that implement only the methods a scenario needs.
+  constructor(nodemcu?: Partial<NodeMcuTool>) {
     if (nodemcu) {
-      this.nodemcu = nodemcu
+      this.nodemcu = nodemcu as NodeMcuTool
     } else {
       try {
         // Keep the require literal so pkg can discover and include the
         // NodeMCU flasher and its serialport dependency in vtally.exe.
-        this.nodemcu = require('nodemcu-tool')
+        this.nodemcu = require('nodemcu-tool') as NodeMcuTool
       } catch (error) {
         console.error(`Could not load the NodeMCU tool: ${error}`)
         this.nodemcu = undefined
       }
     }
     if (this.nodemcu) {
-      this.nodemcu.onError((error:any) => {
+      this.nodemcu.onError((error: unknown) => {
         console.error(error)
       })
     }
@@ -213,7 +247,7 @@ class NodeMcuConnector {
 
     try {
       return await this.withMutex(async () => {
-        const list = await this.nodemcu.listDevices()
+        const list = (await this.nodemcu.listDevices(true)).filter(isSupportedSerialPort)
         const device = list[0]
         if (device) {
           
@@ -245,7 +279,8 @@ class NodeMcuConnector {
       })
     }
     catch (e) {
-      tallyDevice.errorMessage = e
+      // An Error object serializes to {} over Socket.IO, so send its text.
+      tallyDevice.errorMessage = e instanceof Error ? e.message : String(e)
       return tallyDevice
     }
   }
