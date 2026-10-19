@@ -12,13 +12,13 @@ describe('NodeMCU reset recovery', () => {
     hardreset: jest.fn().mockResolvedValue(undefined),
     disconnect: jest.fn().mockResolvedValue(undefined),
     connect: jest.fn().mockResolvedValue(undefined),
+    purge: jest.fn().mockResolvedValue(undefined),
     checkConnection: jest.fn(),
   })
 
   test('rejects a hung check within a deadline, not from an uncaught timer', async () => {
     const device = fakeDevice()
-    device.checkConnection.mockResolvedValueOnce(true)
-      .mockImplementation(() => new Promise(() => {}))
+    device.checkConnection.mockImplementation(() => new Promise(() => {}))
     const connector = new NodeMcuConnector(device)
     const operation = (connector as unknown as {hardReset(path: string): Promise<void>}).hardReset('COM1')
     const rejected = expect(operation).rejects.toThrow('Could not connect to NodeMCU after hardreset')
@@ -26,10 +26,36 @@ describe('NodeMCU reset recovery', () => {
     await rejected
   })
 
+  test('does not query the ESP before it had time to boot after the reset', async () => {
+    const device = fakeDevice()
+    device.checkConnection.mockResolvedValue(true)
+    const connector = new NodeMcuConnector(device)
+    const operation = (connector as unknown as {hardReset(path: string): Promise<void>}).hardReset('COM1')
+    // reset settle 1 s + purge settle 0.2 s + boot wait 3 s
+    await jest.advanceTimersByTimeAsync(4100)
+    expect(device.connect).toHaveBeenCalledWith('COM1', 115200, false)
+    expect(device.checkConnection).not.toHaveBeenCalled()
+    await jest.advanceTimersByTimeAsync(200)
+    await expect(operation).resolves.toBeUndefined()
+    expect(device.checkConnection).toHaveBeenCalledTimes(1)
+  })
+
+  test('discards stale serial input after opening the port, before any command', async () => {
+    const device = fakeDevice()
+    const order: string[] = []
+    device.connect.mockImplementation(async () => { order.push('connect') })
+    device.purge.mockImplementation(async () => { order.push('purge') })
+    device.checkConnection.mockImplementation(async () => { order.push('check'); return true })
+    const connector = new NodeMcuConnector(device)
+    const operation = (connector as unknown as {hardReset(path: string): Promise<void>}).hardReset('COM1')
+    await jest.advanceTimersByTimeAsync(5000)
+    await operation
+    expect(order).toEqual(['connect', 'purge', 'check'])
+  })
+
   test('retries transient reset failures and completes', async () => {
     const device = fakeDevice()
-    device.checkConnection.mockResolvedValueOnce(true)
-      .mockRejectedValueOnce(new Error('booting'))
+    device.checkConnection.mockRejectedValueOnce(new Error('booting'))
       .mockResolvedValueOnce(true)
     const connector = new NodeMcuConnector(device)
     const operation = (connector as unknown as {hardReset(path: string): Promise<void>}).hardReset('COM1')
@@ -58,6 +84,7 @@ describe('NodeMCU timeout quarantine and transport cleanup (simulated device)', 
     let resolveLate: (() => void) | undefined
     const stalled = new Promise<void>(resolve => { resolveLate = resolve })
     const device = {
+      purge: jest.fn().mockResolvedValue(undefined),
       onError: jest.fn(),
       isConnected: jest.fn(() => open),
       listDevices: jest.fn().mockResolvedValue([{ path: 'COM1', vendorId: '1a86' }]),
@@ -102,7 +129,7 @@ describe('NodeMCU timeout quarantine and transport cleanup (simulated device)', 
     expect(maxActive).toBe(1)
 
     const third = connector.getDevice()
-    await jest.advanceTimersByTimeAsync(150)
+    await jest.advanceTimersByTimeAsync(400)
     expect((await third).errorMessage).toBeUndefined()
     expect(open).toBe(false)
   })
@@ -110,6 +137,7 @@ describe('NodeMCU timeout quarantine and transport cleanup (simulated device)', 
   test('retry after a rejected connect releases mutex after cleanup', async () => {
     let open = false
     const device = {
+      purge: jest.fn().mockResolvedValue(undefined),
       onError: jest.fn(), isConnected: jest.fn(() => open),
       listDevices: jest.fn().mockResolvedValue([{path:'COM3', vendorId: '10C4'}]),
       connect: jest.fn().mockRejectedValueOnce(new Error('temporary serial failure'))
@@ -121,10 +149,10 @@ describe('NodeMCU timeout quarantine and transport cleanup (simulated device)', 
     }
     const connector = new NodeMcuConnector(device)
     const first=connector.getDevice()
-    await jest.advanceTimersByTimeAsync(200)
+    await jest.advanceTimersByTimeAsync(400)
     expect(String((await first).errorMessage)).toContain('temporary serial failure')
     const second=connector.getDevice()
-    await jest.advanceTimersByTimeAsync(200)
+    await jest.advanceTimersByTimeAsync(400)
     expect((await second).errorMessage).toBeUndefined()
     expect(device.connect).toHaveBeenCalledTimes(2)
     expect(device.disconnect).toHaveBeenCalledTimes(1)
@@ -146,6 +174,7 @@ describe('NodeMCU serial port detection', () => {
 
   test('selects an FTDI board from the unfiltered port list', async () => {
     const device = {
+      purge: jest.fn().mockResolvedValue(undefined),
       onError: jest.fn(),
       isConnected: jest.fn(() => false),
       listDevices: jest.fn().mockResolvedValue([
@@ -164,6 +193,7 @@ describe('NodeMCU serial port detection', () => {
 
   test('reports connection errors as text that survives JSON serialization', async () => {
     const device = {
+      purge: jest.fn().mockResolvedValue(undefined),
       onError: jest.fn(),
       isConnected: jest.fn(() => false),
       listDevices: jest.fn().mockResolvedValue([{ path: 'COM5', vendorId: '0403' }]),

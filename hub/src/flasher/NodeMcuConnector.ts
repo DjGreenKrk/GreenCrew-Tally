@@ -71,6 +71,8 @@ export interface NodeMcuTool {
   upload(localName: string, remoteName: string, options: object, progressCb: () => void): Promise<void>
   execute(command: string): Promise<{echo: string, response: string} | null>
   hardreset(): Promise<void>
+  /** Discards unread serial input (OS buffer and nodemcu-tool's line queue). */
+  purge(): Promise<void>
 }
 
 class NodeMcuConnector {
@@ -134,7 +136,11 @@ class NodeMcuConnector {
       try {
         // Keep the require literal so pkg can discover and include the
         // NodeMCU flasher and its serialport dependency in vtally.exe.
-        this.nodemcu = require('nodemcu-tool') as NodeMcuTool
+        const tool = require('nodemcu-tool')
+        // nodemcu-tool only purges inside connect() with a connect delay; the
+        // Hub needs it after every open, so take it from its terminal module.
+        const terminal = require('nodemcu-tool/lib/transport/scriptable-serial-terminal')
+        this.nodemcu = { ...tool, purge: terminal.purge } as NodeMcuTool
       } catch (error) {
         console.error(`Could not load the NodeMCU tool: ${error}`)
         this.nodemcu = undefined
@@ -186,9 +192,18 @@ class NodeMcuConnector {
     }
   }
 
+  private async openPort(path: string) {
+    await this.withTimeout(() => this.nodemcu.connect(path, baudRate, false), 5000, 'NodeMCU serial connect timed out')
+    // Output the ESP sent while the port was closed (e.g. boot logs held in the
+    // USB-UART FIFO) would otherwise be read as replies to the next commands.
+    // nodemcu-tool keeps that queue across connections, so clear it every time.
+    await this.sleep(200)
+    await this.withTimeout(() => this.nodemcu.purge(), 2000, 'NodeMCU serial purge timed out')
+  }
+
   // gracefull connection that retries a few times
   private async connect(path: string) {
-    await this.withTimeout(() => this.nodemcu.connect(path, baudRate, false), 5000, 'NodeMCU serial connect timed out')
+    await this.openPort(path)
 
     // check connection does not always work the first time, so we try it multiple times if necessary
     let retries = 3
@@ -403,7 +418,10 @@ class NodeMcuConnector {
     await this.withTimeout(() => this.nodemcu.hardreset(), 5000, 'NodeMCU hard reset timed out')
     await this.withTimeout(() => this.nodemcu.disconnect(), 5000, 'NodeMCU serial disconnect timed out')
     await this.sleep(1000)
-    await this.connect(path)
+    // Only open the port here. A connection check sent while the ESP is still
+    // booting times out inside nodemcu-tool and leaves its single receive
+    // listener queued, so every later command fails with a concurrency error.
+    await this.openPort(path)
     await this.sleep(3000)
 
     // Do not throw from a timeout callback or poll the transport forever.
