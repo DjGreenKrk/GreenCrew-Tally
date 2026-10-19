@@ -345,8 +345,8 @@ io.on('connection', (socket: ServerSideSocket) => {
     myConfiguration.setTallyConfiguration(configuration)
   })
 
-  socket.on('flasher.device.get', () => {
-    myNodeMcuConnector.getDevice().then(device => {
+  socket.on('flasher.device.get', (path) => {
+    myNodeMcuConnector.getDevice(typeof path === 'string' ? path : undefined).then(device => {
       socket.emit('flasher.device', device.toJson())
     })
   })

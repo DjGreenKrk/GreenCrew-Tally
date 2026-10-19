@@ -79,7 +79,7 @@ export interface ClientSentEvents {
     'config.change.tallyconfig': (configuration: TallyConfigurationObjectType) => void
     'vmix.project.save': () => void
 
-    'flasher.device.get': () => void
+    'flasher.device.get': (path?: string) => void
     'flasher.settingsIni': (path: string, settingsIniString: string) => void
     'flasher.program': (path: string) => void
 }

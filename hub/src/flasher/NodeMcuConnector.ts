@@ -1,4 +1,4 @@
-import TallyDevice from './TallyDevice'
+import TallyDevice, { SerialPortChoice } from './TallyDevice'
 import TallySettingsIni from './TallySettingsIni'
 import tmp from 'tmp-promise'
 import { promises as fs } from 'fs'
@@ -250,7 +250,11 @@ class NodeMcuConnector {
     
   }
 
-  async getDevice(): Promise<TallyDevice> {
+  /**
+   * @param requestedPath a port the user picked; otherwise the first known
+   *   ESP USB-UART bridge. Windows often numbers it e.g. COM11 behind COM1-3.
+   */
+  async getDevice(requestedPath?: string): Promise<TallyDevice> {
     const tallyDevice = new TallyDevice()
     let updatePossible = false
     try {
@@ -266,8 +270,15 @@ class NodeMcuConnector {
 
     try {
       return await this.withMutex(async () => {
-        const list = (await this.nodemcu.listDevices(true)).filter(isSupportedSerialPort)
-        const device = list[0]
+        const ports = await this.nodemcu.listDevices(true)
+        tallyDevice.ports = ports.map((port): SerialPortChoice => ({
+          path: port.path,
+          vendorId: port.vendorId,
+          productId: port.productId,
+          supported: isSupportedSerialPort(port),
+        }))
+        const device = (requestedPath && ports.find(port => port.path === requestedPath))
+          || ports.find(isSupportedSerialPort)
         if (device) {
           
           tallyDevice.path = device.path

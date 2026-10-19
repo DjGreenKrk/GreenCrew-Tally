@@ -269,3 +269,41 @@ describe('NodeMCU uploads with the tally app paused (simulated device)', () => {
     expect(resume).toBeGreaterThan(pause)
   })
 })
+
+describe('NodeMCU serial port choice', () => {
+  const windowsPorts = [
+    { path: 'COM1' },
+    { path: 'COM3' },
+    { path: 'COM11', vendorId: '0403', productId: '6001' },
+  ]
+  const deviceOn = () => ({
+    onError: jest.fn(),
+    isConnected: jest.fn(() => false),
+    listDevices: jest.fn().mockResolvedValue(windowsPorts),
+    connect: jest.fn().mockRejectedValue(new Error('stop after port choice')),
+    disconnect: jest.fn(),
+  })
+
+  test('picks the ESP adapter even when Windows lists it third (COM11)', async () => {
+    const device = deviceOn()
+    const result = await new NodeMcuConnector(device).getDevice()
+    expect(result.path).toBe('COM11')
+    expect(result.ports).toEqual([
+      { path: 'COM1', vendorId: undefined, productId: undefined, supported: false },
+      { path: 'COM3', vendorId: undefined, productId: undefined, supported: false },
+      { path: 'COM11', vendorId: '0403', productId: '6001', supported: true },
+    ])
+  })
+
+  test('uses the port the user chose, including an unidentified one', async () => {
+    const device = deviceOn()
+    const result = await new NodeMcuConnector(device).getDevice('COM3')
+    expect(device.connect).toHaveBeenCalledWith('COM3', 115200, false)
+    expect(result.path).toBe('COM3')
+  })
+
+  test('ignores a chosen port that is no longer connected', async () => {
+    const result = await new NodeMcuConnector(deviceOn()).getDevice('COM7')
+    expect(result.path).toBe('COM11')
+  })
+})

@@ -2,6 +2,14 @@ import TallySettingsIni from "./TallySettingsIni"
 
 export type UpdateType = "not-available" | "up-to-date" | "updateable"
 
+/** A serial port the flasher could use; supported = known ESP USB-UART bridge. */
+export interface SerialPortChoice {
+  path: string
+  vendorId?: string
+  productId?: string
+  supported: boolean
+}
+
 export interface TallyDeviceObjectType {
   vendorId: string
   productId: string
@@ -13,6 +21,7 @@ export interface TallyDeviceObjectType {
   tallySettings?: string
   errorMessage?: string
   update?: UpdateType
+  ports?: SerialPortChoice[]
 }
 
 class TallyDevice{
@@ -26,6 +35,7 @@ class TallyDevice{
   update?: UpdateType
   tallySettings?: TallySettingsIni
   errorMessage?: string
+  ports: SerialPortChoice[] = []
 
   toJson(): TallyDeviceObjectType {
     return {
@@ -39,6 +49,7 @@ class TallyDevice{
       tallySettings: this.tallySettings ? this.tallySettings.toString() : undefined,
       errorMessage: this.errorMessage,
       update: this.update,
+      ports: this.ports,
     }
   }
 
@@ -54,6 +65,7 @@ class TallyDevice{
     device.tallySettings = data.tallySettings ? new TallySettingsIni(data.tallySettings) : undefined
     device.errorMessage = data.errorMessage
     device.update = data.update
+    device.ports = data.ports || []
 
     return device
   }
