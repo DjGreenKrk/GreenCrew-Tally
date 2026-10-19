@@ -200,3 +200,15 @@ Rechecked the PR #2 description, implementation plan, audit, package manifest an
 - Recovery after a transport error without restarting the Hub: an earlier run with a reconnecting test client queued many jobs and every later job failed with `concurreny error - receive listener already in-queue` from `nodemcu-tool` until the Hub was restarted. A failed job may leave the transport singleton poisoned; needs a dedicated test.
 - serialport 13 / MIDI 2 migration: the Hub still uses serialport 8 through the fork; the hardware run above validates the current stack, not the target one.
 - Windows EXE with the physical device, MIDI hardware, mixers.
+
+### E5 second physical board — 2026-10-19 (continued)
+
+Second ESP8266EX (MAC f4:cf:a2:c3:1e:e5, 4 MB, same FTDI adapter, factory AT 1.7.4 backed up and verified, then the same NodeMCU 3.0 image), configured as **CAM2**. Three more defects only showed up on hardware and are fixed:
+
+| Commit | Defect on hardware | Fix and evidence |
+|---|---|---|
+| [f08bf04](https://github.com/DjGreenKrk/wifi-tally/commit/f08bf04) | After the post-flash reset every command failed with `concurreny error - receive listener already in-queue` until the Hub restarted; stale boot output was read as replies | Open the port without a check after reset; purge serial input after every open. Two consecutive program runs passed without a Hub restart |
+| [828d5d1](https://github.com/DjGreenKrk/wifi-tally/commit/828d5d1) | Raw `.lua` modules left 6–7 KB heap; 2 of 3 settings writes ended in `E:M` / `my-wifi` not loaded, tally offline | Flash only `.lc` built by `luac.cross -s` from the image's commit (6/7 byte-identical to `node.compile` on the device). Same code as `.lc`: ~11 KB free. `tally/out` committed, CI job `tally-bytecode.yml` checks it against `tally/src` |
+| [78b308e](https://github.com/DjGreenKrk/wifi-tally/commit/78b308e) | 1 of 5 settings writes with the app running: empty read-back, `SW_WATCHDOG_RESET` | Pause autostart (`init.lua` → `init.paused`, reset) while writing; `init.lua` last; restore autostart if a settings write fails |
+
+**Result after the fixes (Hub, Node 24.22.0, `NODE_ENV=production`):** formatted filesystem → `flasher.program` 8/8 in 23–29 s; then 15 `flasher.settingsIni` writes: 15/15 PASS, 0 out-of-memory, free heap 10.4–11.5 KB, no leftover `init.paused`. Tally online measured by `tally-ho` UDP packets 16 s after the write: 4/5 (and all 10 earlier trials by Hub log); the fifth joined only after an unexplained `EXTERNAL_RESET`. Afterwards 3 min stable, 1 `tally-ho`/s, no resets. **Open:** slow join / one spontaneous external reset on a bare module without the final power and RST wiring; re-check on the assembled tally.
