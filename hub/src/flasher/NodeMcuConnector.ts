@@ -77,7 +77,14 @@ export interface NodeMcuTool {
   hardreset(): Promise<void>
   /** Discards unread serial input (OS buffer and nodemcu-tool's line queue). */
   purge(): Promise<void>
+  /** Writes raw data to the serial port. */
+  write(data: string): Promise<void>
 }
+
+// nodemcu-tool's checkConnection() gives up after 1.5 s but leaves its single
+// receive listener queued. Our own deadlines must be longer, so that its
+// rejection (which we can recover from) always comes first.
+const checkTimeoutMs = 2500
 
 class NodeMcuConnector {
   nodemcu: NodeMcuTool
@@ -144,7 +151,7 @@ class NodeMcuConnector {
         // nodemcu-tool only purges inside connect() with a connect delay; the
         // Hub needs it after every open, so take it from its terminal module.
         const terminal = require('nodemcu-tool/lib/transport/scriptable-serial-terminal')
-        this.nodemcu = { ...tool, purge: terminal.purge } as NodeMcuTool
+        this.nodemcu = { ...tool, purge: terminal.purge, write: terminal.write } as NodeMcuTool
       } catch (error) {
         console.error(`Could not load the NodeMCU tool: ${error}`)
         this.nodemcu = undefined
@@ -202,6 +209,17 @@ class NodeMcuConnector {
     // USB-UART FIFO) would otherwise be read as replies to the next commands.
     // nodemcu-tool keeps that queue across connections, so clear it every time.
     await this.sleep(200)
+    await this.drainTransport()
+  }
+
+  /**
+   * Resolves a receive listener left queued by a check that gave up (see
+   * checkTimeoutMs): an empty line makes the Lua prompt answer, which settles
+   * that listener. Then everything unread is discarded.
+   */
+  private async drainTransport() {
+    await this.withTimeout(() => this.nodemcu.write('\n'), 1000, 'NodeMCU serial write timed out')
+    await this.sleep(300)
     await this.withTimeout(() => this.nodemcu.purge(), 2000, 'NodeMCU serial purge timed out')
   }
 
@@ -213,12 +231,12 @@ class NodeMcuConnector {
     let retries = 3
     while (true) {
       try {
-        return await this.withTimeout(() => this.nodemcu.checkConnection(), 3000, 'NodeMCU check timed out')
+        return await this.withTimeout(() => this.nodemcu.checkConnection(), checkTimeoutMs, 'NodeMCU check timed out')
       } catch (e){
         if (e instanceof NodeMcuTimeoutError || retries === 0) {
           throw e
         }
-        await this.sleep(100)
+        await this.drainTransport()
       }
       retries--
     }
@@ -465,7 +483,7 @@ class NodeMcuConnector {
       try {
         await this.withTimeout(
           () => this.nodemcu.checkConnection(),
-          Math.max(1, Math.min(1500, deadline - Date.now())),
+          Math.max(1, Math.min(checkTimeoutMs, deadline - Date.now())),
           'NodeMCU check after reset timed out',
         )
         return
@@ -476,8 +494,7 @@ class NodeMcuConnector {
         if (error instanceof NodeMcuTimeoutError) {
           throw new Error('Could not connect to NodeMCU after hardreset: ' + String(error))
         }
-        const remaining = deadline - Date.now()
-        if (remaining > 0) await this.sleep(Math.min(250, remaining))
+        if (deadline - Date.now() > 0) await this.drainTransport()
       }
     }
     throw new Error('Could not connect to NodeMCU after hardreset: ' + String(lastError))
