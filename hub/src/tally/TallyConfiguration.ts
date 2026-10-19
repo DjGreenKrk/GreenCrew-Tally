@@ -23,7 +23,9 @@ export class DefaultTallyConfiguration {
   private _operatorLightBrightness?: number = DefaultTallyConfiguration.defaultBrightness
   private _operatorColorScheme: ColorSchemeId = DefaultTallyConfiguration.defaultColorScheme
   private _stageShowsPreview: boolean = true
-  private _operatorShowsIdle: boolean = true
+  // Off by default: on a single RGB light a dim idle colour was mistaken for
+  // preview. Power is visible on the ESP board and "no hub" is shown in blue.
+  private _operatorShowsIdle: boolean = false
 
   getStageLightBrightness() { return this._stageLightBrightness }
   setStageLightBrightness(value: number) { 

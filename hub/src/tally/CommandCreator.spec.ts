@@ -25,11 +25,11 @@ describe('default case', () => {
     })
     test('it shows RELEASE if tally is patched and it is not on-air or in preview', () => {
         const tally = new UdpTally("test", "channel")
-        expect(CommandCreator.createStateCommand(tally, ["other-channel"], [], defaultConfig)).toEqual("O000/001/000 S000/000/000")
+        expect(CommandCreator.createStateCommand(tally, ["other-channel"], [], defaultConfig)).toEqual("O000/000/000 S000/000/000")
     })
     test('it shows RELEASE if tally is not patched', () => {
         const tally = new UdpTally("test")
-        expect(CommandCreator.createStateCommand(tally, ["other-channel"], ["channel"], defaultConfig)).toEqual("O000/001/000 S000/000/000")
+        expect(CommandCreator.createStateCommand(tally, ["other-channel"], ["channel"], defaultConfig)).toEqual("O000/000/000 S000/000/000")
     })
     test('it shows UNKNOWN if program is null and tally is patched', () => {
         const tally = new UdpTally("test", "channel")
@@ -37,7 +37,7 @@ describe('default case', () => {
     })
     test('it shows RELEASE if program is null and tally is NOT patched', () => {
         const tally = new UdpTally("test")
-        expect(CommandCreator.createStateCommand(tally, null, null, defaultConfig)).toEqual("O000/001/000 S000/000/000")
+        expect(CommandCreator.createStateCommand(tally, null, null, defaultConfig)).toEqual("O000/000/000 S000/000/000")
     })
 })
 
@@ -54,7 +54,7 @@ describe("stageLightBrightness()", () => {
             expect(CommandCreator.createStateCommand(tally, ["channel"], [], defaultConfig)).toEqual("O255/000/000 S128/000/000")
         })
         test('for RELEASE', () => {
-            expect(CommandCreator.createStateCommand(tally, [], [], defaultConfig)).toEqual("O000/001/000 S000/000/000")
+            expect(CommandCreator.createStateCommand(tally, [], [], defaultConfig)).toEqual("O000/000/000 S000/000/000")
         })
     })
     describe('it can be overridden by a tally configuration', () => {
@@ -173,6 +173,10 @@ describe("stageShowPreview()", () => {
     })
 })
 describe("operatorShowsIdle()", () => {
+    test('an unused camera keeps the light off unless idle is enabled', () => {
+        const tally = new UdpTally("test", "channel")
+        expect(CommandCreator.createStateCommand(tally, [], [], new DefaultTallyConfiguration())).toEqual("O000/000/000 S000/000/000")
+    })
     describe('it uses the default', () => {
         const defaultConfig = new DefaultTallyConfiguration()
         defaultConfig.setOperatorShowsIdle(false)

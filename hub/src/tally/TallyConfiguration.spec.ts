@@ -9,7 +9,7 @@ describe('DefaultTallyConfiguration', () => {
     expect(config.getStageColorScheme()).toEqual("default")
     expect(config.getOperatorColorScheme()).toEqual("default")
     expect(config.getStageShowsPreview()).toEqual(true)
-    expect(config.getOperatorShowsIdle()).toEqual(true)
+    expect(config.getOperatorShowsIdle()).toEqual(false)
   })
 
   describe('getStageLightBrightness', () => {
