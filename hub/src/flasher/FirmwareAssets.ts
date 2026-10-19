@@ -16,7 +16,9 @@ export interface FirmwareFile {
 /**
  * Both a pkg-built EXE and the Electron portable wrapper need files on disk.
  * The pkg virtual filesystem is read-only and does not include tally/out.
- * Development can fall back to Lua sources directly; NodeMCU supports .lua.
+ * Modules are flashed only as precompiled .lc (tally/out, built with
+ * luac.cross): from .lua sources the ESP8266 can run out of memory while
+ * booting and the tally never comes online.
  */
 export function firmwareSearchPaths() {
     const pkgProcess = process as NodeJS.Process & { pkg?: unknown }
@@ -25,7 +27,6 @@ export function firmwareSearchPaths() {
     paths.push(path.resolve(__dirname, '../esp8266'))
     paths.push(path.resolve(__dirname, '../../esp8266'))
     paths.push(path.resolve(__dirname, '../../../tally/out'))
-    paths.push(path.resolve(__dirname, '../../../tally/src'))
     return Array.from(new Set(paths))
 }
 
@@ -47,10 +48,8 @@ export async function findFirmwareFiles(searchPaths: string[] = firmwareSearchPa
         if (!entries.includes('init.lua')) missing.push('init.lua')
         for (const moduleName of FIRMWARE_MODULES) {
             const compiled = moduleName + '.lc'
-            const source = moduleName + '.lua'
             if (entries.includes(compiled)) chosen.push(compiled)
-            else if (entries.includes(source)) chosen.push(source)
-            else missing.push(source + ' or ' + compiled)
+            else missing.push(compiled)
         }
         if (missing.length) {
             failures.push(dir + ': missing ' + missing.join(', '))
@@ -64,6 +63,6 @@ export async function findFirmwareFiles(searchPaths: string[] = firmwareSearchPa
         console.info('Using vTally ESP8266 firmware from ' + dir)
         return files
     }
-    throw new Error('Firmware unavailable: no complete ESP8266 Lua bundle was found. ' +
-        'Expected an esp8266 folder beside vtally.exe or the tally/src sources. ' + failures.join('; '))
+    throw new Error('Firmware unavailable: no complete ESP8266 bundle (init.lua + precompiled .lc modules) was found. ' +
+        'Expected an esp8266 folder beside vtally.exe or tally/out (built by "make -C tally build"). ' + failures.join('; '))
 }

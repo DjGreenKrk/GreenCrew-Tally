@@ -14,28 +14,31 @@ describe('flashable ESP8266 firmware discovery', () => {
         await fs.rmdir(tempDir, { recursive: true })
     })
 
-    test('loads complete Lua source bundle without a cross-compiler', async () => {
-        await fs.writeFile(path.join(tempDir, 'init.lua'), 'dofile("my-app.lua")\n')
-        for (const name of FIRMWARE_MODULES) {
-            await fs.writeFile(path.join(tempDir, name + '.lua'), '-- mock')
-        }
-        const files = await findFirmwareFiles([tempDir])
-        expect(files).toHaveLength(8)
-        expect(files.map(file => file.fileName)).toContain('init.lua')
-        expect(files.map(file => file.fileName)).toContain('my-app.lua')
-        expect(files.every(file => file.fileSize > 0)).toBe(true)
-        expect(files.every(file => file.filePath.startsWith(tempDir))).toBe(true)
-    })
-
-    test('prefers .lc firmware if available', async () => {
+    test('loads init.lua and every module as precompiled .lc', async () => {
         await fs.writeFile(path.join(tempDir, 'init.lua'), '-- init')
         for (const name of FIRMWARE_MODULES) {
             await fs.writeFile(path.join(tempDir, name + '.lua'), '-- source')
             await fs.writeFile(path.join(tempDir, name + '.lc'), 'compiled')
         }
         const files = await findFirmwareFiles([tempDir])
-        expect(files.filter(file => file.fileName.endsWith('.lc'))).toHaveLength(7)
-        expect(files.filter(file => file.fileName.endsWith('.lua'))).toHaveLength(1)
+        expect(files).toHaveLength(8)
+        expect(files.map(file => file.fileName).sort()).toEqual(
+            ['init.lua', ...FIRMWARE_MODULES.map(name => name + '.lc')].sort())
+        expect(files.every(file => file.fileSize > 0)).toBe(true)
+        expect(files.every(file => file.filePath.startsWith(tempDir))).toBe(true)
+    })
+
+    test('never flashes .lua module sources, which can exhaust the ESP8266 heap', async () => {
+        await fs.writeFile(path.join(tempDir, 'init.lua'), '-- init')
+        for (const name of FIRMWARE_MODULES) {
+            await fs.writeFile(path.join(tempDir, name + '.lua'), '-- source')
+        }
+        await expect(findFirmwareFiles([tempDir])).rejects.toThrow(/missing my-app\.lc/)
+    })
+
+    test('the repository ships a complete precompiled bundle in tally/out', async () => {
+        const files = await findFirmwareFiles([path.resolve(__dirname, '../../../tally/out')])
+        expect(files.filter(file => file.fileName.endsWith('.lc'))).toHaveLength(FIRMWARE_MODULES.length)
     })
 
     test('skips missing and incomplete bundles instead of flashing partial firmware', async () => {
@@ -43,7 +46,7 @@ describe('flashable ESP8266 firmware discovery', () => {
         const complete = path.join(tempDir, 'complete')
         await fs.mkdir(complete)
         await fs.writeFile(path.join(complete, 'init.lua'), '-- init')
-        for (const name of FIRMWARE_MODULES) await fs.writeFile(path.join(complete, name + '.lua'), '-- module')
+        for (const name of FIRMWARE_MODULES) await fs.writeFile(path.join(complete, name + '.lc'), 'compiled')
         const result = await findFirmwareFiles([
             path.join(tempDir, 'does-not-exist'),
             tempDir,

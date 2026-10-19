@@ -6,11 +6,13 @@ on:
     paths:
       - 'hub/**'
       - 'tally/src/**'
+      - 'tally/out/**'
       - '.github/workflows/hub-windows-smoke.yml'
   pull_request:
     paths:
       - 'hub/**'
       - 'tally/src/**'
+      - 'tally/out/**'
       - '.github/workflows/hub-windows-smoke.yml'
 
 jobs:
@@ -42,6 +44,8 @@ jobs:
           $scripts = @(Get-ChildItem 'dist/esp8266' -File | Where-Object { $_.Extension -in @('.lua', '.lc') })
           if ($scripts.Count -ne 8) { throw "Expected 8 firmware scripts, got $($scripts.Count)" }
           if (-not (Test-Path 'dist/esp8266/init.lua')) { throw 'ESP8266 boot script missing' }
+          $modules = @($scripts | Where-Object { $_.Extension -eq '.lc' })
+          if ($modules.Count -ne 7) { throw "Expected 7 precompiled .lc modules, got $($modules.Count)" }
           Write-Host "Firmware bundle OK: $($scripts.Name -join ', ')"
       - name: Start packaged Hub and test firmware probe without ESP
         run: |

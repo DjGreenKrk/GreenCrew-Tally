@@ -10,34 +10,28 @@ fs.rmSync(frontendDir, { recursive: true, force: true })
 fs.cpSync(path.join(projectDir, 'build'), frontendDir, { recursive: true })
 
 // Flashable NodeMCU Lua firmware must live on disk next to vtally.exe.
-// Compiled .lc files are optional: init.lua can also boot raw .lua modules.
-const sourceDir = path.resolve(projectDir, '../tally/src')
+// Modules ship only as precompiled .lc (tally/out): loaded from .lua sources
+// the ESP8266 can run out of memory while booting.
 const compiledDir = path.resolve(projectDir, '../tally/out')
 const firmwareDir = path.join(distDir, 'esp8266')
 const modules = [
   'my-app', 'my-led', 'my-log-buffer', 'my-log',
   'my-settings', 'my-tally', 'my-wifi',
 ]
-const hasCompleteCompiledFirmware = modules.every(name =>
-  fs.existsSync(path.join(compiledDir, name + '.lc')),
-)
 fs.rmSync(firmwareDir, { recursive: true, force: true })
 fs.mkdirSync(firmwareDir, { recursive: true })
 
-const initSource = fs.existsSync(path.join(compiledDir, 'init.lua'))
-  ? path.join(compiledDir, 'init.lua')
-  : path.join(sourceDir, 'init.lua')
+const initSource = path.join(compiledDir, 'init.lua')
 if (!fs.existsSync(initSource)) throw new Error('Missing required ESP8266 init.lua: ' + initSource)
 fs.copyFileSync(initSource, path.join(firmwareDir, 'init.lua'))
 for (const name of modules) {
-  const ext = hasCompleteCompiledFirmware ? '.lc' : '.lua'
-  const source = path.join(hasCompleteCompiledFirmware ? compiledDir : sourceDir, name + ext)
-  if (!fs.existsSync(source)) throw new Error('Required ESP8266 firmware is missing: ' + source)
-  fs.copyFileSync(source, path.join(firmwareDir, name + ext))
+  const source = path.join(compiledDir, name + '.lc')
+  if (!fs.existsSync(source)) {
+    throw new Error('Required precompiled ESP8266 module is missing: ' + source + '. Run "make -C tally build".')
+  }
+  fs.copyFileSync(source, path.join(firmwareDir, name + '.lc'))
 }
-console.log('Bundled complete ESP8266 firmware: ' +
-  (hasCompleteCompiledFirmware ? 'precompiled .lc' : 'raw .lua') +
-  ' in ' + firmwareDir)
+console.log('Bundled complete ESP8266 firmware: init.lua + precompiled .lc in ' + firmwareDir)
 
 // nodemcu-tool depends on the native serialport bindings addon. pkg follows
 // JS requires but needs a separate hint for dynamically resolved .node files.

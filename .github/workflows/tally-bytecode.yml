@@ -1,0 +1,39 @@
+name: Tally precompiled bytecode
+
+# The Hub flashes tally/out/*.lc only. They are committed so every Hub build
+# has them without a toolchain; this job proves they match tally/src.
+on:
+  push:
+    branches: [feat/node24-modernization-poc]
+    paths:
+      - 'tally/**'
+      - '.github/workflows/tally-bytecode.yml'
+  pull_request:
+    paths:
+      - 'tally/**'
+      - '.github/workflows/tally-bytecode.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bytecode:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache luac.cross for the flashed NodeMCU build
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/nodemcu-firmware
+          key: luac-cross-${{ hashFiles('tally/scripts/build-luac-cross.sh') }}
+      - name: Build luac.cross
+        run: echo "LUAC=$(tally/scripts/build-luac-cross.sh '${{ runner.temp }}/nodemcu-firmware')" >> "$GITHUB_ENV"
+      - name: Rebuild tally/out from tally/src
+        run: |
+          rm -f tally/out/my-*.lc tally/out/init.lua
+          make -C tally build LUAC="$LUAC"
+      - name: Committed bytecode must match the sources
+        run: |
+          git status --porcelain tally/out
+          git diff --exit-code -- tally/out
+          test -z "$(git status --porcelain tally/out)"
