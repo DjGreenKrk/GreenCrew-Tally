@@ -28,6 +28,7 @@ import { DefaultTallyConfiguration, TallyConfiguration } from './tally/TallyConf
 import NodeMcuConnector from './flasher/NodeMcuConnector'
 import VmixProjectManager from './lib/VmixProjectManager'
 import registerCompanionApi from './mixer/companion/CompanionApi'
+import { describeListenError, exitWithStartupError } from './lib/startupFailure'
 
 const argv = yargs.argv
 if (argv.env !== undefined) {
@@ -61,7 +62,9 @@ if (myConfiguration.isTest()) {
 }
 
 const myTallyContainer = new TallyContainer(myConfiguration, myEmitter)
-new UdpTallyDriver(myConfiguration, myTallyContainer)
+new UdpTallyDriver(myConfiguration, myTallyContainer, error => {
+  exitWithStartupError(describeListenError(error, 'tally (UDP)', myConfiguration.getTallyPort()))
+})
 const myWebTallyDriver = new WebTallyDriver(myConfiguration, myTallyContainer)
 
 const myMixerDriver = new MixerDriver(myConfiguration, myEmitter)
@@ -398,6 +401,10 @@ if (myConfiguration.isDev()) {
 
 
 
+server.on('error', (error: NodeJS.ErrnoException) => {
+  exitWithStartupError(describeListenError(error, 'web (HTTP)', myConfiguration.getHttpPort()) +
+    '\nTo use another web port, set the PORT environment variable.')
+})
 server.listen(myConfiguration.getHttpPort(), () => {
   console.log(`Web Server available on http://localhost:${myConfiguration.getHttpPort()}`)
 })

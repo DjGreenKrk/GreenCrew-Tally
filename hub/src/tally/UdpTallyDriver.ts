@@ -15,16 +15,20 @@ class UdpTallyDriver {
     configuration: AppConfiguration
     lastTallyReport: Map<string, Date> = new Map()
 
-    constructor(configuration: AppConfiguration, container: TallyContainer) {
+    // onBindError: the tally port could not be opened, so no tally can ever
+    // connect. The Hub must not keep running as if it were healthy.
+    constructor(configuration: AppConfiguration, container: TallyContainer, onBindError?: (error: NodeJS.ErrnoException) => void) {
         this.configuration = configuration
         this.container = container
         this.container.addUdpTallyDriver(this)
 
         this.io = dgram.createSocket('udp4')
-        
-        this.io.on('error', (err) => {
+
+        let listening = false
+        this.io.on('error', (err: NodeJS.ErrnoException) => {
             console.log(`server error: ${err.stack}`);
             this.io.close();
+            if (!listening && onBindError) onBindError(err)
         });
         
         this.io.on('message', (msg, rinfo) => {
@@ -52,6 +56,7 @@ class UdpTallyDriver {
         });
         
         this.io.on('listening', () => {
+            listening = true
             const address = this.io.address()
             console.log(`Listening for Tallies on ${address.address}:${address.port}`)
         });
