@@ -5,14 +5,12 @@ on:
     branches: [feat/companion-http-tally]
     paths:
       - 'hub/**'
-      - 'tally/src/**'
-      - 'tally/out/**'
+      - 'tally/**'
       - '.github/workflows/hub-windows-smoke.yml'
   pull_request:
     paths:
       - 'hub/**'
-      - 'tally/src/**'
-      - 'tally/out/**'
+      - 'tally/**'
       - '.github/workflows/hub-windows-smoke.yml'
 
 jobs:
