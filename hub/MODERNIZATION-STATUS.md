@@ -178,3 +178,25 @@ Rechecked the PR #2 description, implementation plan, audit, package manifest an
 - [2ca8911](https://github.com/DjGreenKrk/wifi-tally/commit/2ca8911113bdf6db80794ef336764cc87b92246c): corrected `StepDisplay` index for all-complete workflows (MUI Stepper now uses `steps.length` rather than index 0); added five simulated flasher progress checks covering normal progression, error/skipped transitions, absent progress counters, reconnect wait, and fully connected state.
 - **Linux / Node 24 quality [39030683051 PASS](https://github.com/DjGreenKrk/wifi-tally/actions/runs/39030683051):** compile backend, TypeScript, Vite bundle, Jest `npm run test:ci` (**36/36 suites; 294 passed, 1 skipped**) and frontend HTTP smoke passed. [Frontend browser [39030683046 PASS](https://github.com/DjGreenKrk/wifi-tally/actions/runs/39030683046)] includes Chromium production script and SPA route checks.
 - **Windows native EXE [39030683042](https://github.com/DjGreenKrk/wifi-tally/actions/runs/39030683042):** still running when this status was written; this entry is intentionally **not** a Windows PASS claim. Physical ESP8266/MIDI and end-user ZIP/tray still **NIE SPRAWDZONO**. Existing E2 lint and E3/E4 framework migrations remain open.
+
+
+## E5 physical ESP8266 acceptance (partial) — 2026-10-19
+
+**Environment:** Proxmox CT108 (Debian 13), Hub on Node **24.22.0** built from this branch (`npm run build:backend`, `NODE_ENV=production`, temporary `CONFIG_FILE`), serialport **8.0.8** via the `nodemcu-tool` fork (native addon built locally with g++). Device passed through by USB: ESP8266EX, MAC 8c:aa:b5:0a:7f:09, 4 MB flash, **FTDI FT232R** bridge 0403:6001 (serial A5069RR4), **bare board without WS2812B matrix**.
+
+**Base firmware:** the board shipped with Espressif AT firmware 1.7.4 (SDK 3.0.5), not NodeMCU. A full 4 MB backup was read and verified with `esptool.py verify_flash` (digest match, sha256 `dfdfbde585a313b99c1e42e6d3173e829e4c042206edff18a0e95056d2ee9ea6`, kept outside the repo). Flashed upstream `nodemcu-3.0-master_20200610-cfe68233-float.bin` from wifi-tally 0.5.2 (sha256 `566bdb85ff566da9a7b8e384d84716017e892fac7fbcefaff6571436c5f52d40`, `write_flash -fm dio`, hash verified). Boot shows NodeMCU 3.0.0.0 with `encoder,file,gpio,net,node,pwm2,struct,tmr,uart,wifi,ws2812`. The Hub does not flash this base image (unchanged contract).
+
+**PASS through the real Hub Socket.IO API** (same events as `FlasherPage.tsx`):
+- `flasher.program('/dev/ttyUSB0')`: 8/8 Lua files from `tally/src` uploaded and read back, hard reset, post-reset connection check, `allDone` in 40 s. Serial file list afterwards matches the 8 modules.
+- `flasher.settingsIni`: `tally-settings.ini` (CAM1, hub 192.168.0.108:7411, `operator.ws2812=16 grb`) uploaded, reboot, `allDone` in 8.4 s.
+- Network: tally joined Wi-Fi (DHCP 192.168.0.205), sent `tally-ho "CAM1"`, Hub created the tally and received its log lines.
+- With the Companion mixer and CAM1 patched to channel 1, captured UDP (tcpdump) to the tally: PROGRAM `O255/000/000 S255/000/000`, PREVIEW `O000/255/000 S000/255/000`, release `O000/001/000 S000/000/000`, heartbeat stop >4 s → UNKNOWN `O000/000/255 S000/000/000 0x80 250`, heartbeat resumed → PROGRAM again.
+
+**Defects found on hardware and fixed** in [a00a616]: `nodemcu-tool` only lists CH340/CP2102 adapters, so FTDI boards were never detected; `getDevice()` sent an `Error` object that Socket.IO serializes to `{}`. Regression tests added.
+
+**NIE SPRAWDZONO / open:**
+- LED colours, GRB order, brightness and 5 V power: the board has no matrix yet.
+- `flasher.device.get` on this host: CT108 has no udev database (`/run/udev/data`), so serialport cannot read vendorId and the port is filtered out. This is a container limitation (requested from the supervisor), not proof of the Windows behaviour.
+- Recovery after a transport error without restarting the Hub: an earlier run with a reconnecting test client queued many jobs and every later job failed with `concurreny error - receive listener already in-queue` from `nodemcu-tool` until the Hub was restarted. A failed job may leave the transport singleton poisoned; needs a dedicated test.
+- serialport 13 / MIDI 2 migration: the Hub still uses serialport 8 through the fork; the hardware run above validates the current stack, not the target one.
+- Windows EXE with the physical device, MIDI hardware, mixers.
