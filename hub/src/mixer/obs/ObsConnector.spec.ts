@@ -6,7 +6,7 @@ import WebSocket from 'ws'
 import ObsConfiguration from './ObsConfiguration'
 
 const waitUntil = (fn) => {
-    return new Promise<void>((resolve, _) => {
+    return new Promise<void>((resolve) => {
         setInterval(() => {
             if (fn() === true) {
                 resolve()
