@@ -2,7 +2,7 @@
 
 ### Wi-Fi camera tally system
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Hub CI](https://github.com/DjGreenKrk/wifi-tally/actions/workflows/hub-ci.yml/badge.svg)](https://github.com/DjGreenKrk/wifi-tally/actions/workflows/hub-ci.yml) [![Windows bundle](https://github.com/DjGreenKrk/wifi-tally/actions/workflows/windows-bundle.yml/badge.svg)](https://github.com/DjGreenKrk/wifi-tally/actions/workflows/windows-bundle.yml) [![Tally bytecode](https://github.com/DjGreenKrk/wifi-tally/actions/workflows/tally-bytecode.yml/badge.svg)](https://github.com/DjGreenKrk/wifi-tally/actions/workflows/tally-bytecode.yml) [![Latest release](https://img.shields.io/github/v/release/DjGreenKrk/wifi-tally?include_prereleases&label=release)](https://github.com/DjGreenKrk/wifi-tally/releases) [![Release date](https://img.shields.io/github/release-date-pre/DjGreenKrk/wifi-tally?label=released)](https://github.com/DjGreenKrk/wifi-tally/releases) [![Last commit](https://img.shields.io/github/last-commit/DjGreenKrk/wifi-tally)](https://github.com/DjGreenKrk/wifi-tally/commits)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Hub CI](https://github.com/DjGreenKrk/GreenCrew-Tally/actions/workflows/hub-ci.yml/badge.svg)](https://github.com/DjGreenKrk/GreenCrew-Tally/actions/workflows/hub-ci.yml) [![Windows bundle](https://github.com/DjGreenKrk/GreenCrew-Tally/actions/workflows/windows-bundle.yml/badge.svg)](https://github.com/DjGreenKrk/GreenCrew-Tally/actions/workflows/windows-bundle.yml) [![Tally bytecode](https://github.com/DjGreenKrk/GreenCrew-Tally/actions/workflows/tally-bytecode.yml/badge.svg)](https://github.com/DjGreenKrk/GreenCrew-Tally/actions/workflows/tally-bytecode.yml) [![Latest release](https://img.shields.io/github/v/release/DjGreenKrk/GreenCrew-Tally?include_prereleases&label=release)](https://github.com/DjGreenKrk/GreenCrew-Tally/releases) [![Release date](https://img.shields.io/github/release-date-pre/DjGreenKrk/GreenCrew-Tally?label=released)](https://github.com/DjGreenKrk/GreenCrew-Tally/releases) [![Last commit](https://img.shields.io/github/last-commit/DjGreenKrk/GreenCrew-Tally)](https://github.com/DjGreenKrk/GreenCrew-Tally/commits)
 
 **GC Tally** is a Wi-Fi camera tally system, part of the GreenCrew Tools family. A local Hub
 receives the Program / Preview / AUX state from your production (via Bitfocus Companion or
@@ -14,7 +14,7 @@ GC Tally is a fork of a fork, and builds on the work of others:
 | --- | --- | --- |
 | [vTally / wifi-tally](https://github.com/wifi-tally/wifi-tally) ([docs](https://wifi-tally.github.io/)) | **Christian Zenker** and contributors | The original project: Hub, ESP8266/NodeMCU tally firmware, web tallies, ATEM / OBS / vMix / Roland integrations |
 | [kuuminsh/wifi-tally](https://github.com/kuuminsh/wifi-tally) | **kuuminsh** | vMix improvements (several inputs per tally, per-project profiles, reliable XML parsing, reconnection) and Windows packaging; see [Fork-Changes.md](Fork-Changes.md) |
-| [DjGreenKrk/wifi-tally](https://github.com/DjGreenKrk/wifi-tally) | **GreenCrew** | GC Tally: Companion 5 integration, AUX state, WS2812B 4×4 matrix lights, Node 24 Hub, verified USB flasher, all-in-one Windows bundle |
+| [DjGreenKrk/GreenCrew-Tally](https://github.com/DjGreenKrk/GreenCrew-Tally) | **GreenCrew** | GC Tally: Companion 5 integration, AUX state, WS2812B 4×4 matrix lights, Node 24 Hub, verified USB flasher, all-in-one Windows bundle |
 
 Thank you to Christian Zenker, kuuminsh and everyone who contributed to vTally.
 The MIT license and the original copyright notice are kept in [LICENSE](LICENSE).
@@ -22,7 +22,7 @@ The MIT license and the original copyright notice are kept in [LICENSE](LICENSE)
 ## Getting started (Windows)
 
 Download the latest `gc-tally-windows-*.zip` from the
-[releases](https://github.com/DjGreenKrk/wifi-tally/releases), unpack the whole ZIP into one
+[releases](https://github.com/DjGreenKrk/GreenCrew-Tally/releases), unpack the whole ZIP into one
 folder and follow **`START-TUTAJ.txt`** inside. It covers everything from a brand-new ESP8266
 to a working show:
 

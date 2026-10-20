@@ -34,7 +34,7 @@ Keep `feat/companion-http-tally` unchanged as the working baseline. The migratio
 
 ## Node 24 probe result — 2026-10-16
 
-GitHub Actions run [38933024577](https://github.com/DjGreenKrk/wifi-tally/actions/runs/38933024577/job/117081477811) completed with a frontend build failure on Node.js 24.21.0:
+GitHub Actions run [38933024577](https://github.com/DjGreenKrk/GreenCrew-Tally/actions/runs/38933024577/job/117081477811) completed with a frontend build failure on Node.js 24.21.0:
 
 - `npm ci --legacy-peer-deps --foreground-scripts`: passed.
 - Hub unit tests: 30 suites passed, 276 tests passed, 1 skipped.
