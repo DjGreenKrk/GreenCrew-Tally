@@ -1,27 +1,32 @@
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process'
 import path from 'path'
-import { Atem, AtemStateUtil } from 'atem-connection'
+import { Atem, AtemState, AtemStateUtil } from 'atem-connection'
 import AtemConnector, { listAuxInputs } from './AtemConnector'
 import AtemConfiguration from './AtemConfiguration'
 import { MixerCommunicator } from '../../lib/MixerCommunicator'
 import { AppConfiguration } from '../../lib/AppConfiguration'
 import ServerEventEmitter from '../../lib/ServerEventEmitter'
 
+// the state is read-only for library users; the tests set it directly
+const setAuxes = (state: AtemState, auxes: Array<number | undefined>) => {
+    (state.video as { auxilliaries: Array<number | undefined> }).auxilliaries = auxes
+}
+
 describe('listAuxInputs', () => {
     test('lists the inputs on the aux buses', () => {
         const state = AtemStateUtil.Create()
-        state.video.auxilliaries = [3, undefined, 5, 3]
+        setAuxes(state, [3, undefined, 5, 3])
         expect(listAuxInputs(state).sort()).toEqual([3, 5])
     })
     test('expands a M/E program output on an aux', () => {
         const state = AtemStateUtil.Create()
         AtemStateUtil.getMixEffect(state, 1).programInput = 7
-        state.video.auxilliaries = [10020]
+        setAuxes(state, [10020])
         expect(listAuxInputs(state)).toEqual([7])
     })
     test('ignores a M/E that does not exist', () => {
         const state = AtemStateUtil.Create()
-        state.video.auxilliaries = [10030]
+        setAuxes(state, [10030])
         expect(listAuxInputs(state)).toEqual([])
     })
 })
