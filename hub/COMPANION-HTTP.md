@@ -1,4 +1,4 @@
-# Bitfocus Companion → vTally HTTP source (MVP)
+# Bitfocus Companion → GC Tally HTTP source
 
 The **Companion (HTTP)** mixer source accepts Program/Preview from Bitfocus
 Companion running on the Hub computer or on another computer in a trusted LAN (with a configured Hub token). Existing web and
@@ -6,7 +6,7 @@ ESP8266/NodeMCU tally clients need no protocol changes.
 
 ## Setup
 
-1. Run vTally Hub and open `http://localhost:3000` (or configured port).
+1. Run GC Tally Hub and open `http://localhost:3000` (or configured port).
 2. Under **Video Mixer**, select **Companion (HTTP)** and click **Save**.
 3. Patch camera tallies to channels 1, 2 and 3.
 4. Send HTTP snapshots from Companion, PowerShell, or another authorized process. For remote LAN access, configure `VTALLY_COMPANION_TOKEN` on the Hub and supply `Authorization: Bearer <token>` (see the Companion module README).
@@ -21,7 +21,7 @@ ESP8266/NodeMCU tally clients need no protocol changes.
 - Send `{"programs":[],"previews":[]}` to clear both states (blackout).
 - Always include **both arrays**. Camera IDs 1–8 are accepted, as strings
   or numbers. Multiple camera IDs are supported per array; Program has
-  priority over Preview in vTally.
+  priority over Preview in GC Tally.
 - Optional third array `"auxes":["3"]` marks cameras routed to an AUX output.
   Missing `auxes` means none. Priority on the light is Program > AUX > Preview.
   AUX is orange on the operator light (cyan in the Yellow-Pink scheme); the
@@ -59,19 +59,19 @@ Invoke-RestMethod -Uri $uri -Method Post -ContentType 'application/json' -Body '
 ## Windows packaged build notes
 
 - Build from the `hub` directory with `npm run build:windows`.
-- Run `dist/vtally.exe`. Packaged builds default to **production** and
+- Run `dist/gc-tally.exe`. Packaged builds default to **production** and
   serve the compiled `dist/frontend/` directory on port 3000; no React
   development server on port 3001 is needed.
 - Previous builds that display `Serving frontend via proxy` can be started
   temporarily in PowerShell with:
   ```powershell
   $env:NODE_ENV = 'production'
-  .\dist\vtally.exe
+  .\dist\gc-tally.exe
   ```
 - The saved mixer selection may still be `obs`. Switch it to
   **Companion (HTTP)** in the web interface; otherwise the old OBS connector
   will continue attempting reconnects.
-- If the packaged USB flasher reports missing NodeMCU/serialport dependencies or firmware assets, rebuild with Node 16 and ensure `dist/esp8266/` is present beside `dist/vtally.exe`. The Hub uploader transfers Lua application files; a new ESP8266 still requires a separately flashed base NodeMCU `.bin`. Physical flashing remains unverified.
+- If the packaged USB flasher reports missing NodeMCU/serialport dependencies or firmware assets, rebuild with Node 24 and ensure `dist/esp8266/` is present beside `dist/gc-tally.exe`. The Hub uploader transfers the Lua application; a new ESP8266 first needs the base NodeMCU `.bin`, flashed with `flash-nodemcu.cmd` from the Windows ZIP. Upload was verified on ESP8266 hardware on 2026-10-19.
 
 ### End-to-end smoke test without a D1 Mini
 

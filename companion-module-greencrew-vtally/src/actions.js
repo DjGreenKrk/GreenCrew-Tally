@@ -48,7 +48,7 @@ export function defineActions(self) {
         },
         sync_sources: {
             name: 'Sync Program + Preview + AUX from Companion variables',
-            description: 'Map the resolved Program, Preview and optional AUX values of any Companion connection (ATEM, vMix, OBS, etc.) to vTally camera numbers in one complete snapshot.',
+            description: 'Map the resolved Program, Preview and optional AUX values of any Companion connection (ATEM, vMix, OBS, etc.) to GC Tally camera numbers in one complete snapshot.',
             options: [
                 { type: 'textinput', id: 'programSource', label: 'Program source variable', default: '', useVariables: true },
                 { type: 'textinput', id: 'previewSource', label: 'Preview source variable', default: '', useVariables: true },

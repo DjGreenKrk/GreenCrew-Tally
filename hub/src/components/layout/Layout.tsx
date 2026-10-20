@@ -41,7 +41,7 @@ const Layout = ({testId: cypressId, children}: LayoutProps) => {
   return (<div data-testid={`page-${cypressId}`}>
     <AppBar position="static">
       <Toolbar>
-        <img width="106" height="40" className={classes.logo} src="/logo-with-text.svg" alt="vTally" />
+        <img width="106" height="40" className={classes.logo} src="/logo-with-text.svg" alt="GC Tally" />
         <Button component={RouterLink} to="/">Tallies</Button>
         <Button component={RouterLink} to="/config">Configuration</Button>
         <Button component={RouterLink} to="/flasher">Flash</Button>

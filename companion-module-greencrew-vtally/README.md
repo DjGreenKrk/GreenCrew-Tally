@@ -1,6 +1,6 @@
-# GreenCrew vTally Companion 5 module
+# GreenCrew Tally Companion 5 module
 
-Companion module for the vTally Hub `Companion (HTTP)` mixer connector.
+Companion module for the GC Tally Hub `Companion (HTTP)` mixer connector.
 Communication with the Hub uses HTTP on localhost or an authenticated LAN IP;
 no direct OBS, ATEM, or vMix dependency is required. Hub forwards tally state to the
 configured Web/UDP tally clients.
@@ -17,7 +17,7 @@ reconfigured with the new `sync_sources` action.
 
 ## Connection setup
 
-Create/edit the **GreenCrew vTally** connection in Companion:
+Create/edit the **GreenCrew Tally** connection in Companion:
 
 - **Hub IP address or hostname**: `127.0.0.1` for the same computer, or the LAN IP of a remote Hub.
 - **Hub HTTP port**: normally `3000`.
@@ -31,7 +31,7 @@ CAM 2 throughout. Changing connection settings clears remembered tally states,
 preventing stale mappings from being carried into a different show configuration.
 
 The actual Web/UDP Tally-to-camera channel patch is configured separately in
-the vTally Hub, as before.
+the GC Tally Hub, as before.
 
 ## Universal Program + Preview synchronization
 
@@ -39,7 +39,7 @@ For one source mixer, create a single Companion trigger that runs when the
 **current Program OR current Preview variable** changes. Leave conditions
 empty. Add one action:
 
-**GreenCrew vTally → Sync Program + Preview from Companion variables**
+**GreenCrew Tally → Sync Program + Preview from Companion variables**
 
 Configure its two variable-valued fields from the source Companion connection
 (using the Companion variable selector, not feedback-derived Local Variables):
@@ -93,7 +93,7 @@ upstream connection status separately for show-critical deployments.
 
 ## Development and packaging
 
-This module uses Node **22.20+**; the older Hub build uses Node 16.
+This module uses Node **22.20+**; the Hub uses Node 24.
 
 ```powershell
 cd companion-module-greencrew-vtally
@@ -130,10 +130,10 @@ $bytes = New-Object byte[] 32
 $token = [BitConverter]::ToString($bytes).Replace('-', '')
 $env:VTALLY_COMPANION_TOKEN = $token
 Write-Host "Copy this token to Companion: $token"
-.\hub\dist\vtally.exe
+.\hub\dist\gc-tally.exe
 ```
 
-Use the correct path to `vtally.exe` for the current directory. The token must
+Use the correct path to `gc-tally.exe` for the current directory. The token must
 be available as the `VTALLY_COMPANION_TOKEN` environment variable of the Hub
 process **every time it starts**. If launched from a shortcut, configure that
 variable in the launching environment; simply saving a token in Companion is not
@@ -141,7 +141,7 @@ enough. The Hub requires at least 16 characters for remote authorization.
 Only localhost is accepted when no Hub token is configured.
 
 On the **Companion computer**, enter the Hub's LAN IP, port (default 3000), and
-the same token in the GreenCrew vTally connection settings. Do not enter
+the same token in the GreenCrew Tally connection settings. Do not enter
 `http://` or `:3000` inside the IP field. The Hub must be reachable on TCP
 port 3000; Windows Firewall may require an inbound rule for the *trusted*
 event-production LAN.
@@ -163,8 +163,8 @@ must point to the machine running the Hub backend.
 
 ## Windows firmware distribution (ESP8266)
 
-The Windows release ZIP (`vtally-windows-*.zip`) contains everything for a
-setup from scratch: `vtally.exe` with the tally application in `esp8266\`,
+The Windows release ZIP (`gc-tally-windows-*.zip`) contains everything for a
+setup from scratch: `gc-tally.exe` with the tally application in `esp8266\`,
 `flash-nodemcu.cmd` with esptool and the base NodeMCU image for a new
 ESP8266, this module as a `.tgz`, and `START-TUTAJ.txt` with the steps.
 

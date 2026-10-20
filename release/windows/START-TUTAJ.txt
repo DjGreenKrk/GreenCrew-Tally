@@ -1,36 +1,36 @@
-vTally dla Windows - od zera do dzialajacych lampek
-====================================================
+GreenCrew Tally (GC Tally) dla Windows - od zera do dzialajacych lampek
+=====================================================================
 
 Zawartosc paczki
 ----------------
-  vtally.exe                 vTally Hub (serwer + strona www na porcie 3000)
-  frontend\, esp8266\        pliki Huba - musza lezec obok vtally.exe
+  gc-tally.exe               GC Tally Hub (serwer + strona www na porcie 3000)
+  frontend\, esp8266\        pliki Huba - musza lezec obok gc-tally.exe
   flash-nodemcu.cmd          pierwsze wgranie NodeMCU na nowa plytke ESP8266
   firmware\                  bazowy obraz NodeMCU dla ESP8266
   tools\esptool\             esptool (Espressif) uzywany przez flash-nodemcu.cmd
-  companion\*.tgz            modul "GreenCrew vTally" do Bitfocus Companion
+  companion\*.tgz            modul "GreenCrew Tally" do Bitfocus Companion
   examples\                  przykladowy tally-settings.ini dla matrycy 4x4
   THIRD-PARTY.txt            licencje dolaczonych narzedzi
 
-Rozpakuj CALY ZIP do jednego folderu, np. C:\vTally.
+Rozpakuj CALY ZIP do jednego folderu, np. C:\GC-Tally.
 
 
 1. Uruchom Hub
 --------------
-1. Kliknij dwukrotnie vtally.exe. Otworzy sie okno konsoli - nie zamykaj go.
+1. Kliknij dwukrotnie gc-tally.exe. Otworzy sie okno konsoli - nie zamykaj go.
 2. Przy pierwszym starcie Windows zapyta o zapore: zezwol w sieciach
    PRYWATNYCH. Lampki wysylaja dane do Huba po UDP na port 7411.
 3. Otworz w przegladarce http://localhost:3000
 4. Sprawdz adres IP laptopa w sieci, w ktorej beda lampki
    (cmd -> ipconfig, "IPv4 Address"). To jest "Hub IP" dla lampek.
 
-Jesli okno pokaze "port ... is already in use" - dziala juz inny vtally.exe
+Jesli okno pokaze "port ... is already in use" - dziala juz inny gc-tally.exe
 (zamknij go w Menedzerze zadan) albo inny program zajmuje port 3000/7411.
 
 
 2. Przygotuj kazda nowa plytke ESP8266 (raz na plytke)
 ------------------------------------------------------
-Pomin ten krok, jesli plytka juz ma NodeMCU (np. byla wczesniej lampka vTally).
+Pomin ten krok, jesli plytka juz ma NodeMCU (np. byla wczesniej lampka vTally / GC Tally).
 
 1. Podlacz ESP8266 kablem USB.
 2. Upewnij sie, ze w Hubie nie jest otwarta strona Flash.
@@ -78,13 +78,13 @@ Kanal = numer kamery wysylany przez Companion.
 1. W Hubie: Configuration -> Video Mixer -> "Companion (HTTP)" -> Save.
 2. W Bitfocus Companion: strona Modules -> "Import module package" ->
    wybierz plik z folderu companion\ (greencrew-vtally-*.tgz).
-3. Connections -> dodaj "GreenCrew vTally":
+3. Connections -> dodaj "GreenCrew Tally":
      Hub IP address   127.0.0.1 (Companion na tym samym komputerze co Hub)
      Hub HTTP port    3000
      Number of cameras  liczba kamer
    Companion na innym komputerze: patrz "Hub on a different computer (LAN)"
    w README modulu (wymaga tokenu VTALLY_COMPANION_TOKEN po stronie Huba).
-4. Uzyj gotowych przyciskow (Presets -> GreenCrew vTally) albo akcji
+4. Uzyj gotowych przyciskow (Presets -> GreenCrew Tally) albo akcji
    "Sync Program + Preview from Companion variables" z wyzwalaczem
    na zmiane zmiennych Program/Preview Twojego miksera.
 
@@ -105,3 +105,10 @@ Kolory lampki
   bialy migajacy       "Highlight" wywolany z Huba (identyfikacja lampki)
 Schemat Yellow-Pink (dla daltonistow): PROGRAM zolty, PREVIEW rozowy, AUX cyjan.
 Priorytet: PROGRAM > AUX > PREVIEW.
+
+
+Pochodzenie
+-----------
+GC Tally (GreenCrew Tools) to fork projektu kuuminsh/wifi-tally, ktory z kolei
+jest forkiem vTally autorstwa Christiana Zenkera (https://wifi-tally.github.io).
+Licencja MIT - szczegoly w README repozytorium.

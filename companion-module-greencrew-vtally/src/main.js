@@ -149,7 +149,7 @@ export default class GreenCrewVTally extends InstanceBase {
                 } catch (error) {
                     if (!this.running) return
                     const message = String(error.message || error)
-                    if (message !== this.lastError) this.log('warn', `vTally HTTP: ${message}`)
+                    if (message !== this.lastError) this.log('warn', `GC Tally HTTP: ${message}`)
                     this.lastError = message
                     this.confirmed = null
                     this.updateStatus(InstanceStatus.ConnectionFailure, message)

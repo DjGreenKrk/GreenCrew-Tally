@@ -1,6 +1,6 @@
 {
-  "name": "vtally",
-  "version": "0.5.3-kuuminsh.1",
+  "name": "gc-tally",
+  "version": "0.6.0",
   "private": true,
   "main": "tray-main.js",
   "dependencies": {
@@ -96,16 +96,16 @@
   ],
   "build": {
     "extends": null,
-    "appId": "com.wifi-tally.vtally",
-    "productName": "vTally",
+    "appId": "pl.greencrew.gctally",
+    "productName": "GC Tally",
     "npmRebuild": false,
     "files": [
       "tray-main.js"
     ],
     "extraResources": [
       {
-        "from": "dist/vtally.exe",
-        "to": "vtally.exe"
+        "from": "dist/gc-tally.exe",
+        "to": "gc-tally.exe"
       },
       {
         "from": "dist/frontend",

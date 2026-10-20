@@ -94,7 +94,7 @@ class NodeMcuConnector {
 
   async withMutex<T> (fn: () => T | Promise<T>): Promise<T> {
     if (!this.nodemcu) {
-      throw new Error('NodeMCU serial tool is unavailable. Verify serialport is installed and bundled in vtally.exe.')
+      throw new Error('NodeMCU serial tool is unavailable. Verify serialport is installed and bundled in gc-tally.exe.')
     }
     // Serialport is a singleton in the current NodeMCU tool: never start a
     // second job while a timed-out native operation may still complete.
@@ -146,7 +146,7 @@ class NodeMcuConnector {
     } else {
       try {
         // Keep the require literal so pkg can discover and include the
-        // NodeMCU flasher and its serialport dependency in vtally.exe.
+        // NodeMCU flasher and its serialport dependency in gc-tally.exe.
         const tool = require('nodemcu-tool')
         // nodemcu-tool only purges inside connect() with a connect delay; the
         // Hub needs it after every open, so take it from its terminal module.

@@ -60,9 +60,9 @@ export async function findFirmwareFiles(searchPaths: string[] = firmwareSearchPa
             filePath: path.join(dir, fileName),
             fileSize: (await fs.stat(path.join(dir, fileName))).size,
         })))
-        console.info('Using vTally ESP8266 firmware from ' + dir)
+        console.info('Using GC Tally ESP8266 firmware from ' + dir)
         return files
     }
     throw new Error('Firmware unavailable: no complete ESP8266 bundle (init.lua + precompiled .lc modules) was found. ' +
-        'Expected an esp8266 folder beside vtally.exe or tally/out (built by "make -C tally build"). ' + failures.join('; '))
+        'Expected an esp8266 folder beside gc-tally.exe or tally/out (built by "make -C tally build"). ' + failures.join('; '))
 }

@@ -3,7 +3,7 @@ rem Wgrywa bazowy firmware NodeMCU na nowa plytke ESP8266 (raz na plytke).
 rem Uzycie: dwuklik albo "flash-nodemcu.cmd COM11".
 setlocal EnableExtensions
 cd /d "%~dp0"
-title vTally - pierwsze wgranie NodeMCU na ESP8266
+title GC Tally - pierwsze wgranie NodeMCU na ESP8266
 
 set "ESPTOOL=%~dp0tools\esptool\esptool.exe"
 set "FIRMWARE=%~dp0firmware\nodemcu-3.0-master_20200610-cfe68233-float.bin"
@@ -19,9 +19,9 @@ if not exist "%FIRMWARE%" (
 
 echo.
 echo  Ten skrypt KASUJE cala pamiec ESP8266 i wgrywa czysty NodeMCU.
-echo  Potem aplikacje lampki i ustawienia wgrasz z vTally Hub, strona Flash.
+echo  Potem aplikacje lampki i ustawienia wgrasz z GC Tally Hub, strona Flash.
 echo.
-echo  Zamknij strone Flash w vTally i inne programy uzywajace portu COM.
+echo  Zamknij strone Flash w GC Tally i inne programy uzywajace portu COM.
 echo.
 
 set "PORT=%~1"
@@ -94,7 +94,7 @@ if errorlevel 1 goto :flashfail
 echo.
 echo  Gotowe. NodeMCU jest wgrany.
 echo  1. Odczekaj ok. 30 s - przy pierwszym starcie NodeMCU formatuje pamiec.
-echo  2. W vTally Hub otworz strone Flash i kliknij "Update now".
+echo  2. W GC Tally Hub otworz strone Flash i kliknij "Update now".
 echo  3. Uzupelnij ustawienia ^(Wi-Fi, Hub IP, nazwa^) i kliknij Save.
 echo  Szczegoly: START-TUTAJ.txt
 echo.

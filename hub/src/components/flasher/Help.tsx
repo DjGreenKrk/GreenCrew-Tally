@@ -50,7 +50,7 @@ function Help({tallyDevice, onReload}: Props) {
           <li>Plug the Tally to the computer that runs the hub via USB.</li>
           { !isLocalhost() && <li>The Tally has to be connected to the computer that <em>runs</em> the hub. It does not work on <em>remote machines</em>.</li> }
           <li>Some USB cables can just be used for charging. Make sure you use an <em>USB data cable</em>.</li>
-          <li>Close other programs that use the serial port, such as a serial monitor or a second vTally Hub.</li>
+          <li>Close other programs that use the serial port, such as a serial monitor or a second GC Tally Hub.</li>
           <li>If this has never worked from this computer ever, you might be missing the correct <ExternalLink href="https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers">USB drivers</ExternalLink>.</li>
         </ul>
       </Alert>

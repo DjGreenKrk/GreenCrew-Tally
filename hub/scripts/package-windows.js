@@ -52,7 +52,7 @@ console.log('Including native serialport addon(s): ' + nativeAddons.map(file => 
 
 const pkgArgs = [
   'dist/server.js', '--config', 'package.json', '--targets', 'node24-win-x64',
-  '--output', 'dist/vtally.exe',
+  '--output', 'dist/gc-tally.exe',
 ]
 // The maintained pkg fork reads asset globs from package.json's pkg.assets;
 // its CLI no longer supports the legacy --assets flag.

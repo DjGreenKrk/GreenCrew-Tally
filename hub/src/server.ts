@@ -37,7 +37,7 @@ if (argv.env !== undefined) {
   process.env.NODE_ENV = String(argv.env)
 } else if ((process as NodeJS.Process & { pkg?: unknown }).pkg) {
   // A pkg-built EXE contains its own frontend, not the React dev server.
-  // Default to production so launching vtally.exe directly does not proxy to :3001.
+  // Default to production so launching gc-tally.exe directly does not proxy to :3001.
   // Assign through Object.assign to preserve runtime behavior without writing
   // directly to the readonly NODE_ENV declaration in the TypeScript types.
   Object.assign(process.env, { NODE_ENV: 'production' })

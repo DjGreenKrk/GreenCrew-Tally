@@ -11,7 +11,7 @@ describe('startup port errors', () => {
     test('a busy port points at another running Hub', () => {
         const message = describeListenError(errorWithCode('EADDRINUSE'), 'tally (UDP)', 7411)
         expect(message).toContain('tally (UDP) port 7411 is already in use')
-        expect(message).toContain('vtally.exe')
+        expect(message).toContain('gc-tally.exe')
     })
 
     test('other errors keep the original reason', () => {
