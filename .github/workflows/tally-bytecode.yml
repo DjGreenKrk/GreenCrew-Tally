@@ -4,7 +4,7 @@ name: Tally precompiled bytecode
 # has them without a toolchain; this job proves they match tally/src.
 on:
   push:
-    branches: [feat/node24-modernization-poc]
+    branches: [main]
     paths:
       - 'tally/**'
       - '.github/workflows/tally-bytecode.yml'

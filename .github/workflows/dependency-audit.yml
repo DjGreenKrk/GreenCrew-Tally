@@ -1,8 +1,10 @@
 name: Dependency security audit
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 1'
   push:
-    branches: [feat/node24-modernization-poc]
+    branches: [main]
     paths:
       - 'hub/package.json'
       - 'hub/package-lock.json'
@@ -19,7 +21,7 @@ jobs:
         with:
           node-version: '24'
       - name: Install exact dependency tree without lifecycle scripts
-        run: npm ci --legacy-peer-deps --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Audit production dependencies
         shell: bash
         run: |
@@ -32,7 +34,7 @@ jobs:
           node -e "const a=require('./audit-all.json'); console.log('All vulnerability summary:',JSON.stringify(a.metadata?.vulnerabilities||{}))"
       - uses: actions/upload-artifact@v4
         with:
-          name: vtally-npm-audit
+          name: gc-tally-npm-audit
           path: |
             hub/audit-production.json
             hub/audit-all.json
