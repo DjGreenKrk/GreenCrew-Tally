@@ -1,5 +1,7 @@
 # Modernization status — vTally PR #2
 
+> **Archiwalne / historical (2026-10-20).** Plan zmieniono: PR #2 wydaje zweryfikowaną część jako GC Tally 0.6.0, a pozostałe aktualizacje są osobnymi zadaniami w [ROADMAP.md](../ROADMAP.md). The plan was rescoped: PR #2 ships the verified part as GC Tally 0.6.0; the remaining upgrades are tracked in ROADMAP.md.
+
 Date: 2026-10-16. Starting HEAD: ff34a9f75d333ccc43287bcebb24597f24bba025. Historical audit SHA: 7a4888126b32df1d11155bb5bed31356139aa51d.
 
 **NOT COMPLETE**. Historical successful CI means build/unit/smoke only, not functional new-stack acceptance. Never touch PR #1, merge or release for this task.

@@ -94,7 +94,7 @@ make -C tally build            # rebuild tally/out bytecode (needs luac.cross, s
 
 CI: `hub-ci.yml` (Linux checks, Chromium and a running Hub), `windows-bundle.yml` (EXE, Companion
 module, release ZIP, tested on Windows), `tally-bytecode.yml` (committed bytecode matches the
-sources) and `dependency-audit.yml`.
+sources) and `dependency-audit.yml`. Planned work: [ROADMAP.md](ROADMAP.md).
 
 ## Credits
 

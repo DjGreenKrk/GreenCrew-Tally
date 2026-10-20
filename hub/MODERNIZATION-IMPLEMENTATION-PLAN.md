@@ -1,5 +1,7 @@
 # Plan wdrożenia pełnej modernizacji vTally
 
+> **Archiwalne / historical (2026-10-20).** Plan zmieniono: PR #2 wydaje zweryfikowaną część jako GC Tally 0.6.0, a pozostałe aktualizacje są osobnymi zadaniami w [ROADMAP.md](../ROADMAP.md). The plan was rescoped: PR #2 ships the verified part as GC Tally 0.6.0; the remaining upgrades are tracked in ROADMAP.md.
+
 Data: 2026-10-16. Status: **plan przygotowany; implementacja etapów poniżej nie została jeszcze wykonana**.
 
 PR roboczy: [#2](https://github.com/DjGreenKrk/wifi-tally/pull/2), gałąź `feat/node24-modernization-poc`.
