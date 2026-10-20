@@ -23,8 +23,10 @@ out/tally-settings.ini.example: tally-settings.ini.example out
 out/init.lua: src/init.lua out
 	cp $< $@
 
+# -s strips debug info like node.compile() does on the tally (stripdebug 2);
+# the ESP8266 has too little RAM to load the modules with debug info.
 out/%.lc: src/%.lua out
-	$(LUAC) -o $@ $<
+	$(LUAC) -s -o $@ $<
 
 build: $(TARGETS) out/init.lua out/tally-settings.ini.example
 

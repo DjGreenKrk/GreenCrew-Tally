@@ -1,4 +1,36 @@
-import { EventEmitter } from "events";
+// Browser-safe emitter for the disconnected/test socket; do not bundle Node's 'events'.
+export class EventEmitter {
+    private listeners = new Map<string | symbol, Array<(...args: unknown[]) => void>>()
+
+    on(event: string | symbol, listener: (...args: unknown[]) => void) {
+        const listeners = this.listeners.get(event) || []
+        listeners.push(listener)
+        this.listeners.set(event, listeners)
+        return this
+    }
+
+    off(event: string | symbol, listener: (...args: unknown[]) => void) {
+        const listeners = this.listeners.get(event)
+        if (listeners) {
+            const index = listeners.indexOf(listener)
+            if (index !== -1) listeners.splice(index, 1)
+            if (listeners.length === 0) this.listeners.delete(event)
+        }
+        return this
+    }
+
+    emit(event: string | symbol, ...args: unknown[]) {
+        const listeners = this.listeners.get(event)
+        if (!listeners || listeners.length === 0) return false
+        for (const listener of [...listeners]) listener(...args)
+        return true
+    }
+
+    removeAllListeners() {
+        this.listeners.clear()
+        return this
+    }
+}
 import { ClientSideSocket } from "./SocketEvents";
 
 // used for tests only
@@ -13,24 +45,24 @@ class DisconnectedClientSideSocket implements ClientSideSocket {
         this.serverEventEmitter = new EventEmitter()
     }
 
-    on(event: string|symbol, listener: (...args: any[]) => void) {
+    on(event: string|symbol, listener: (...args: unknown[]) => void) {
         this.clientEventEmitter.on(event, listener)
         return this
     }
-    off(event: string|symbol, listener: (...args: any[]) => void) {
+    off(event: string|symbol, listener: (...args: unknown[]) => void) {
         this.clientEventEmitter.off(event, listener)
         return this
     }
-    emit(event: string|symbol, ...args: any[]) {
+    emit(event: string|symbol, ...args: unknown[]) {
         this.serverEventEmitter.emit(event, ...args)
         return this
     }
     
-    emitServerEvent(event: string|symbol, ...args: any[]) {
+    emitServerEvent(event: string|symbol, ...args: unknown[]) {
         return this.clientEventEmitter.emit(event, ...args)
     }
     
-    onServerEvent(event: string|symbol, listener: (...args: any[]) => void) {
+    onServerEvent(event: string|symbol, listener: (...args: unknown[]) => void) {
         this.serverEventEmitter.on(event, listener)
     }
 

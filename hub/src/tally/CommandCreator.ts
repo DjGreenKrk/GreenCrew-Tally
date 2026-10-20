@@ -3,10 +3,10 @@ import { ChannelList } from "../lib/MixerCommunicator";
 import ColorSchemes, { Black, Color } from "./ColorScheme";
 import { DefaultTallyConfiguration } from "./TallyConfiguration";
 
-export type StateCommand = "highlight" | "unknown" | "on-air" | "preview" | "release"
+export type StateCommand = "highlight" | "unknown" | "on-air" | "aux" | "preview" | "release"
 
 class CommandCreator {
-  getState(tally: Tally, programs: ChannelList, previews: ChannelList): StateCommand {
+  getState(tally: Tally, programs: ChannelList, previews: ChannelList, auxes: string[] = []): StateCommand {
     if(tally.isHighlighted()) {
         return "highlight"
     } else if(programs === null && tally.isPatched()) {
@@ -14,6 +14,9 @@ class CommandCreator {
         return "unknown"
     } else if (programs !== null && tally.isIn(programs)) {
         return "on-air"
+    } else if (programs !== null && tally.isIn(auxes)) {
+        // a camera on an AUX output is live somewhere, so it beats preview
+        return "aux"
     } else if (previews !== null && tally.isIn(previews)) {
         return "preview"
     }
@@ -21,13 +24,13 @@ class CommandCreator {
     return "release"
   }
 
-  createStateCommand(tally: UdpTally, programs: ChannelList, previews: ChannelList, defaultConfiguration: DefaultTallyConfiguration): string {
+  createStateCommand(tally: UdpTally, programs: ChannelList, previews: ChannelList, defaultConfiguration: DefaultTallyConfiguration, auxes: string[] = []): string {
     let opColor: Color
     let stColor: Color
     let flashPattern: number = 0
     let stepDuration: number = 0
 
-    const state = this.getState(tally, programs, previews)
+    const state = this.getState(tally, programs, previews, auxes)
     const stColorScheme = ColorSchemes.getById(tally.configuration.getStageColorScheme() || defaultConfiguration.getStageColorScheme())
     const opColorScheme = ColorSchemes.getById(tally.configuration.getOperatorColorScheme() || defaultConfiguration.getOperatorColorScheme())
     if(state === "highlight") {
@@ -38,6 +41,10 @@ class CommandCreator {
     } else if (state === "on-air") {
       opColor = opColorScheme.program
       stColor = stColorScheme.program
+    } else if (state === "aux") {
+      opColor = opColorScheme.aux
+      const showAux = tally.configuration.getStageShowsAux() === undefined ? defaultConfiguration.getStageShowsAux() : tally.configuration.getStageShowsAux()
+      stColor = showAux ? stColorScheme.aux : Black
     } else if (state === "preview") {
       opColor = opColorScheme.preview
       const showPreview = tally.configuration.getStageShowsPreview() === undefined ? defaultConfiguration.getStageShowsPreview() : tally.configuration.getStageShowsPreview()
@@ -53,7 +60,8 @@ class CommandCreator {
       stepDuration = 250
     } else {
       // typescript will fail if we missed a case
-      ((_:never) => {})(state)
+      const unreachable: never = state
+      throw new Error(`Unrecognized tally state: ${String(unreachable)}`)
     }
 
     const operatorBrightness = tally.configuration.getOperatorLightBrightness() !== undefined ? tally.configuration.getOperatorLightBrightness() : defaultConfiguration.getOperatorLightBrightness()

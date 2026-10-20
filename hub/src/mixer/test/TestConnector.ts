@@ -24,7 +24,7 @@ class TestConnector implements Connector {
     isConnected() {
         return this.connected
     }
-    static readonly ID: "test" = "test"
+    static readonly ID = "test"
 }
 
 export default TestConnector

@@ -1,6 +1,5 @@
 const { app, Menu, nativeImage, shell, Tray } = require('electron')
 const { spawn } = require('child_process')
-const fs = require('fs')
 const path = require('path')
 
 const hubUrl = 'http://localhost:3000'
@@ -24,7 +23,7 @@ function quit() {
 
 app.whenReady().then(() => {
   tray = new Tray(nativeImage.createFromPath(getResourcePath('tray-icon.png')))
-  tray.setToolTip('vTally')
+  tray.setToolTip('GC Tally')
   tray.setContextMenu(Menu.buildFromTemplate([
     {
       label: 'Open Hub',
@@ -37,18 +36,18 @@ app.whenReady().then(() => {
     },
   ]))
 
-  hubProcess = spawn(getResourcePath('vtally.exe'), ['--env=production'], {
+  hubProcess = spawn(getResourcePath('gc-tally.exe'), ['--env=production'], {
     cwd: app.isPackaged ? process.resourcesPath : path.join(__dirname, 'dist'),
     windowsHide: true,
     stdio: 'ignore',
   })
   hubProcess.on('error', error => {
-    console.error(`Could not start vTally Hub: ${error.message}`)
+    console.error(`Could not start GC Tally Hub: ${error.message}`)
     app.quit()
   })
   hubProcess.on('exit', (code, signal) => {
     if (!isQuitting) {
-      console.error(`vTally Hub exited unexpectedly (code: ${code}, signal: ${signal})`)
+      console.error(`GC Tally Hub exited unexpectedly (code: ${code}, signal: ${signal})`)
       app.quit()
     }
   })

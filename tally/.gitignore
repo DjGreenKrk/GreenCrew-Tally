@@ -3,7 +3,11 @@
 !.git*
 
 *.lc
-out/
+out/*
+# Bytecode is committed so every Hub build flashes .lc without a toolchain;
+# CI checks it matches src/. out/tally-settings.ini (Wi-Fi password) stays ignored.
+!out/init.lua
+!out/my-*.lc
 tally-settings.ini*
 !tally-settings.ini.example
 

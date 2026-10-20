@@ -18,7 +18,7 @@ describe('getTickTime/setTickTime', () => {
         const conf = createDefaultMockConfiguration()
         expect(() => {
             conf.setTickTime(-100)
-        }).toThrowError()
+        }).toThrow()
     })
     it("allows to set a string", () => {
         const conf = createDefaultMockConfiguration()
@@ -29,7 +29,7 @@ describe('getTickTime/setTickTime', () => {
         const conf = createDefaultMockConfiguration()
         expect(() => {
             conf.setTickTime("Hello World")
-        }).toThrowError()
+        }).toThrow()
     })
     it("allows to restore the default", () => {
         const conf = createDefaultMockConfiguration()

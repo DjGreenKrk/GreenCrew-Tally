@@ -35,7 +35,7 @@ test('Companion forwards state, deduplicates changes and clears on disconnect', 
 })
 
 test('missing HTTP heartbeats cause blackout, disconnect and recovery on next snapshot', () => {
-    jest.useFakeTimers('modern')
+    jest.useFakeTimers()
     try {
         const emitter = new EventEmitter()
         const configuration = new AppConfiguration(emitter)

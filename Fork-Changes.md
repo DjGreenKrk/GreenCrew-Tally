@@ -1,6 +1,6 @@
-# Fork-Specific Changes
+# Changes inherited from kuuminsh/wifi-tally
 
-This fork extends the upstream wifi-tally project with vMix-focused workflow improvements and Windows packaging support.
+GreenCrew Tally is based on [kuuminsh/wifi-tally](https://github.com/kuuminsh/wifi-tally) (v0.5.3-kuuminsh.1), which extends the original [vTally](https://github.com/wifi-tally/wifi-tally) by Christian Zenker with vMix-focused workflow improvements and Windows packaging support. This page describes those changes; GreenCrew changes are listed in [Changelog.md](Changelog.md).
 
 ## Multiple vMix Inputs per Tally
 
@@ -37,6 +37,8 @@ The vMix TCP connector now buffers XML replies using the `XML <length>` protocol
 vTally automatically reconnects when vMix is restarted or temporarily closed. It retries the connection every three seconds and resets the retry window after a complete vMix TCP API handshake.
 
 If vTally cannot establish a complete vMix connection within 10 minutes, the backend exits with code `1`. The Electron tray application detects this unexpected backend exit and closes as well.
+
+> **Changed in GC Tally 0.6.0:** the Hub no longer exits. After the 10-minute retry window the reconnect attempts stop, vMix is reported as disconnected (tallies show UNKNOWN) and the rest of the Hub keeps running. To resume, restart the Hub or select another mixer and then vMix again.
 
 ## Build Information and Windows Packaging
 

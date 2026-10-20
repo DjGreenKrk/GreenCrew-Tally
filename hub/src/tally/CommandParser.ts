@@ -37,7 +37,7 @@ class TallyCommandParser {
     if (result === null) {
         throw new InvalidCommandError(cmd)
     } else {
-        const [_, command, tallyName] = result
+        const [, command, tallyName] = result
         if (command !== "tally-ho") {
             throw new InvalidCommandError(command)
         }
@@ -51,7 +51,7 @@ class TallyCommandParser {
     if (result === null) {
         throw new InvalidCommandError(cmd)
     } else {
-        const [_, command, tallyName, uncleanSeverity, message] = result
+        const [, command, tallyName, uncleanSeverity, message] = result
         if (command !== "log") {
             throw  new InvalidCommandError(command)
         }

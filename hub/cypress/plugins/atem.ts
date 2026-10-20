@@ -1,6 +1,6 @@
 import { Atem } from "atem-connection"
 
-const tasks = function(config: Cypress.PluginConfigOptions) {
+const tasks = function() {
   let atem: Atem|null = null
 
   const atemConnect = ({ip, port}: {ip: string, port: number}) => {

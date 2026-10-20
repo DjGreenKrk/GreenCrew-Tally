@@ -15,16 +15,22 @@ describe('local-only Companion API', () => {
 describe('full Program/Preview state', () => {
     test('normalizes numbers and accepts blackout', () => {
         expect(parseCompanionState({ programs: [1], previews: ['2'] }))
-            .toEqual({ programs: ['1'], previews: ['2'] })
+            .toEqual({ programs: ['1'], previews: ['2'], auxes: [] })
         expect(parseCompanionState({ programs: [], previews: [] }))
-            .toEqual({ programs: [], previews: [] })
+            .toEqual({ programs: [], previews: [], auxes: [] })
+    })
+    test('accepts an optional AUX list', () => {
+        expect(parseCompanionState({ programs: ['1'], previews: ['2'], auxes: [3, '1'] }))
+            .toEqual({ programs: ['1'], previews: ['2'], auxes: ['3', '1'] })
     })
     test.each([
         null, [], {}, { programs: [1] }, { programs: null, previews: [] },
         { programs: ['0'], previews: [] }, { programs: [9], previews: [] },
         { programs: ['01'], previews: [] }, { programs: ['1', 1], previews: [] },
         { programs: ['2.5'], previews: [] }, { programs: [{}], previews: [] },
-        { programs: Array(9).fill('1'), previews: [] }
+        { programs: Array(9).fill('1'), previews: [] },
+        { programs: [], previews: [], auxes: null }, { programs: [], previews: [], auxes: ['9'] },
+        { programs: [], previews: [], auxes: ['3', 3] },
     ])('rejects malformed payload %p', data => {
         expect(parseCompanionState(data)).toBeNull()
     })

@@ -41,7 +41,7 @@ function FormDialog(props: FormDialogProps) {
     <Dialog fullWidth={true} fullScreen={fullScreen} maxWidth="sm" scroll="body" {...props}>
       <form onSubmit={(e) => {
         e.preventDefault()
-        onSubmit && onSubmit()
+        onSubmit?.()
       }}>
         <DialogTitle className={classes.title} disableTypography={true}>
           <Typography variant="h1">{label}</Typography>

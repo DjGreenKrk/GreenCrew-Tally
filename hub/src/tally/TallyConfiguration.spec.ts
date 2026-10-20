@@ -9,7 +9,8 @@ describe('DefaultTallyConfiguration', () => {
     expect(config.getStageColorScheme()).toEqual("default")
     expect(config.getOperatorColorScheme()).toEqual("default")
     expect(config.getStageShowsPreview()).toEqual(true)
-    expect(config.getOperatorShowsIdle()).toEqual(true)
+    expect(config.getStageShowsAux()).toEqual(false)
+    expect(config.getOperatorShowsIdle()).toEqual(false)
   })
 
   describe('getStageLightBrightness', () => {
@@ -61,6 +62,7 @@ describe('DefaultTallyConfiguration', () => {
         conf.setOperatorColorScheme("yellow-pink")
         conf.setStageColorScheme("yellow-pink")
         conf.setStageShowsPreview(false)
+        conf.setStageShowsAux(true)
         conf.setOperatorShowsIdle(false)
 
         const loadedConf = new DefaultTallyConfiguration()
@@ -71,12 +73,14 @@ describe('DefaultTallyConfiguration', () => {
         expect(loadedConf.getOperatorColorScheme()).toEqual("yellow-pink")
         expect(loadedConf.getOperatorColorScheme()).toEqual("yellow-pink")
         expect(loadedConf.getStageShowsPreview()).toEqual(false)
+        expect(loadedConf.getStageShowsAux()).toEqual(true)
         expect(loadedConf.getOperatorShowsIdle()).toEqual(false)
     })
     it("handles falsy values correctly", () => {
         const conf = new DefaultTallyConfiguration()
         conf.setStageLightBrightness(0)
         conf.setStageShowsPreview(false)
+        conf.setStageShowsAux(true)
         conf.setOperatorShowsIdle(false)
 
         const loadedConf = new DefaultTallyConfiguration()
@@ -84,6 +88,7 @@ describe('DefaultTallyConfiguration', () => {
         
         expect(loadedConf.getStageLightBrightness()).toBe(0)
         expect(loadedConf.getStageShowsPreview()).toBe(false)
+        expect(loadedConf.getStageShowsAux()).toBe(true)
         expect(loadedConf.getOperatorShowsIdle()).toBe(false)
     })
   })
@@ -111,6 +116,7 @@ describe('TallyConfiguration', () => {
     expect(config.getStageColorScheme()).toBeUndefined()
     expect(config.getOperatorColorScheme()).toBeUndefined()
     expect(config.getStageShowsPreview()).toBeUndefined()
+    expect(config.getStageShowsAux()).toBeUndefined()
     expect(config.getOperatorShowsIdle()).toBeUndefined()
   })
 
@@ -163,6 +169,7 @@ describe('TallyConfiguration', () => {
         conf.setStageColorScheme("yellow-pink")
         conf.setOperatorColorScheme("yellow-pink")
         conf.setStageShowsPreview(false)
+        conf.setStageShowsAux(true)
         conf.setOperatorShowsIdle(false)
 
         const loadedConf = new TallyConfiguration()
@@ -173,12 +180,14 @@ describe('TallyConfiguration', () => {
         expect(loadedConf.getStageColorScheme()).toEqual("yellow-pink")
         expect(loadedConf.getOperatorColorScheme()).toEqual("yellow-pink")
         expect(loadedConf.getStageShowsPreview()).toEqual(false)
+        expect(loadedConf.getStageShowsAux()).toEqual(true)
         expect(loadedConf.getOperatorShowsIdle()).toEqual(false)
     })
     it("handles falsy values correctly", () => {
         const conf = new TallyConfiguration()
         conf.setStageLightBrightness(0)
         conf.setStageShowsPreview(false)
+        conf.setStageShowsAux(true)
         conf.setOperatorShowsIdle(false)
 
         const loadedConf = new TallyConfiguration()
@@ -186,6 +195,7 @@ describe('TallyConfiguration', () => {
         
         expect(loadedConf.getStageLightBrightness()).toBe(0)
         expect(loadedConf.getStageShowsPreview()).toBe(false)
+        expect(loadedConf.getStageShowsAux()).toBe(true)
         expect(loadedConf.getOperatorShowsIdle()).toBe(false)
     })
     it("loads undefined correctly", () => {
@@ -195,6 +205,7 @@ describe('TallyConfiguration', () => {
         conf.setStageColorScheme(undefined)
         conf.setOperatorColorScheme(undefined)
         conf.setStageShowsPreview(undefined)
+        conf.setStageShowsAux(undefined)
         conf.setOperatorShowsIdle(undefined)
 
         const loadedConf = new TallyConfiguration()
@@ -205,6 +216,7 @@ describe('TallyConfiguration', () => {
         expect(loadedConf.getStageColorScheme()).toBeUndefined()
         expect(loadedConf.getOperatorColorScheme()).toBeUndefined()
         expect(loadedConf.getStageShowsPreview()).toBeUndefined()
+        expect(loadedConf.getStageShowsAux()).toBeUndefined()
         expect(loadedConf.getOperatorShowsIdle()).toBeUndefined()
     })
   })

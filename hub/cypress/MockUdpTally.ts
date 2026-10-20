@@ -6,7 +6,7 @@ class MockUdpTally {
   io?: dgram.Socket
   messages: string[] = []
   interval?: NodeJS.Timeout
-  type: "udp" = "udp"
+  readonly type = "udp" as const
 
   constructor(name: string) {
     this.name = name
@@ -42,10 +42,10 @@ class MockUdpTally {
   }
 
   disconnect() {
-    this.io && this.io.close(() => {
+    if (this.io) this.io.close(() => {
       this.io = undefined
     })
-    this.interval && clearInterval(this.interval)
+    if (this.interval) clearInterval(this.interval)
   }
 
   log(message:string, severity: string) {

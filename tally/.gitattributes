@@ -1,0 +1,6 @@
+# Bytecode flashed onto the tally must never be touched by line-ending
+# conversion; Lua sources and settings stay LF on every platform.
+*.lc binary
+*.lua text eol=lf
+*.ini text eol=lf
+*.ini.example text eol=lf

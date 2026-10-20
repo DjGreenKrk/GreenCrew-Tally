@@ -1,0 +1,3 @@
+# Opened by cmd.exe and Notepad on Windows.
+*.cmd text eol=crlf
+*.txt text eol=crlf

@@ -10,7 +10,7 @@ import useTallies from '../hooks/useTallies'
 type LogProps = {
   log: LogType
   idx: number
-  classes: any
+  classes: ReturnType<typeof useStyles>
 }
 
 const useStyles = makeStyles(theme => {

@@ -1,13 +1,13 @@
 {
   "type": "connection",
   "id": "greencrew-vtally",
-  "name": "GreenCrew vTally",
-  "shortname": "vTally",
-  "description": "Local HTTP Program/Preview tally bridge to vTally Hub",
-  "version": "0.4.0",
+  "name": "GreenCrew Tally",
+  "shortname": "GC Tally",
+  "description": "Local HTTP Program/Preview/AUX tally bridge to GC Tally Hub",
+  "version": "0.6.0",
   "license": "MIT",
-  "repository": "git+https://github.com/DjGreenKrk/wifi-tally.git",
-  "bugs": "https://github.com/DjGreenKrk/wifi-tally/issues",
+  "repository": "git+https://github.com/DjGreenKrk/GreenCrew-Tally.git",
+  "bugs": "https://github.com/DjGreenKrk/GreenCrew-Tally/issues",
   "maintainers": [
     {
       "name": "GreenCrew"
@@ -22,7 +22,7 @@
   "legacyIds": [],
   "manufacturer": "GreenCrew",
   "products": [
-    "vTally Hub"
+    "GC Tally Hub"
   ],
   "keywords": [
     "tally",

@@ -1,4 +1,4 @@
-; vTally / NodeMCU Lua firmware — ESP8266 D1 Mini + WS2812B 4x4
+; GC Tally / NodeMCU Lua firmware — ESP8266 D1 Mini + WS2812B 4x4
 ; Copy to tally-settings.ini and replace all placeholders before flashing.
 station.ssid=YOUR_WIFI_SSID
 station.password=YOUR_WIFI_PASSWORD

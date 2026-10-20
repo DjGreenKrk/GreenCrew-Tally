@@ -2,7 +2,9 @@ import { Configuration } from "../interfaces";
 
 class NullConfiguration extends Configuration {
     fromJson(data: object): void {
-        // empty. Has no settings, so nothing to load
+        // Preserve the Configuration.fromJson(payload) contract, even though
+        // Null mixer has no recognized settings.
+        if (data === null || typeof data !== 'object') return
     }
     toJson(): object {
         return {}

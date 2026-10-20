@@ -61,11 +61,11 @@ const IndexPage = () => {
 
   const tallies = createTallyList(rawTallies, showDisconnected, showUnpatched)
 
-  const toggleDisconnected = e => {
+  const toggleDisconnected = () => {
     setShowDisconnected(!showDisconnected)
   }
 
-  const toggleUnpatched = e => {
+  const toggleUnpatched = () => {
     setShowUnpatched(!showUnpatched)
   }
 

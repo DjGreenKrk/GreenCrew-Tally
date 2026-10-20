@@ -1,4 +1,4 @@
-import { program, preview, cameraOff, take, blackout, snapshot, snapshotFromSources } from './state.js'
+import { program, preview, aux, toggleAux, clearAux, cameraOff, take, blackout, snapshot, snapshotFromSources } from './state.js'
 
 export function defineActions(self) {
     const cameraIds = self.getCameraIds()
@@ -16,6 +16,21 @@ export function defineActions(self) {
             options: [cameraOption()],
             callback: event => self.setDesired(preview(self.desired, event.options.camera)),
         },
+        aux: {
+            name: 'Set camera on AUX (orange)',
+            options: [cameraOption()],
+            callback: event => self.setDesired(aux(self.desired, event.options.camera)),
+        },
+        toggle_aux: {
+            name: 'Toggle camera on AUX (orange)',
+            options: [cameraOption()],
+            callback: event => self.setDesired(toggleAux(self.desired, event.options.camera)),
+        },
+        clear_aux: {
+            name: 'Clear AUX',
+            options: [],
+            callback: () => self.setDesired(clearAux(self.desired)),
+        },
         off: {
             name: 'Clear one camera',
             options: [cameraOption()],
@@ -32,11 +47,12 @@ export function defineActions(self) {
             callback: () => self.setDesired(blackout()),
         },
         sync_sources: {
-            name: 'Sync Program + Preview from Companion variables',
-            description: 'Map the resolved Program and Preview values of any Companion connection (ATEM, vMix, OBS, etc.) to vTally camera numbers in one complete snapshot.',
+            name: 'Sync Program + Preview + AUX from Companion variables',
+            description: 'Map the resolved Program, Preview and optional AUX values of any Companion connection (ATEM, vMix, OBS, etc.) to GC Tally camera numbers in one complete snapshot.',
             options: [
                 { type: 'textinput', id: 'programSource', label: 'Program source variable', default: '', useVariables: true },
                 { type: 'textinput', id: 'previewSource', label: 'Preview source variable', default: '', useVariables: true },
+                { type: 'textinput', id: 'auxSource', label: 'AUX source variable (optional)', default: '', useVariables: true },
                 ...cameraIds.map(id => ({
                     type: 'textinput',
                     id: `source_${id}`,
@@ -49,7 +65,7 @@ export function defineActions(self) {
                 try {
                     const options = event.options
                     const mapped = cameraIds.map(id => options[`source_${id}`])
-                    const state = snapshotFromSources(options.programSource, options.previewSource, mapped)
+                    const state = snapshotFromSources(options.programSource, options.previewSource, mapped, options.auxSource)
                     self.setDesired(state)
                 } catch (error) {
                     const message = String(error.message || error)
@@ -59,14 +75,15 @@ export function defineActions(self) {
             },
         },
         snapshot: {
-            name: 'Set full Program / Preview snapshot',
+            name: 'Set full Program / Preview / AUX snapshot',
             options: [
                 { type: 'textinput', id: 'programs', label: 'Program camera IDs (comma-separated)', default: cameraIds[0], useVariables: true },
                 { type: 'textinput', id: 'previews', label: 'Preview camera IDs (comma-separated)', default: cameraIds[1] || '', useVariables: true },
+                { type: 'textinput', id: 'auxes', label: 'AUX camera IDs (comma-separated, optional)', default: '', useVariables: true },
             ],
             callback: event => {
                 try {
-                    self.setDesired(snapshot(event.options.programs, event.options.previews))
+                    self.setDesired(snapshot(event.options.programs, event.options.previews, event.options.auxes))
                 } catch (error) {
                     const message = String(error.message || error)
                     self.log('error', `Invalid snapshot: ${message}`)

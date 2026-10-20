@@ -5,7 +5,7 @@ import CompanionConfiguration from './CompanionConfiguration'
 // Uses the existing Program/Preview events and the Hub's UDP/Web tally clients.
 // A selected mixer is not proof that Companion is still sending live snapshots.
 class CompanionConnector implements Connector {
-    static readonly ID: 'companion' = 'companion'
+    static readonly ID = 'companion' as const
     static readonly TIMEOUT_MS = 4000
 
     private active = false
@@ -45,14 +45,14 @@ class CompanionConnector implements Connector {
         return this.lastSnapshotTime === null ? null : Math.max(0, Date.now() - this.lastSnapshotTime)
     }
 
-    setState(programs: string[], previews: string[]): void {
+    setState(programs: string[], previews: string[], auxes: string[] = []): void {
         if (!this.active) throw new Error('Companion source is not active')
         this.lastSnapshotTime = Date.now()
         if (!this.receiving) {
             this.receiving = true
             this.communicator.notifyMixerIsConnected()
         }
-        this.communicator.notifyProgramPreviewChanged(programs, previews)
+        this.communicator.notifyProgramPreviewChanged(programs, previews, auxes)
     }
 
     private checkTimeout(): void {

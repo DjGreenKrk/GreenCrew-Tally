@@ -1,5 +1,5 @@
--- Prefer compiled Lua when available; Windows standalone builds ship raw .lua.
--- NodeMCU can execute source files directly, so a cross-compiler is optional.
+-- The Hub flashes precompiled my-*.lc (see tally/Makefile); .lua is a dev fallback.
+-- NodeMCU can run sources too, but they may not fit into the heap at boot.
 if file.exists("my-app.lc") then
     dofile("my-app.lc")
 else

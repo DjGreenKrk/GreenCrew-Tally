@@ -12,7 +12,7 @@ class VmixConnector implements Connector {
     client?: net.Socket
     wasHelloReceived: boolean
     wasSubcribeOkReceived: boolean
-    intervalHandle: any
+    intervalHandle?: NodeJS.Timeout
     xmlQueryInterval: number
     waitForHelloPeriod: number
     reconnectTimeout?: NodeJS.Timeout
@@ -48,12 +48,16 @@ class VmixConnector implements Connector {
         }
 
         const reconnectClient = () => {
+            if (this.disconnectRequested || this.client !== client) return
             if (this.reconnectStartedAt === undefined) {
                 this.reconnectStartedAt = Date.now()
             }
             if (VmixConnector.hasReachedReconnectLimit(this.reconnectStartedAt)) {
                 console.error("Could not reconnect to vMix within 10 minutes. Reconnect attempts stopped.")
-                process.exit(1)
+                this.communicator.notifyProgramPreviewChanged(null, null)
+                this.communicator.notifyMixerIsDisconnected()
+                // Losing vMix must never terminate unrelated Hub services.
+                void this.disconnect().catch(error => console.error('vMix cleanup failed:', error))
                 return
             }
             this.disconnect().then(() =>
@@ -112,7 +116,9 @@ class VmixConnector implements Connector {
                 return
             }
             this.communicator.notifyMixerIsDisconnected()
-            console.log("Connection to vMix closed")
+            if (!this.disconnectRequested) {
+                console.log("Connection to vMix closed")
+            }
 
             if(this.intervalHandle) {
                 clearInterval(this.intervalHandle);
@@ -186,8 +192,8 @@ class VmixConnector implements Connector {
             console.error("Tally OK command was ill formed")
         } else {
             const state = result[1]
-            let programs: string[] = []
-            let previews: string[] = []
+            const programs: string[] = []
+            const previews: string[] = []
             // vMix encodes tally states as numbers:
             // @see https://www.vmix.com/help20/index.htm?TCPAPI.html
             // 0 = off
@@ -252,7 +258,7 @@ class VmixConnector implements Connector {
         return this.client !== undefined && !this.client.destroyed && this.wasHelloReceived && this.wasSubcribeOkReceived
     }
     
-    static readonly ID: "vmix" = "vmix"
+    static readonly ID = "vmix" as const
     static readonly reconnectInterval = 3000
     static readonly reconnectLimit = 10 * 60 * 1000
 

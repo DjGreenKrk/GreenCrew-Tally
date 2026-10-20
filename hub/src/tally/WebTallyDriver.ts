@@ -23,9 +23,9 @@ class WebTallyDriver {
         // @TODO: check if sockets disconnected
     }
 
-    updateTallyState(tally: WebTally, lastPrograms: string[], lastPreviews: string[]) {
+    updateTallyState(tally: WebTally, lastPrograms: string[], lastPreviews: string[], lastAuxes: string[] = []) {
       const name = tally.name
-      const command = CommandCreator.getState(tally, lastPrograms, lastPreviews)
+      const command = CommandCreator.getState(tally, lastPrograms, lastPreviews, lastAuxes)
       const sockets = this.sockets.get(name) || []
       sockets.forEach(socket => {
         if ((socket as socketIo.Socket).connected) {

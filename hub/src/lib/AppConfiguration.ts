@@ -14,6 +14,24 @@ import Tally, { TallySaveObjectType } from '../domain/Tally'
 import TestConfiguration from '../mixer/test/TestConfiguration'
 import { DefaultTallyConfiguration } from '../tally/TallyConfiguration'
 
+type ConfigPayload<C extends { fromJson(data: never): void }> = Parameters<C['fromJson']>[0]
+
+// Persisted configuration payload. Every section is optional and the remaining
+// keys (mixer, channels, tallies, ...) are validated by the individual loaders.
+type AppConfigurationPayload = {
+    atem?: ConfigPayload<AtemConfiguration>
+    mock?: ConfigPayload<MockConfiguration>
+    null?: ConfigPayload<NullConfiguration>
+    companion?: ConfigPayload<CompanionConfiguration>
+    obs?: ConfigPayload<ObsConfiguration>
+    rolandV8HD?: ConfigPayload<RolandV8HDConfiguration>
+    rolandV60HD?: ConfigPayload<RolandV60HDConfiguration>
+    test?: ConfigPayload<TestConfiguration>
+    vmix?: ConfigPayload<VmixConfiguration>
+    tallyDefaults?: ConfigPayload<DefaultTallyConfiguration>
+    [key: string]: unknown
+}
+
 export class AppConfiguration extends Configuration {
     emitter: ServerEventEmitter
     atemConfiguration: AtemConfiguration
@@ -101,7 +119,8 @@ export class AppConfiguration extends Configuration {
         }
     }
 
-    fromJson(data: any): void {
+    fromJson(payload: object): void {
+        const data = payload as AppConfigurationPayload
         if (data.atem) {
             this.atemConfiguration.fromJson(data.atem)
         }

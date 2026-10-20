@@ -28,15 +28,16 @@ import { DefaultTallyConfiguration, TallyConfiguration } from './tally/TallyConf
 import NodeMcuConnector from './flasher/NodeMcuConnector'
 import VmixProjectManager from './lib/VmixProjectManager'
 import registerCompanionApi from './mixer/companion/CompanionApi'
+import { describeListenError, exitWithStartupError } from './lib/startupFailure'
 
 const argv = yargs.argv
 if (argv.env !== undefined) {
-  // @ts-ignore @TODO: setting the env is not nice, but the easiest way to be cross-platform compatible
+  // @TODO: setting the env is not nice, but the easiest way to be cross-platform compatible
   // @see https://github.com/wifi-tally/wifi-tally/issues/18
-  process.env.NODE_ENV = argv.env
+  process.env.NODE_ENV = String(argv.env)
 } else if ((process as NodeJS.Process & { pkg?: unknown }).pkg) {
   // A pkg-built EXE contains its own frontend, not the React dev server.
-  // Default to production so launching vtally.exe directly does not proxy to :3001.
+  // Default to production so launching gc-tally.exe directly does not proxy to :3001.
   // Assign through Object.assign to preserve runtime behavior without writing
   // directly to the readonly NODE_ENV declaration in the TypeScript types.
   Object.assign(process.env, { NODE_ENV: 'production' })
@@ -61,7 +62,9 @@ if (myConfiguration.isTest()) {
 }
 
 const myTallyContainer = new TallyContainer(myConfiguration, myEmitter)
-new UdpTallyDriver(myConfiguration, myTallyContainer)
+new UdpTallyDriver(myConfiguration, myTallyContainer, error => {
+  exitWithStartupError(describeListenError(error, 'tally (UDP)', myConfiguration.getTallyPort()))
+})
 const myWebTallyDriver = new WebTallyDriver(myConfiguration, myTallyContainer)
 
 const myMixerDriver = new MixerDriver(myConfiguration, myEmitter)
@@ -82,8 +85,8 @@ myEmitter.on('tally.logged', ({tally, log}) => {
     }
     fn(`${tally.name}: ${log.message}`)
 })
-myEmitter.on('program.changed', ({programs, previews}) => {
-    console.info("Program/Preview was changed to ", programs, previews)
+myEmitter.on('program.changed', ({programs, previews, auxes}) => {
+    console.info("Program/Preview/AUX was changed to ", programs, previews, auxes)
 })
 
 // socket.io server
@@ -114,10 +117,11 @@ io.on('connection', (socket: ServerSideSocket) => {
   })
 
   const programEvents = [
-    new SocketAwareEvent(myEmitter, 'program.changed', socket, (socket, {programs, previews}) => {
+    new SocketAwareEvent(myEmitter, 'program.changed', socket, (socket, {programs, previews, auxes}) => {
       socket.emit('program.state', {
         programs: programs,
         previews: previews,
+        auxes: auxes,
       })
     })
   ]
@@ -127,6 +131,7 @@ io.on('connection', (socket: ServerSideSocket) => {
     socket.emit('program.state', {
       programs: myMixerDriver.getCurrentPrograms(),
       previews: myMixerDriver.getCurrentPreviews(),
+      auxes: myMixerDriver.getCurrentAuxes(),
     })
   })
   socket.on('events.program.unsubscribe', () => {
@@ -342,8 +347,8 @@ io.on('connection', (socket: ServerSideSocket) => {
     myConfiguration.setTallyConfiguration(configuration)
   })
 
-  socket.on('flasher.device.get', () => {
-    myNodeMcuConnector.getDevice().then(device => {
+  socket.on('flasher.device.get', (path) => {
+    myNodeMcuConnector.getDevice(typeof path === 'string' ? path : undefined).then(device => {
       socket.emit('flasher.device', device.toJson())
     })
   })
@@ -369,7 +374,7 @@ if (myConfiguration.isDev()) {
     target: `http://localhost:${proxyPort}`, 
     changeOrigin: true, 
     ws: true,
-    onError: (err: any, req, res) => {
+    onError: (err: Error & { code?: string }, req, res) => {
       if (typeof res.writeHead === "function") {
         res.writeHead(500, {
           'Content-Type': 'text/plain',
@@ -398,6 +403,10 @@ if (myConfiguration.isDev()) {
 
 
 
+server.on('error', (error: NodeJS.ErrnoException) => {
+  exitWithStartupError(describeListenError(error, 'web (HTTP)', myConfiguration.getHttpPort()) +
+    '\nTo use another web port, set the PORT environment variable.')
+})
 server.listen(myConfiguration.getHttpPort(), () => {
   console.log(`Web Server available on http://localhost:${myConfiguration.getHttpPort()}`)
 })

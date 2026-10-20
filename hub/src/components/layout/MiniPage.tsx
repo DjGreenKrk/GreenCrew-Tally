@@ -13,7 +13,7 @@ const useStyles = makeStyles(theme => {
       padding: theme.spacing(1, 2),
       borderBottom: "1px solid " + theme.palette.background.default,
     },
-    content: (props: any) => ({
+    content: (props: { contentPadding?: string }) => ({
       padding: theme.spacing(2, props.contentPadding || 2),
     })
   }

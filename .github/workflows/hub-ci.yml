@@ -1,0 +1,62 @@
+name: GC Tally Hub CI
+
+# Linux checks for the Hub: clean install, boundaries, types, lint, unit
+# tests, the production frontend in Chromium and a real running Hub
+# (Companion HTTP -> Socket.IO, Web Tally and UDP).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'hub/**'
+      - '.github/workflows/hub-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hub:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: hub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: hub/package-lock.json
+      - name: Clean install from the lockfile (no peer-dependency bypass)
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm ls --depth=0
+      - name: Browser code must not import Node or backend modules
+        run: |
+          if grep -R -n -E "from ['\"](node:)?events['\"]|require\\(['\"](node:)?events['\"]\\)" src/hooks src/lib/DisconnectedClientSideSocket.ts; then
+            echo 'Browser-side hooks must not import Node events' >&2
+            exit 1
+          fi
+          node scripts/check-browser-boundaries.cjs
+      - name: Typecheck application and tests
+        run: |
+          npx tsc --project tsconfig.json --noEmit
+          npx tsc --project tsconfig.test.json --noEmit
+      - name: Lint
+        run: npm run lint
+      - name: Build backend and frontend
+        run: |
+          npm run build:backend
+          npm run build:frontend
+      - name: Unit tests
+        run: npm run test:ci
+      - name: Frontend output, SPA routes and production JavaScript in Chromium
+        run: |
+          npm run test:frontend:smoke
+          node scripts/check-production-browser.cjs
+      - name: Running Hub over HTTP, Socket.IO and UDP
+        run: |
+          node scripts/udp-phase-assertions.test.cjs
+          node scripts/check-live-companion-integration.cjs
