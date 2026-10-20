@@ -11,6 +11,23 @@ import {UdpTally, WebTally} from '../domain/Tally'
 import { DefaultTallyConfiguration } from '../tally/TallyConfiguration'
 
 describe("toJson/fromJson", () => {
+    test('it persists the Companion LAN token and announces changes', () => {
+        const emitter = new EventEmitter()
+        let announced = 0
+        emitter.on('config.changed.companionLan', () => announced++)
+        const config = new AppConfiguration(emitter)
+        config.setCompanionLanToken('0123456789abcdef0123')
+
+        const otherConfig = new AppConfiguration(emitter)
+        otherConfig.fromJson(config.toJson())
+        expect(otherConfig.getCompanionLanToken()).toEqual('0123456789abcdef0123')
+        expect(announced).toEqual(1)
+
+        config.setCompanionLanToken(undefined)
+        const cleared = new AppConfiguration(emitter)
+        cleared.fromJson(config.toJson())
+        expect(cleared.getCompanionLanToken()).toBeUndefined()
+    })
     test('it can persist atem configuration', () => {
         const emitter = new EventEmitter()
         const config = new AppConfiguration(emitter)

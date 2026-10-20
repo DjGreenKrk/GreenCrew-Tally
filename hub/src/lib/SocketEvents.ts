@@ -1,4 +1,5 @@
 import { AtemConfigurationSaveType } from "../mixer/atem/AtemConfiguration";
+import { CompanionLanState } from "./CompanionLanState";
 import { MockConfigurationSaveType } from "../mixer/mock/MockConfiguration";
 import { ObsConfigurationSaveType } from "../mixer/obs/ObsConfiguration";
 import { RolandV8HDConfigurationSaveType } from "../mixer/rolandV8HD/RolandV8HDConfiguration";
@@ -36,6 +37,7 @@ export interface ServerSentEvents {
     'config.state.vmix': (vmixConfiguration: VmixConfigurationSaveType) => void
     'config.state.tallyconfig': (defaultTallyConfiguration: TallyConfigurationObjectType) => void
     'config.state.mixer': (data: {mixerName: string, allowedMixers: string[]}) => void
+    'companion.lan.state': (state: CompanionLanState) => void
 
     'flasher.device': (tallyDevice: TallyDeviceObjectType) => void
     'flasher.settingsIni.progress': (state: TallySettingsIniProgressType) => void
@@ -71,6 +73,9 @@ export interface ClientSentEvents {
     'config.change.mock': (mockConfiguration: MockConfigurationSaveType, newMixer?: "mock") => void
     'config.change.null': (newMixer?: "null") => void
     'config.change.companion': (newMixer?: "companion") => void
+    'companion.lan.get': () => void
+    'companion.lan.generate': () => void
+    'companion.lan.disable': () => void
     'config.change.test': (testConfiguration: TestConfigurationSaveType, newMixer?: "test") => void
     'config.change.obs': (obsConfiguration: ObsConfigurationSaveType, newMixer?: "obs") => void
     'config.change.rolandV8HD': (rolandV8HDConfiguration: RolandV8HDConfigurationSaveType, newMixer?: "rolandV8HD") => void

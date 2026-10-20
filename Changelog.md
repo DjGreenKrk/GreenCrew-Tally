@@ -1,3 +1,8 @@
+# GC Tally 0.6.1
+
+* [FEATURE] Companion LAN access token is generated, shown and copied in the Hub under Configuration → Companion (HTTP); it is visible only in a browser on the Hub computer. `VTALLY_COMPANION_TOKEN` still works and takes precedence
+* [BUGFIX] The Companion settings no longer claim "localhost only"; the page shows the Hub IP addresses to enter in Companion
+
 # GC Tally 0.6.0 (GreenCrew Tally)
 
 First release under the GreenCrew Tally name. Based on kuuminsh/wifi-tally v0.5.3-kuuminsh.1, itself a fork of vTally by Christian Zenker.

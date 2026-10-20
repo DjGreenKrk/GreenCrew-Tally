@@ -31,6 +31,7 @@ export interface EventHandlersDataMap {
     'config.changed.channels': (channels: Channel[]) => void
     'config.changed.tallies': (tallies: Tally[]) => void
     'config.changed.mixer': (mixerName: string) => void
+    'config.changed.companionLan': () => void
     'mixer.connected': () => void
     'mixer.disconnected': () => void
     'vmix.project.changed': (presetPath?: string) => void

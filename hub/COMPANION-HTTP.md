@@ -9,7 +9,7 @@ ESP8266/NodeMCU tally clients need no protocol changes.
 1. Run GC Tally Hub and open `http://localhost:3000` (or configured port).
 2. Under **Video Mixer**, select **Companion (HTTP)** and click **Save**.
 3. Patch camera tallies to channels 1, 2 and 3.
-4. Send HTTP snapshots from Companion, PowerShell, or another authorized process. For remote LAN access, configure `VTALLY_COMPANION_TOKEN` on the Hub and supply `Authorization: Bearer <token>` (see the Companion module README).
+4. Send HTTP snapshots from Companion, PowerShell, or another authorized process. For remote LAN access, generate a token on the Hub computer under **Configuration → Companion (HTTP)** and supply `Authorization: Bearer <token>`.
 
 ### API
 
@@ -39,7 +39,7 @@ Invoke-RestMethod -Uri $uri -Method Post -ContentType 'application/json' -Body '
 
 ### Security / limitations
 
-- Loopback clients (`127.0.0.1`, `::1`) can access the API without a token. Remote clients need a Hub-configured `VTALLY_COMPANION_TOKEN` of at least 16 characters and a matching Bearer token.
+- Loopback clients (`127.0.0.1`, `::1`) can access the API without a token. Remote clients need a matching Bearer token. The token is generated on the Configuration page (stored as `companionLanToken` in the Hub settings file) or set with the `VTALLY_COMPANION_TOKEN` environment variable, which takes precedence and must be at least 16 characters. The page shows the token only to a browser on the Hub computer.
 - LAN traffic uses unencrypted HTTP. Never expose the Hub port to the internet; use a trusted isolated LAN or secure tunnel.
 - `400`: bad payload, `403`: unauthorized remote request, `409`: wrong mixer source.
 - HTTP source is not an OBS WebSocket adapter. Companion must reflect **actual**

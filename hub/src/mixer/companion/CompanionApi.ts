@@ -44,7 +44,7 @@ export function parseCompanionState(value: unknown): CompanionTallyState | null 
     return programs && previews && auxes ? { programs, previews, auxes } : null
 }
 
-export default function registerCompanionApi(app: express.Express, driver: MixerDriver): void {
+export default function registerCompanionApi(app: express.Express, driver: MixerDriver, lanToken: () => string | undefined): void {
     const activeConnector = (): CompanionConnector | null => (
         driver.currentMixerId === CompanionConnector.ID &&
         driver.currentMixerInstance instanceof CompanionConnector &&
@@ -56,7 +56,7 @@ export default function registerCompanionApi(app: express.Express, driver: Mixer
         if (!isAuthorizedCompanionRequest(
             req.socket.remoteAddress,
             req.get('authorization'),
-            process.env.VTALLY_COMPANION_TOKEN,
+            lanToken(),
         )) {
             res.status(403).json({ error: 'Companion API: remote access requires the Hub access token' })
             return

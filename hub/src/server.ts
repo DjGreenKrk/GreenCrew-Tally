@@ -27,7 +27,8 @@ import WebTallyDriver from './tally/WebTallyDriver'
 import { DefaultTallyConfiguration, TallyConfiguration } from './tally/TallyConfiguration'
 import NodeMcuConnector from './flasher/NodeMcuConnector'
 import VmixProjectManager from './lib/VmixProjectManager'
-import registerCompanionApi from './mixer/companion/CompanionApi'
+import registerCompanionApi, { isLoopbackAddress } from './mixer/companion/CompanionApi'
+import { companionLanState, effectiveCompanionToken, generateCompanionToken, hubLanAddresses } from './mixer/companion/CompanionLanAccess'
 import { describeListenError, exitWithStartupError } from './lib/startupFailure'
 
 const argv = yargs.argv
@@ -71,7 +72,8 @@ const myMixerDriver = new MixerDriver(myConfiguration, myEmitter)
 const myVmixProjectManager = new VmixProjectManager(myConfiguration, myTallyContainer, myEmitter)
 
 // Register before the frontend catch-all / development proxy routes.
-registerCompanionApi(app, myMixerDriver)
+registerCompanionApi(app, myMixerDriver,
+  () => effectiveCompanionToken(process.env.VTALLY_COMPANION_TOKEN, myConfiguration.getCompanionLanToken()).token)
 
 const myNodeMcuConnector = new NodeMcuConnector()
 
@@ -295,6 +297,22 @@ io.on('connection', (socket: ServerSideSocket) => {
     if (newMixerName) {
       myConfiguration.setMixerSelection(newMixerName)
     }
+  })
+  // The LAN token is shown and changed only from a browser on the Hub computer.
+  const isHubComputer = isLoopbackAddress((socket as socketIo.Socket).handshake.address)
+  const sendCompanionLanState = () => socket.emit('companion.lan.state', companionLanState(
+    process.env.VTALLY_COMPANION_TOKEN, myConfiguration.getCompanionLanToken(),
+    isHubComputer, myConfiguration.getHttpPort(), hubLanAddresses()))
+  const companionLanEvent = new SocketAwareEvent(myEmitter, 'config.changed.companionLan', socket, sendCompanionLanState)
+  socket.on('companion.lan.get', () => {
+    companionLanEvent.register()
+    sendCompanionLanState()
+  })
+  socket.on('companion.lan.generate', () => {
+    if (isHubComputer && !process.env.VTALLY_COMPANION_TOKEN) myConfiguration.setCompanionLanToken(generateCompanionToken())
+  })
+  socket.on('companion.lan.disable', () => {
+    if (isHubComputer && !process.env.VTALLY_COMPANION_TOKEN) myConfiguration.setCompanionLanToken(undefined)
   })
   socket.on('config.change.obs', (newObsConfiguration, newMixerName) => {
     const obs = new ObsConfiguration()

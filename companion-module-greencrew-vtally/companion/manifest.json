@@ -4,7 +4,7 @@
   "name": "GreenCrew Tally",
   "shortname": "GC Tally",
   "description": "Local HTTP Program/Preview/AUX tally bridge to GC Tally Hub",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "license": "MIT",
   "repository": "git+https://github.com/DjGreenKrk/GreenCrew-Tally.git",
   "bugs": "https://github.com/DjGreenKrk/GreenCrew-Tally/issues",

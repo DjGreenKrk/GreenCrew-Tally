@@ -48,6 +48,8 @@ export class AppConfiguration extends Configuration {
     tallies: Tally[]
     channels: Channel[]
     mixerSelection?: string
+    // kept apart from the Companion mixer settings: changing those restarts the mixer
+    companionLanToken?: string
     tallyPort: number
     tallyHighlightTime: number
     tallyKeepAlivesPerSecond: number
@@ -155,6 +157,9 @@ export class AppConfiguration extends Configuration {
         this.loadChannelArray("channels", this.setChannels.bind(this), data)
         this.loadTallyArray("tallies", this.setTallies.bind(this), data)
         this.loadVmixProjectProfiles(data)
+        if (typeof data.companionLanToken === 'string' && data.companionLanToken) {
+            this.companionLanToken = data.companionLanToken
+        }
     }
     toJson(): object {
         return {
@@ -172,6 +177,7 @@ export class AppConfiguration extends Configuration {
             tallies: this.tallies.map(tally => tally.toJsonForSave()),
             channels: this.channels.map(channel => channel.toJson()),
             vmixProjects: this.vmixProjectProfiles,
+            companionLanToken: this.companionLanToken,
         }
     }
     clone(): AppConfiguration {
@@ -206,6 +212,16 @@ export class AppConfiguration extends Configuration {
 
     getCompanionConfiguration() {
         return this.companionConfiguration.clone()
+    }
+
+    getCompanionLanToken() {
+        return this.companionLanToken
+    }
+
+    setCompanionLanToken(token: string | undefined) {
+        this.companionLanToken = token || undefined
+        this.emitter.emit("config.changed", this)
+        this.emitter.emit("config.changed.companionLan")
     }
 
     setNullConfiguration(nullConfiguration: NullConfiguration) {

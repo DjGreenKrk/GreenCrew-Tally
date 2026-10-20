@@ -5,6 +5,10 @@ Communication with the Hub uses HTTP on localhost or an authenticated LAN IP;
 no direct OBS, ATEM, or vMix dependency is required. Hub forwards tally state to the
 configured Web/UDP tally clients.
 
+## Version 0.6.1
+
+Renamed to GreenCrew Tally (0.6.0); the token field points to the Hub page that generates the LAN token (0.6.1).
+
 ## Version 0.5.0
 
 Adds the AUX tally state (see **AUX tally** below).
@@ -116,35 +120,20 @@ Hardware ESP/WS2812B, ATEM, and vMix have not yet been verified end-to-end.
 
 ## Hub on a different computer (LAN)
 
-**Both the Hub EXE and Companion module must be updated** for a remote setup.
-The original Hub accepts Companion snapshots from localhost only. Version 0.4.0
-of the Companion module adds the configurable IP field, but LAN authorization
-also requires rebuilding the Hub from this branch.
+On the **Hub computer**, open the Hub in a browser (`http://localhost:3000`), go to
+**Configuration → Companion (HTTP)** and click **Allow LAN access (generate token)**. The page
+shows the Hub's IP address(es) and the token; **Copy** puts the token on the clipboard. The token
+is only shown in a browser running on the Hub computer. **Generate new token** replaces it and
+**Turn off LAN access** goes back to localhost only.
 
-On the **Hub computer**, open PowerShell, generate a random 32-byte token and
-start the rebuilt Hub with that token:
+On the **Companion computer**, enter the Hub's LAN IP, port (default 3000) and the token in the
+GreenCrew Tally connection. Do not enter `http://` or `:3000` inside the IP field. The Hub must be
+reachable on TCP port 3000; Windows Firewall may need an inbound rule for the *trusted* production
+LAN.
 
-```powershell
-$bytes = New-Object byte[] 32
-[System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
-$token = [BitConverter]::ToString($bytes).Replace('-', '')
-$env:VTALLY_COMPANION_TOKEN = $token
-Write-Host "Copy this token to Companion: $token"
-.\hub\dist\gc-tally.exe
-```
-
-Use the correct path to `gc-tally.exe` for the current directory. The token must
-be available as the `VTALLY_COMPANION_TOKEN` environment variable of the Hub
-process **every time it starts**. If launched from a shortcut, configure that
-variable in the launching environment; simply saving a token in Companion is not
-enough. The Hub requires at least 16 characters for remote authorization.
-Only localhost is accepted when no Hub token is configured.
-
-On the **Companion computer**, enter the Hub's LAN IP, port (default 3000), and
-the same token in the GreenCrew Tally connection settings. Do not enter
-`http://` or `:3000` inside the IP field. The Hub must be reachable on TCP
-port 3000; Windows Firewall may require an inbound rule for the *trusted*
-event-production LAN.
+Alternatively the token can be set with the `VTALLY_COMPANION_TOKEN` environment variable of the
+Hub process (at least 16 characters). It takes precedence over the generated token and is then
+managed outside the Hub.
 
 The token is transmitted over ordinary HTTP. **Do not expose the Hub port
 to the internet or use this across an untrusted network.** Use a trusted,

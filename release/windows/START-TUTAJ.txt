@@ -81,9 +81,14 @@ Kanal = numer kamery wysylany przez Companion.
 3. Connections -> dodaj "GreenCrew Tally":
      Hub IP address   127.0.0.1 (Companion na tym samym komputerze co Hub)
      Hub HTTP port    3000
+     Hub access token zostaw puste
      Number of cameras  liczba kamer
-   Companion na innym komputerze: patrz "Hub on a different computer (LAN)"
-   w README modulu (wymaga tokenu VTALLY_COMPANION_TOKEN po stronie Huba).
+   Companion na INNYM komputerze:
+   - na komputerze z Hubem otworz Configuration -> Companion (HTTP)
+     i kliknij "Allow LAN access (generate token)",
+   - kliknij Copy i wklej token w Companion w polu "Hub access token",
+   - jako Hub IP wpisz adres pokazany na tej samej stronie (np. 192.168.1.10).
+   Token widac tylko w przegladarce na komputerze z Hubem.
 4. Uzyj gotowych przyciskow (Presets -> GreenCrew Tally) albo akcji
    "Sync Program + Preview from Companion variables" z wyzwalaczem
    na zmiane zmiennych Program/Preview Twojego miksera.

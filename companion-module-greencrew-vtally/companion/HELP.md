@@ -9,7 +9,7 @@ Connects Bitfocus Companion to a **local or remote GC Tally Hub**. Remote LAN co
 3. Add the **GreenCrew Tally** connection in Companion. Set the Hub host/IP, port (default **3000**), camera count (1–8), and optional LAN access token.
 4. Drag the ready-made Program/Preview camera presets onto buttons, or add individual actions.
 
-The default local endpoint is `http://127.0.0.1:<port>/api/companion/tally`. A remote Hub requires `VTALLY_COMPANION_TOKEN` on the Hub and the matching token in this module. LAN transport is plain HTTP: use only a trusted, isolated network or secure tunnel. See the module README for setup.
+The default local endpoint is `http://127.0.0.1:<port>/api/companion/tally`. A remote Hub requires an access token: on the Hub computer open **Configuration → Companion (HTTP)**, click **Allow LAN access (generate token)** and copy the token into this module (a `VTALLY_COMPANION_TOKEN` environment variable on the Hub still works and takes precedence). LAN transport is plain HTTP: use only a trusted, isolated network or secure tunnel. See the module README for setup.
 
 For source-driven operation (OBS/ATEM/vMix), trigger **Sync Program + Preview from Companion variables** when either upstream Program or Preview variable changes, and map exact source values to camera IDs. Do not use stale feedback-derived local variables as the source of truth.
 

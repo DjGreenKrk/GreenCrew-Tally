@@ -81,7 +81,7 @@ export default class GreenCrewVTally extends InstanceBase {
                 width: 6, min: 1, max: 8, step: 1, default: 3,
             },
             {
-                type: 'textinput', id: 'token', label: 'Hub access token (required for LAN, leave empty for localhost)',
+                type: 'textinput', id: 'token', label: 'Hub access token (LAN only; Hub → Configuration → Companion (HTTP) on the Hub computer)',
                 width: 12, default: '',
             },
         ]
