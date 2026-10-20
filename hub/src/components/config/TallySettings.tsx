@@ -46,7 +46,9 @@ function TallySettings() {
   }, [settings])
 
   const classes = useStyle()
-  const isLoading = !settings
+  // Wait until the effect above copied the settings into the form: MUI sliders
+  // that mount with an undefined value stay uncontrolled and ignore later values.
+  const isLoading = !settings || operatorBrightness === undefined
 
   const handleSubmit = (event) => {
     event.preventDefault()
