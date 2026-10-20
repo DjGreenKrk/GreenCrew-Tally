@@ -22,7 +22,7 @@ Create/edit the **GreenCrew vTally** connection in Companion:
 
 Changing the number of cameras immediately rebuilds all action dropdowns,
 the source-mapping fields, feedback choices, module camera variables, and
-Program/Preview presets. For example, a 2-camera setup has only CAM 1 and
+Program/Preview/AUX presets. For example, a 2-camera setup has only CAM 1 and
 CAM 2 throughout. Changing connection settings clears remembered tally states,
 preventing stale mappings from being carried into a different show configuration.
 
@@ -42,6 +42,7 @@ Configure its two variable-valued fields from the source Companion connection
 
 - **Program source variable**: current PROGRAM scene/input name or number.
 - **Preview source variable**: current PREVIEW scene/input name or number.
+- **AUX source variable** (optional): source routed to an AUX output; empty means no AUX camera.
 
 Then configure one mapping field for each camera:
 
@@ -69,7 +70,7 @@ several independent Program/Preview triggers or feedback-derived local
 expressions: the latter were observed to report stale values in Companion
 during rapid scene switches.
 
-The module also offers direct manual Program, Preview, clear, TAKE and blackout
+The module also offers direct manual Program, Preview, AUX, clear, TAKE and blackout
 actions, a full camera-ID snapshot action, confirmed-state feedbacks, and presets.
 They honor the connection's configured camera count.
 
@@ -173,3 +174,12 @@ Windows packaging must use Node 16 and have native `@serialport/bindings`
 modules installed, because serial flash uses the NodeMCU tool. A passing
 software test is not proof of successful flashing: the final check requires
 a physical ESP8266 and a serial upload/readback test.
+
+## AUX tally
+
+AUX (orange) marks a camera routed to an AUX output. It is an independent bus:
+setting Program or Preview does not change it. On the light, priority is
+Program > AUX > Preview. Actions: **Set camera on AUX**, **Toggle camera on AUX**
+and **Clear AUX**; the snapshot and source-sync actions have an optional AUX
+field (empty = none), so existing buttons keep working. The module sends
+`auxes` with every snapshot; the Hub must support it (older Hubs ignore it).

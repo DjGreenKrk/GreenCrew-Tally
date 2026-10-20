@@ -29,11 +29,16 @@ test('changing camera count controls feedbacks, variables and presets', () => {
 
         assert.equal(module.feedbacks.program.options[0].choices.length, count)
         assert.equal(module.feedbacks.preview.options[0].choices.length, count)
+        assert.equal(module.feedbacks.aux.options[0].choices.length, count)
+        assert.equal(module.feedbacks.aux.defaultStyle.bgcolor, 0xff5000)
+        assert.equal(module.values.auxes, '')
+        assert.equal(module.categories.find(category => category.id === 'aux').definitions.length, count)
+        assert.equal(module.presets[`aux_${count}`].steps[0].down[0].actionId, 'aux')
         assert.equal(Object.keys(module.variables).filter(key => key.startsWith('cam_')).length, count)
         assert.equal(Object.keys(module.values).filter(key => key.startsWith('cam_')).length, count)
         assert.equal(module.categories.find(category => category.id === 'program').definitions.length, count)
         assert.equal(module.categories.find(category => category.id === 'preview').definitions.length, count)
-        assert.equal(Object.keys(module.presets).length, 2 * count + 1)
+        assert.equal(Object.keys(module.presets).length, 3 * count + 1)
         assert.equal(module.presets.program_1.steps[0].down[0].options.camera, '1')
         assert.equal(module.presets[`preview_${count}`].steps[0].down[0].options.camera, String(count))
     }

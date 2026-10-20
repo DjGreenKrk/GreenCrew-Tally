@@ -3,13 +3,13 @@ export function definePresets(self) {
     const presets = {}
     const ids = self.getCameraIds()
     for (const id of ids) {
-        for (const mode of ['program', 'preview']) {
+        for (const mode of ['program', 'preview', 'aux']) {
             const key = `${mode}_${id}`
             presets[key] = {
                 type: 'simple',
                 name: `CAM ${id} ${mode.toUpperCase()}`,
                 style: {
-                    text: `CAM ${id}\\n${mode === 'program' ? 'PGM' : 'PVW'}`,
+                    text: `CAM ${id}\\n${{ program: 'PGM', preview: 'PVW', aux: 'AUX' }[mode]}`,
                     size: '14',
                     color: 0xffffff,
                     bgcolor: 0x202020,
@@ -18,7 +18,9 @@ export function definePresets(self) {
                 feedbacks: [{
                     feedbackId: mode,
                     options: { camera: id },
-                    style: { bgcolor: mode === 'program' ? 0xcc0000 : 0x008800, color: 0xffffff },
+                    style: mode === 'aux'
+                        ? { bgcolor: 0xff5000, color: 0x000000 }
+                        : { bgcolor: mode === 'program' ? 0xcc0000 : 0x008800, color: 0xffffff },
                 }],
             }
         }
@@ -33,6 +35,7 @@ export function definePresets(self) {
     self.setPresetDefinitions([
         { id: 'program', name: 'Program', definitions: ids.map(id => `program_${id}`) },
         { id: 'preview', name: 'Preview', definitions: ids.map(id => `preview_${id}`) },
+        { id: 'aux', name: 'AUX', definitions: ids.map(id => `aux_${id}`) },
         { id: 'utility', name: 'Utility', definitions: ['blackout'] },
     ], presets)
 }

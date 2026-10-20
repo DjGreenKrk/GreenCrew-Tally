@@ -15,17 +15,20 @@ For source-driven operation (OBS/ATEM/vMix), trigger **Sync Program + Preview fr
 
 ## Actions
 
-- **Set Program camera** — selects a camera as Program (red).
+- **Set Program camera** — selects a camera as Program (red). On the light Program > AUX > Preview.
 - **Set Preview camera** — selects a camera as Preview (green).
-- **Clear one camera** — removes it from both lists.
+- **Set camera on AUX** — selects a camera as AUX (orange); it is independent of Program/Preview.
+- **Toggle camera on AUX** — adds or removes a camera on AUX.
+- **Clear AUX** — empties the AUX list.
+- **Clear one camera** — removes it from Program, Preview and AUX.
 - **TAKE** — swaps the Program/Preview lists.
 - **Clear all** — blanks every tally.
-- **Set full snapshot** — lists of camera IDs 1–8, separated by commas. Allows multiple Program/Preview cameras.
-- **Sync Program + Preview from Companion variables** — atomically maps upstream Program/Preview source values to configured camera IDs.
+- **Set full snapshot** — lists of camera IDs 1–8, separated by commas (Program, Preview and optional AUX). Allows multiple cameras per list.
+- **Sync Program + Preview from Companion variables** — atomically maps upstream Program/Preview (and optional AUX) source values to configured camera IDs.
 
 ## Feedback & variables
 
-Program, Preview and Hub connection feedback use the latest **HTTP-acknowledged** state. Variables: `connected`, `programs`, `previews` and `cam_1` through `cam_8`.
+Program, Preview, AUX and Hub connection feedback use the latest **HTTP-acknowledged** state. Variables: `connected`, `programs`, `previews`, `auxes` and `cam_1` through `cam_8`.
 
 ## Heartbeat & safety
 

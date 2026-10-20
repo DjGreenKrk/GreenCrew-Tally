@@ -23,46 +23,73 @@ export function csvChannels(value) {
     return parts
 }
 
+const auxesOf = state => [...(state.auxes ?? [])]
+
 export function program(state, camera) {
     const id = cameraId(camera)
-    return { programs: [id], previews: state.previews.filter(v => v !== id) }
+    return { programs: [id], previews: state.previews.filter(v => v !== id), auxes: auxesOf(state) }
 }
 
 export function preview(state, camera) {
     const id = cameraId(camera)
-    return { programs: [...state.programs], previews: [id] }
+    return { programs: [...state.programs], previews: [id], auxes: auxesOf(state) }
+}
+
+export function aux(state, camera) {
+    const id = cameraId(camera)
+    return { programs: [...state.programs], previews: [...state.previews], auxes: [id] }
+}
+
+export function toggleAux(state, camera) {
+    const id = cameraId(camera)
+    const current = auxesOf(state)
+    return {
+        programs: [...state.programs],
+        previews: [...state.previews],
+        auxes: current.includes(id) ? current.filter(v => v !== id) : [...current, id],
+    }
+}
+
+export function clearAux(state) {
+    return { programs: [...state.programs], previews: [...state.previews], auxes: [] }
 }
 
 export function cameraOff(state, camera) {
     const id = cameraId(camera)
-    return { programs: state.programs.filter(v => v !== id), previews: state.previews.filter(v => v !== id) }
+    return {
+        programs: state.programs.filter(v => v !== id),
+        previews: state.previews.filter(v => v !== id),
+        auxes: auxesOf(state).filter(v => v !== id),
+    }
 }
 
 export function take(state) {
-    if (!state.previews.length) return { programs: [...state.programs], previews: [...state.previews] }
-    return { programs: [...state.previews], previews: [...state.programs] }
+    if (!state.previews.length) return { programs: [...state.programs], previews: [...state.previews], auxes: auxesOf(state) }
+    return { programs: [...state.previews], previews: [...state.programs], auxes: auxesOf(state) }
 }
 
 export function blackout() {
-    return { programs: [], previews: [] }
+    return { programs: [], previews: [], auxes: [] }
 }
 
-export function snapshot(programs, previews) {
-    return { programs: csvChannels(programs), previews: csvChannels(previews) }
+export function snapshot(programs, previews, auxes) {
+    return { programs: csvChannels(programs), previews: csvChannels(previews), auxes: csvChannels(auxes) }
 }
 
+// Priority: Program > AUX > Preview.
 export function cameraMode(state, camera) {
     const id = cameraId(camera)
     if (state.programs.includes(id)) return 'program'
+    if ((state.auxes ?? []).includes(id)) return 'aux'
     if (state.previews.includes(id)) return 'preview'
     return 'off'
 }
 
 /**
- * Resolve any mixer source names/IDs into one atomic Program/Preview snapshot.
+ * Resolve any mixer source names/IDs into one atomic Program/Preview/AUX snapshot.
  * Unknown sources are errors: callers must not report them as safely OFF.
  */
-export function snapshotFromSources(programSource, previewSource, sources) {
+export function snapshotFromSources(programSource, previewSource, sources, auxSource = '') {
     const ids = configuredCameraIds(sources.length)
     const normalize = value => String(value ?? '').trim()
     const sourceToId = new Map()
@@ -77,7 +104,7 @@ export function snapshotFromSources(programSource, previewSource, sources) {
     const resolveSource = (name, bus) => {
         const value = normalize(name)
         if (!value) {
-            if (bus === 'Preview') return []
+            if (bus !== 'Program') return []
             throw new Error('Program source is empty or unavailable')
         }
         const id = sourceToId.get(value)
@@ -88,12 +115,13 @@ export function snapshotFromSources(programSource, previewSource, sources) {
     return {
         programs: resolveSource(programSource, 'Program'),
         previews: resolveSource(previewSource, 'Preview'),
+        auxes: resolveSource(auxSource, 'AUX'),
     }
 }
 
 export function validateConfiguredState(state, cameraCount) {
     const allowed = new Set(configuredCameraIds(cameraCount))
-    for (const id of [...state.programs, ...state.previews]) {
+    for (const id of [...state.programs, ...state.previews, ...(state.auxes ?? [])]) {
         if (!allowed.has(id)) throw new Error('Camera ' + id + ' is outside the configured camera count')
     }
     return state
