@@ -211,3 +211,5 @@ jobs:
           if ($out -notmatch 'COM99') { throw 'port was not normalised to COM99' }
           if ($out -notmatch 'Nie udalo sie polaczyc') { throw 'missing connection hint' }
           if ($out -match 'Kasowanie') { throw 'script went on to erase' }
+          # the expected exit code 1 must not fail this step
+          exit 0
