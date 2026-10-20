@@ -15,16 +15,20 @@ class UdpTallyDriver {
     configuration: AppConfiguration
     lastTallyReport: Map<string, Date> = new Map()
 
-    constructor(configuration: AppConfiguration, container: TallyContainer) {
+    // onBindError: the tally port could not be opened, so no tally can ever
+    // connect. The Hub must not keep running as if it were healthy.
+    constructor(configuration: AppConfiguration, container: TallyContainer, onBindError?: (error: NodeJS.ErrnoException) => void) {
         this.configuration = configuration
         this.container = container
         this.container.addUdpTallyDriver(this)
 
         this.io = dgram.createSocket('udp4')
-        
-        this.io.on('error', (err) => {
+
+        let listening = false
+        this.io.on('error', (err: NodeJS.ErrnoException) => {
             console.log(`server error: ${err.stack}`);
             this.io.close();
+            if (!listening && onBindError) onBindError(err)
         });
         
         this.io.on('message', (msg, rinfo) => {
@@ -39,7 +43,8 @@ class UdpTallyDriver {
                     this.container.addLog(tallyName, "udp", log)
                 } else {
                     // typescript should complain if we missed a command
-                    ((_: never) => {})(command)
+                    const unreachable: never = command
+                    throw new Error(`Unsupported tally command: ${String(unreachable)}`)
                 }
             } catch (e) {
                 if (e instanceof InvalidCommandError) {
@@ -51,6 +56,7 @@ class UdpTallyDriver {
         });
         
         this.io.on('listening', () => {
+            listening = true
             const address = this.io.address()
             console.log(`Listening for Tallies on ${address.address}:${address.port}`)
         });
@@ -88,13 +94,13 @@ class UdpTallyDriver {
         // - compensate for lost packages
         setInterval(() => {
             this.container.getUdpTallies().forEach(tally => {
-                this.updateTallyState(tally, this.container.lastPrograms, this.container.lastPreviews)
+                this.updateTallyState(tally, this.container.lastPrograms, this.container.lastPreviews, this.container.lastAuxes)
             })
         }, 1000 / this.configuration.getTallyKeepAlivesPerSecond())
     }
     private tallyReported(tallyName: string, rinfo: dgram.RemoteInfo) {
         this.lastTallyReport.set(tallyName, new Date())
-        let tally = this.container.getOrCreate(tallyName, "udp") as UdpTally
+        const tally = this.container.getOrCreate(tallyName, "udp") as UdpTally
         const oldState = tally.state
         const oldAddress = tally.address
         const oldPort = tally.port
@@ -109,9 +115,9 @@ class UdpTallyDriver {
         return tally
     }
 
-    updateTallyState(tally: UdpTally, programs: ChannelList, previews: ChannelList) {
+    updateTallyState(tally: UdpTally, programs: ChannelList, previews: ChannelList, auxes: string[] = []) {
         if(tally.isActive()) {
-            const command = CommandCreator.createStateCommand(tally, programs, previews, this.configuration.getTallyConfiguration())
+            const command = CommandCreator.createStateCommand(tally, programs, previews, this.configuration.getTallyConfiguration(), auxes)
             this.io.send(command, tally.port, tally.address)
         }
     }

@@ -28,7 +28,7 @@ function MenuItemLink(props: MenuItemLinkProps) {
 
   const renderLink = React.useMemo(
     () =>
-      React.forwardRef<any, Omit<RouterLinkProps, 'to'>>((itemProps, ref) => (
+      React.forwardRef<HTMLAnchorElement, Omit<RouterLinkProps, 'to'>>((itemProps, ref) => (
         <RouterLink to={to} ref={ref} {...itemProps} />
       )),
     [to],

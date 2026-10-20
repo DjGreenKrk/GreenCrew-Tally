@@ -3,7 +3,7 @@ import RolandV60HDConfiguration from './RolandV60HDConfiguration'
 import http from 'http'
 
 const waitUntil = (fn) => {
-    return new Promise((resolve, _) => {
+    return new Promise((resolve) => {
         setInterval(() => {
             if (fn() === true) {
                 resolve()
@@ -13,7 +13,7 @@ const waitUntil = (fn) => {
 }
 
 class MockCommunicator {
-    constructor(configuration, emitter) {
+    constructor() {
         this.isConnected = false
     }
 

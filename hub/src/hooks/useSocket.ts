@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import io from 'socket.io-client'
-import {EventEmitter} from 'events'
-import { ClientSentEvents, ClientSideSocket } from '../lib/SocketEvents'
+import { EventEmitter } from '../lib/DisconnectedClientSideSocket'
+import { ClientSideSocket, ServerSentEvents } from '../lib/SocketEvents'
 import DisconnectedClientSideSocket from '../lib/DisconnectedClientSideSocket'
 
 // @TODO: remove socket event emitter. It does not have any purpose apart from announcing connection and disconnection
@@ -22,21 +22,21 @@ if (typeof window !== 'undefined') {
   socket.on("connect", onConnection)
   socket.on("connect_error", onDisconnection)
   socket.on("connect_timeout", onDisconnection)
-  socket.on("disconnected", onDisconnection)
-  socket.on("reconnect", onDisconnection)
+  // Socket.IO emits "disconnect", never "disconnected". Successful
+  // reconnect must set Hub state back to connected, not disconnected.
+  socket.on("disconnect", onDisconnection)
+  socket.on("reconnect", onConnection)
   socket.on("reconnecting", onDisconnection)
   socket.on("reconnect_error", onDisconnection)
   socket.on("reconnect_failed", onDisconnection)
 }
 
 /** @deprecated */
-const useSocket = function<EventName extends keyof ClientSentEvents>(eventName: EventName, cb: (...args: any[]) => void) {
+const useSocket = function<EventName extends keyof ServerSentEvents>(eventName: EventName, cb: ServerSentEvents[EventName]) {
   useEffect(() => {
-    //@ts-ignore
     socket.on(eventName, cb)
 
     return function useSocketCleanup() {
-      // @ts-ignore
       socket.off(eventName, cb)
     }
   }, [eventName, cb])

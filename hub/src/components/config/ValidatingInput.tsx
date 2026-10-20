@@ -1,5 +1,5 @@
 import { makeStyles, TextField } from '@material-ui/core'
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Configuration } from '../../mixer/interfaces'
 
 type ValidatingInputProps = {
@@ -20,7 +20,7 @@ const useStyles = makeStyles(theme => ({
 }))
 
 
-const upperCaseFirst = (value: string) => `${value.substr(0, 1).toUpperCase()}${value.substr(1)}`
+const upperCaseFirst = (value: string) => `${value.charAt(0).toUpperCase()}${value.slice(1)}`
 
 /* an active component that allows easy editing of values of Configuration objects
  * 
@@ -33,20 +33,21 @@ function ValidatingInput({label, testId, object, propertyName, errorMessage, war
     if (typeof object[getterName] !== "function") { throw new Error(`${getterName} is not a function`) }
     if (typeof object[setterName] !== "function") { throw new Error(`${setterName} is not a function`) }
 
-    const theObjectValue = object[getterName]().toString()
-    const [oldValue, setOldValue] = useState<string|null>(null)
-    const [value, setValue] = useState<string|null>(null)
+    const rawObjectValue = object[getterName]()
+    const theObjectValue = rawObjectValue == null ? null : String(rawObjectValue)
+    const [value, setValue] = useState<string|null>(theObjectValue)
     const [isValid, setIsValid] = useState(true)
     const classes = useStyles()
 
-    if (theObjectValue !== oldValue) {
-        // value in the default object was changed
-        setOldValue(theObjectValue)
+    // Notify the parent after commit, never schedule a timer from render.
+    // A ref keeps the latest callback without resetting edits on every render.
+    const onValidRef = useRef(onValid)
+    onValidRef.current = onValid
+    useEffect(() => {
         setValue(theObjectValue)
         setIsValid(true)
-        // we can not render a parent synchrounously
-        onValid && setTimeout(() => onValid(theObjectValue), 1)
-    }
+        onValidRef.current?.(theObjectValue)
+    }, [theObjectValue])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value === "" ? null : e.target.value
@@ -54,10 +55,10 @@ function ValidatingInput({label, testId, object, propertyName, errorMessage, war
         try {
             object.clone()[setterName](newValue)
             setIsValid(true)
-            onValid && onValid(newValue)
-        } catch (e) {
+            onValid?.(newValue)
+        } catch {
             setIsValid(false)
-            onInvalid && onInvalid()
+            onInvalid?.()
         }
     }
 

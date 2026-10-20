@@ -4,7 +4,7 @@ import Channel from "../domain/Channel"
 import { AppConfiguration } from "./AppConfiguration"
 import ServerEventEmitter from "./ServerEventEmitter"
 
-const haveValuesChanged = (lastArray: any, newArray: any) => {
+const haveValuesChanged = (lastArray: ChannelList, newArray: ChannelList) => {
     if(Array.isArray(lastArray) && Array.isArray(newArray)) {
         return lastArray.length !== newArray.length || lastArray.some((value, index) => value !== newArray[index])
     } else {
@@ -19,6 +19,8 @@ export class MixerCommunicator {
     emitter: ServerEventEmitter
     currentPrograms: ChannelList
     currentPreviews: ChannelList
+    // Only some sources (Companion) know AUX routing; the others leave it empty.
+    currentAuxes: string[]
     isConnected: boolean | null
     currentVmixPreset?: string
     
@@ -28,6 +30,7 @@ export class MixerCommunicator {
 
         this.currentPrograms = null
         this.currentPreviews = null
+        this.currentAuxes = []
         this.isConnected = null
         this.currentVmixPreset = undefined
     }
@@ -52,25 +55,40 @@ export class MixerCommunicator {
         }
     }
 
-    notifyProgramPreviewChanged(programs: ChannelList, previews: ChannelList) {
+    private changeAuxesIfNecessary(auxes: string[]) {
+        auxes = auxes.map(v => v.toString())
+        if (haveValuesChanged(auxes, this.currentAuxes)) {
+            this.currentAuxes = auxes
+            return true
+        } else {
+            return false
+        }
+    }
+
+    private emitProgramChanged() {
+        this.emitter.emit('program.changed', { programs: this.currentPrograms, previews: this.currentPreviews, auxes: this.currentAuxes })
+    }
+
+    notifyProgramPreviewChanged(programs: ChannelList, previews: ChannelList, auxes: string[] = []) {
         const programChanged = this.changeProgramsIfNecessary(programs)
         const previewChanged = this.changePreviewsIfNecessary(previews)
-        if (previewChanged || programChanged) {
-            this.emitter.emit('program.changed', { programs: this.currentPrograms, previews: this.currentPreviews })
+        const auxChanged = this.changeAuxesIfNecessary(auxes)
+        if (previewChanged || programChanged || auxChanged) {
+            this.emitProgramChanged()
         }
     }
 
     notifyProgramChanged(programs: ChannelList) {
         const programChanged = this.changeProgramsIfNecessary(programs)
         if (programChanged) {
-            this.emitter.emit('program.changed', { programs: this.currentPrograms, previews: this.currentPreviews })
+            this.emitProgramChanged()
         }
     }
 
     notifyPreviewChanged(previews: ChannelList) {
         const previewChanged = this.changePreviewsIfNecessary(previews)
         if (previewChanged) {
-            this.emitter.emit('program.changed', { programs: this.currentPrograms, previews: this.currentPreviews })
+            this.emitProgramChanged()
         }
     }
 
@@ -125,5 +143,9 @@ export class MixerCommunicator {
 
     getCurrentPreviews() {
         return this.currentPreviews
+    }
+
+    getCurrentAuxes() {
+        return this.currentAuxes
     }
 }

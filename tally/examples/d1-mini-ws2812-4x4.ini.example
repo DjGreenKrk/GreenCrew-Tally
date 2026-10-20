@@ -1,0 +1,11 @@
+; GC Tally / NodeMCU Lua firmware — ESP8266 D1 Mini + WS2812B 4x4
+; Copy to tally-settings.ini and replace all placeholders before flashing.
+station.ssid=YOUR_WIFI_SSID
+station.password=YOUR_WIFI_PASSWORD
+hub.ip=192.168.1.100
+hub.port=7411
+tally.name=CAM1
+; D4 (GPIO2) is the built-in NodeMCU ws2812 output.
+; 16 LEDs form one GRB strip, all display one tally colour.
+operator.ws2812=16 grb
+stage.ws2812=0 grb

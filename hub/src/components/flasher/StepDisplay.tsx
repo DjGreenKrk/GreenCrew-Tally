@@ -66,7 +66,10 @@ type Props = {
 function StepDisplay({steps} : Props) {
   const classes = useStyles()
 
-  const currentStep = Math.max(steps.findIndex(step => step.done === false), 0)
+  // MUI expects a step index beyond the last entry when the workflow is complete.
+  // Selecting index 0 again falsely marks initialization as the active step.
+  const firstIncomplete = steps.findIndex(step => !step.done)
+  const currentStep = firstIncomplete === -1 ? steps.length : firstIncomplete
 
   return <Stepper activeStep={currentStep} orientation="vertical" classes={{vertical: classes.vertical}}>
     {steps.map(step => <Step 

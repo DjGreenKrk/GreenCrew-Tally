@@ -1,5 +1,7 @@
 import { createMuiTheme, ThemeProvider } from '@material-ui/core'
 import React from 'react';
+// Adds the @material-ui/lab components (MuiAlert) to the theme typings.
+import type {} from '@material-ui/lab/themeAugmentation'
 // import App from 'next/app'
 
 const colorGreen = "#00bc8c"
@@ -82,7 +84,6 @@ const myTheme = createMuiTheme({
     },
   },
   props: {
-    // @ts-ignore MuiAlert is in Lab
     MuiAlert: {
       variant: "filled",
     },

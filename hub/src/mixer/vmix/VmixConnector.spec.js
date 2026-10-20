@@ -3,7 +3,7 @@ import VmixConfiguration from './VmixConfiguration'
 import { Server } from 'net'
 
 const waitUntil = (fn) => {
-    return new Promise((resolve, _) => {
+    return new Promise((resolve) => {
         setInterval(() => {
             if (fn() === true) {
                 resolve()
@@ -13,7 +13,7 @@ const waitUntil = (fn) => {
 }
 
 class MockCommunicator {
-    constructor(configuration, emitter) {
+    constructor() {
         this.isConnected = false
     }
 
@@ -186,6 +186,28 @@ describe('VmixConnector', () => {
                     expect(communicator.presetPath).toEqual(presetPath)
                 })
             } finally {
+                await vmix.disconnect()
+            }
+        })
+        test('keeps Hub alive and marks Program/Preview UNKNOWN after reconnect limit', async () => {
+            const server = global.vMixServerConfig
+            const [vmix, communicator] = createVmixCommunicator(server.serverIp, server.serverPort)
+            vmix.reconnectStartedAt = Date.now() - VmixConnector.reconnectLimit - 1
+            const exit = jest.spyOn(process, 'exit').mockImplementation(() => {
+                throw new Error('Unexpected Hub termination')
+            })
+            try {
+                vmix.connect(true)
+                const closed = new Promise(resolve => vmix.client.once('close', resolve))
+                vmix.client.destroy()
+                await closed
+                expect(exit).not.toHaveBeenCalled()
+                expect(communicator.isConnected).toBe(false)
+                expect(communicator.programs).toBeNull()
+                expect(communicator.previews).toBeNull()
+                expect(vmix.reconnectTimeout).toBeUndefined()
+            } finally {
+                exit.mockRestore()
                 await vmix.disconnect()
             }
         })

@@ -1,6 +1,6 @@
 {
-  "name": "vtally",
-  "version": "0.5.3-kuuminsh.1",
+  "name": "gc-tally",
+  "version": "0.6.0",
   "private": true,
   "main": "tray-main.js",
   "dependencies": {
@@ -19,20 +19,26 @@
     "yargs": "^15.4.1"
   },
   "scripts": {
-    "start:frontend": "cross-env PORT=3001 BROWSER=none react-scripts start",
+    "start:frontend": "vite --host 0.0.0.0",
     "start:backend": "ts-node --project tsconfig.server.json src/server.ts --env=development",
-    "build:frontend": "node scripts/write-build-info.js && react-scripts build",
+    "build:frontend": "node scripts/write-build-info.js && vite build",
     "build:backend": "tsc --project tsconfig.server.json",
     "build:windows": "npm run build:frontend && npm run build:backend && node scripts/package-windows.js",
     "build:tray": "npm run build:windows && electron-builder --win portable",
-    "test": "react-scripts test",
-    "test:ci": "CI=true react-scripts test",
+    "test": "jest --config jest.standalone.cjs",
+    "test:ci": "jest --config jest.standalone.cjs --watch=false --runInBand",
     "cypress:open": "cypress open",
     "cypress:backend": "ts-node --project tsconfig.server.json src/server.ts --env=development --with-test",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "preview:frontend": "vite preview",
+    "test:frontend:smoke": "node scripts/check-vite-output.cjs && node scripts/check-vite-preview.cjs"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
+    "@babel/preset-env": "7.29.7",
+    "@babel/preset-react": "7.29.7",
+    "@babel/preset-typescript": "7.29.7",
+    "@eslint/js": "10.0.1",
     "@material-ui/core": "^4.12.3",
     "@material-ui/icons": "^4.11.2",
     "@material-ui/lab": "^4.0.0-alpha.60",
@@ -40,8 +46,8 @@
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
     "@types/express": "^4.17.13",
-    "@types/jest": "^26.0.24",
-    "@types/node": "^12.20.39",
+    "@types/jest": "30.0.0",
+    "@types/node": "^24.0.0",
     "@types/react": "^16.14.21",
     "@types/react-dom": "^16.9.14",
     "@types/react-router": "^5.1.17",
@@ -49,27 +55,35 @@
     "@types/socket.io": "^2.1.13",
     "@types/socket.io-client": "^1.4.36",
     "@types/tmp": "^0.2.3",
+    "@yao-pkg/pkg": "6.23.0",
+    "babel-jest": "30.5.2",
     "cross-env": "^7.0.3",
     "cypress": "^6.9.1",
     "electron": "^22.3.27",
     "electron-builder": "^24.13.3",
-    "eslint-plugin-cypress": "^2.12.1",
+    "eslint": "10.13.0",
+    "eslint-plugin-cypress": "7.0.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.9.0",
+    "identity-obj-proxy": "3.0.0",
+    "jest": "30.5.2",
+    "jest-environment-jsdom": "30.5.2",
     "jest-extended": "^0.11.5",
     "lato-font": "^3.0.0",
     "nosleep.js": "^0.12.0",
-    "pkg": "5.8.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "react-full-screen": "^0.3.2-0",
+    "react-full-screen": "1.1.1",
     "react-router-dom": "^5.3.0",
-    "react-scripts": "4.0.1",
     "ts-node": "^9.0.0",
-    "typescript": "4.4.4",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.2",
+    "vite": "6.4.4",
     "web-vitals": "^0.2.4"
   },
   "engines": {
-    "node": ">=12",
-    "npm": ">=6.9"
+    "node": "^24.0.0",
+    "npm": ">=10"
   },
   "os": [
     "linux",
@@ -82,16 +96,16 @@
   ],
   "build": {
     "extends": null,
-    "appId": "com.wifi-tally.vtally",
-    "productName": "vTally",
+    "appId": "pl.greencrew.gctally",
+    "productName": "GC Tally",
     "npmRebuild": false,
     "files": [
       "tray-main.js"
     ],
     "extraResources": [
       {
-        "from": "dist/vtally.exe",
-        "to": "vtally.exe"
+        "from": "dist/gc-tally.exe",
+        "to": "gc-tally.exe"
       },
       {
         "from": "dist/frontend",
@@ -104,6 +118,10 @@
       {
         "from": "tray-icon.png",
         "to": "tray-icon.png"
+      },
+      {
+        "from": "dist/esp8266",
+        "to": "esp8266"
       }
     ],
     "win": {
@@ -122,6 +140,13 @@
       "last 1 chrome version",
       "last 1 firefox version",
       "last 1 safari version"
+    ]
+  },
+  "pkg": {
+    "assets": [
+      "node_modules/@serialport/bindings/build/Release/*.node",
+      "node_modules/@serialport/bindings/prebuilds/**/*.node",
+      "node_modules/midi/build/Release/*.node"
     ]
   }
 }

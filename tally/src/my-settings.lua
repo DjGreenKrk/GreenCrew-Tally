@@ -127,10 +127,10 @@ if file.exists(fileName) then
                             type = nil
                         end
                         value = tonumber(value)
-                        if value ~= nil and value >= 0 and value <= 10 then
+                        if value ~= nil and value >= 0 and value <= 32 then
                             operatorWs2812Lights = value
                         else
-                            MyLog.warning("operator.ws2812 needs to be number between 0 and 10, but got \"" .. v .. "\"")
+                            MyLog.warning("operator.ws2812 needs to be number between 0 and 32, but got \"" .. v .. "\"")
                         end
                         if type ~= nil then
                             if isValueInTable(type, Ws2812Types) then
@@ -157,10 +157,10 @@ if file.exists(fileName) then
                             type = nil
                         end
                         value = tonumber(value)
-                        if value ~= nil and value >= 0 and value <= 10 then
+                        if value ~= nil and value >= 0 and value <= 32 then
                             stageWs2812Lights = value
                         else
-                            MyLog.warning("stage.ws2812 needs to be number between 0 and 10, but got \"" .. v .. "\"")
+                            MyLog.warning("stage.ws2812 needs to be number between 0 and 32, but got \"" .. v .. "\"")
                         end
                         if type ~= nil then
                             if isValueInTable(type, Ws2812Types) then

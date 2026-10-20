@@ -1,4 +1,4 @@
-import {EventEmitter} from 'events'
+import { EventEmitter } from '../../lib/DisconnectedClientSideSocket'
 import { ClientSideSocket } from '../../lib/SocketEvents'
 
 class MixerTracker extends EventEmitter{

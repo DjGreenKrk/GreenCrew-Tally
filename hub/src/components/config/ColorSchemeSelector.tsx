@@ -98,6 +98,7 @@ function ColorSchemeSelector({value, onChange, disabled, testId}: ColorSchemeSel
           <div className={classes.previewContainer + (isFocussed ? "" : (" " + classes.previewContainerDim))}>
             <Tooltip title="On-Air color"><span className={classes.preview} style={{backgroundColor: selectedScheme.program.toCss()}}></span></Tooltip>
             <Tooltip title="Preview color"><span className={classes.preview} style={{backgroundColor: selectedScheme.preview.toCss()}}></span></Tooltip>
+            <Tooltip title="AUX color"><span className={classes.preview} style={{backgroundColor: selectedScheme.aux.toCss()}}></span></Tooltip>
           </div>
         )}
       </div>

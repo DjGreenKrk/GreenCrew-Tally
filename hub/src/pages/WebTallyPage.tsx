@@ -95,7 +95,7 @@ function useWebTally(tallyName: string) {
     const onDisconnect = () => {
       socket.off('webTally.state', onChange)
       socket.off('webTally.invalid', onInvalid)
-      socket.connected && socket.emit('events.webTally.unsubscribe', tallyName)
+      if (socket.connected) socket.emit('events.webTally.unsubscribe', tallyName)
       setTally(undefined)
       setCommand(undefined)
       setIsValid(true)
@@ -110,9 +110,13 @@ function useWebTally(tallyName: string) {
     socket.on('connect', onConnect)
     socket.on('disconnect', onDisconnect)
     
-    socket.connected && onConnect()
+    if (socket.connected) onConnect()
     return () => {
-      // cleanup
+      // Release both transport event handlers and the tally subscriptions.
+      // Leaving connect/disconnect handlers behind duplicates subscriptions
+      // when the page is unmounted or the tallyName route parameter changes.
+      socket.off('connect', onConnect)
+      socket.off('disconnect', onDisconnect)
       onDisconnect()
     }
   }, [tallyName])
@@ -164,6 +168,10 @@ function WebTallyPage() {
     bgColor = colorScheme.program.toCss()
     text = "On Program"
     dataColor = "program"
+  } else if (command === "aux") {
+    bgColor = colorScheme.aux.toCss()
+    text = "On AUX"
+    dataColor = "aux"
   } else if (command === "preview") {
     bgColor = colorScheme.preview.toCss()
     text = "On Preview"
@@ -178,7 +186,8 @@ function WebTallyPage() {
     showSpinner = true
   } else {
     // if typescript fails here, we forgot a case
-    ((a: never) => {})(command)
+    const unreachable: never = command
+    throw new Error(`Unhandled web tally state: ${String(unreachable)}`)
   }
 
   const brightness = (tally?.configuration?.getOperatorLightBrightness() || defaultTallyConfiguration?.getOperatorLightBrightness() || 100) / 100

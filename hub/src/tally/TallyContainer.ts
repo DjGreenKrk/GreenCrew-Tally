@@ -12,6 +12,7 @@ class TallyContainer {
   emitter: ServerEventEmitter
   lastPrograms: ChannelList
   lastPreviews: ChannelList
+  lastAuxes: string[]
   configuration: AppConfiguration
   udpTallyDriver?: UdpTallyDriver
   webTallyDriver?: WebTallyDriver
@@ -25,10 +26,12 @@ class TallyContainer {
       this.emitter = emitter
       this.lastPrograms = null
       this.lastPreviews = null
+      this.lastAuxes = []
 
-      this.emitter.on("program.changed", ({programs, previews}) => {
+      this.emitter.on("program.changed", ({programs, previews, auxes}) => {
         this.lastPrograms = programs
         this.lastPreviews = previews
+        this.lastAuxes = auxes
         this.updateTallyStates()
       })
       this.emitter.on("config.changed.tallyconfig", () => {
@@ -104,7 +107,7 @@ class TallyContainer {
   }
 
   updateSettings(tallyName: string, tallyType: TallyType, settings: TallyConfiguration) {
-    let tally = this.get(tallyName, tallyType)
+    const tally = this.get(tallyName, tallyType)
     if (tally) {
       tally.configuration = settings
       this.update(tally)
@@ -196,13 +199,13 @@ class TallyContainer {
               if (!this.udpTallyDriver) {
                   console.warn(`No UDP Tally Driver initialized. Can not update state of Tally "${tally.name}"`)
               } else {
-                  this.udpTallyDriver.updateTallyState(tally, this.lastPrograms, this.lastPreviews)
+                  this.udpTallyDriver.updateTallyState(tally, this.lastPrograms, this.lastPreviews, this.lastAuxes)
               }
           } else if (tally.isWebTally()) {
             if (!this.webTallyDriver) {
                 console.warn(`No Web Tally Driver initialized. Can not update state of Tally "${tally.name}"`)
             } else {
-                this.webTallyDriver.updateTallyState(tally, this.lastPrograms, this.lastPreviews)
+                this.webTallyDriver.updateTallyState(tally, this.lastPrograms, this.lastPreviews, this.lastAuxes)
             }
           }
       }

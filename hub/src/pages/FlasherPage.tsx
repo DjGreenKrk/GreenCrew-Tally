@@ -13,6 +13,7 @@ import RefreshIcon from '@material-ui/icons/Refresh';
 import { socket } from '../hooks/useSocket';
 import Help from '../components/flasher/Help';
 import ProgramProgress from '../components/flasher/ProgramProgress';
+import PortSelect, { needsPortChoice } from '../components/flasher/PortSelect';
 
 const useStyles = makeStyles(theme => {
   return {
@@ -31,7 +32,7 @@ const useStyles = makeStyles(theme => {
   }
 })
 
-function useTallyDevice(i: number) {
+function useTallyDevice(i: number, requestedPath?: string) {
   const [tallyDevice, setTallyDevice] = useState<TallyDevice>(undefined)
 
   useEffect(() => {
@@ -41,11 +42,11 @@ function useTallyDevice(i: number) {
     socket.on('flasher.device', onFlasherDevice)
 
     setTallyDevice(undefined)
-    socket.emit('flasher.device.get')
+    socket.emit('flasher.device.get', requestedPath)
     return () => {
       socket.off('flasher.device', onFlasherDevice)
     }
-  }, [i])
+  }, [i, requestedPath])
 
   return tallyDevice
 }
@@ -57,7 +58,9 @@ const FlasherPage = () => {
   const [uploadingOpen, setUploadingOpen] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<TallySettingsIniProgressType>(undefined)
   const [programProgress, setProgramProgress] = useState<TallyProgramProgressType>(undefined)
-  const tallyDevice = useTallyDevice(increment)
+  // undefined: let the Hub pick the first known ESP USB adapter
+  const [requestedPath, setRequestedPath] = useState<string>(undefined)
+  const tallyDevice = useTallyDevice(increment, requestedPath)
   const isLoading = tallyDevice === undefined
 
   const classes = useStyles()
@@ -123,9 +126,15 @@ const FlasherPage = () => {
         </Typography>
         { tallyDevice === undefined ? (
           <Spinner />
-        ) : (
+        ) : (<>
+          { needsPortChoice(tallyDevice.ports, requestedPath) && <PortSelect
+            ports={tallyDevice.ports}
+            value={tallyDevice.path}
+            disabled={isUploading}
+            onChange={setRequestedPath}
+          /> }
           <Help tallyDevice={tallyDevice} onReload={handleReload} />
-        )}
+        </>)}
       </MiniPage>
       { (tallyDevice?.update === "updateable" || tallyDevice?.update === "up-to-date") && <MiniPage testId="update-software" title="Software Update">
         { tallyDevice?.update === "up-to-date" && <Alert

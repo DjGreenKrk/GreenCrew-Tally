@@ -26,25 +26,25 @@ test('it displays labels correctly', () => {
         container: document.body.appendChild(root)
     })
 
-    const el1 = getByText("1 Channel One")
+    const el1 = getByText("1 Channel One") as HTMLOptionElement
     expect(el1).toBeInTheDocument()
-    expect(el1.value).toBe("1")
+    expect((el1 as HTMLOptionElement).value).toBe("1")
 
-    const el2 = getByText("2 Channel Two")
+    const el2 = getByText("2 Channel Two") as HTMLOptionElement
     expect(el2).toBeInTheDocument()
-    expect(el2.value).toBe("2")
+    expect((el2 as HTMLOptionElement).value).toBe("2")
 
-    const el3 = getByText("3 Channel 3")
+    const el3 = getByText("3 Channel 3") as HTMLOptionElement
     expect(el3).toBeInTheDocument()
-    expect(el3.value).toBe("3")
+    expect((el3 as HTMLOptionElement).value).toBe("3")
 
-    const el4 = getByText("foobar Channel foobar")
+    const el4 = getByText("foobar Channel foobar") as HTMLOptionElement
     expect(el4).toBeInTheDocument()
-    expect(el4.value).toBe("foobar")
+    expect((el4 as HTMLOptionElement).value).toBe("foobar")
 
-    const el5 = getByText("baz Channel 42")
+    const el5 = getByText("baz Channel 42") as HTMLOptionElement
     expect(el5).toBeInTheDocument()
-    expect(el5.value).toBe("baz")
+    expect((el5 as HTMLOptionElement).value).toBe("baz")
 
     expect(getAllByRole('option')).toHaveLength(6) // one more for the (unpatched) option
 })
@@ -65,28 +65,28 @@ test('it calls onChange with the right value', () => {
 
     const select = getByRole("listbox")
 
-    const el1 = getByText("1 Channel One")
-    fireEvent.change(select, { target: { value: el1.value } })
+    const el1 = getByText("1 Channel One") as HTMLOptionElement
+    fireEvent.change(select, { target: { value: (el1 as HTMLOptionElement).value } })
     expect(lastSeenValue).toEqual(["1"])
 
-    const el2 = getByText("2 Channel Two")
-    fireEvent.change(select, { target: { value: el2.value } })
+    const el2 = getByText("2 Channel Two") as HTMLOptionElement
+    fireEvent.change(select, { target: { value: (el2 as HTMLOptionElement).value } })
     expect(lastSeenValue).toEqual(["2"])
 
-    const el3 = getByText("3 Channel 3")
-    fireEvent.change(select, { target: { value: el3.value } })
+    const el3 = getByText("3 Channel 3") as HTMLOptionElement
+    fireEvent.change(select, { target: { value: (el3 as HTMLOptionElement).value } })
     expect(lastSeenValue).toEqual(["3"])
 
-    const el4 = getByText("foobar Channel foobar")
-    fireEvent.change(select, { target: { value: el4.value } })
+    const el4 = getByText("foobar Channel foobar") as HTMLOptionElement
+    fireEvent.change(select, { target: { value: (el4 as HTMLOptionElement).value } })
     expect(lastSeenValue).toEqual(["foobar"])
 
-    const el5 = getByText("baz Channel 42")
-    fireEvent.change(select, { target: { value: el5.value } })
+    const el5 = getByText("baz Channel 42") as HTMLOptionElement
+    fireEvent.change(select, { target: { value: (el5 as HTMLOptionElement).value } })
     expect(lastSeenValue).toEqual(["baz"])
 
-    const el6 = getByText("(unpatched)")
-    fireEvent.change(select, { target: { value: el6.value } })
+    const el6 = getByText("(unpatched)") as HTMLOptionElement
+    fireEvent.change(select, { target: { value: (el6 as HTMLOptionElement).value } })
     expect(lastSeenValue).toEqual([])
 })
 

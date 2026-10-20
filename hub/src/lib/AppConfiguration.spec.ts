@@ -35,7 +35,7 @@ describe("toJson/fromJson", () => {
 
         expect(otherConfig.getMockConfiguration().getChannelCount()).toEqual(42)
     })
-    test.skip('it can persist null configuration', done => {
+    test.skip('it can persist null configuration', () => {
         // it is empty -> so it does not really matter
     })
     test('it can persist obs configuration', () => {

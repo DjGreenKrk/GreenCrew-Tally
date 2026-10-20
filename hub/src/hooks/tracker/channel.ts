@@ -1,4 +1,4 @@
-import {EventEmitter} from 'events'
+import { EventEmitter } from '../../lib/DisconnectedClientSideSocket'
 import Channel from '../../domain/Channel'
 import { ClientSideSocket } from '../../lib/SocketEvents'
 

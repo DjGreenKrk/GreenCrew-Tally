@@ -35,7 +35,7 @@ export interface EventHandlersDataMap {
     'mixer.disconnected': () => void
     'vmix.project.changed': (presetPath?: string) => void
     'vmix.project.state.changed': (state: VmixProjectState) => void
-    'program.changed': (data: {programs: ChannelList, previews: ChannelList}) => void
+    'program.changed': (data: {programs: ChannelList, previews: ChannelList, auxes: string[]}) => void
     'tally.created': (t: Tally) => void
     'tally.changed': (t: Tally|undefined) => void
     'tally.removed': (t: Tally) => void
@@ -56,6 +56,6 @@ interface ServerEventEmitter extends EventEmitter {
     ): this
 }
 
-class ServerEventEmitter extends EventEmitter {}
+const ServerEventEmitter = EventEmitter as new () => ServerEventEmitter
 
 export default ServerEventEmitter

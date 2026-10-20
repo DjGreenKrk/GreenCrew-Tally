@@ -32,9 +32,9 @@ describe('it fails on invalid port', () => {
     ].forEach((ipPort) => {
         it(`"${ipPort}"`, () => {
             expect(() => {
-                // @ts-ignore test invalid types on purpose
-                IpPort(ipPort)
-            }).toThrowError()
+                // Exercise runtime validation without hiding type errors.
+                Reflect.apply(IpPort, undefined, [ipPort])
+            }).toThrow()
         })
     })
 })

@@ -12,7 +12,7 @@ describe('load()', () => {
         console.warn = () => { warningsLogged++ }
         
         const emitter = new EventEmitter()
-        let config = new AppConfiguration(emitter)
+        const config = new AppConfiguration(emitter)
         expect(() => {
             new AppConfigurationPersistence(config, emitter, "/tmp/this/file/does/not/exist.json")
         }).not.toThrow(SyntaxError)
@@ -28,7 +28,7 @@ describe('load()', () => {
             if (err) { throw err }
             
             const emitter = new EventEmitter()
-            let config = new AppConfiguration(emitter)
+            const config = new AppConfiguration(emitter)
             expect(() => {
                 new AppConfigurationPersistence(config, emitter, path)
             }).not.toThrow(SyntaxError)
@@ -43,7 +43,7 @@ describe('load()', () => {
         console.error = () => { errorsLogged++ }
         tmp.file((err, path, fd) => {
             if (err) { throw err }
-            fs.write(fd, "Hello World", (err) => { if (err) { throw err }})
+            fs.writeSync(fd, "Hello World")
             
             const emitter = new EventEmitter()
             const config = new AppConfiguration(emitter)
@@ -60,7 +60,7 @@ describe('load()', () => {
         console.error = () => { errorsLogged++ }
         tmp.file((err, path, fd) => {
             if (err) { throw err }
-            fs.write(fd, '{"invalid": "JSON"', (err) => { if (err) { throw err }})
+            fs.writeSync(fd, '{"invalid": "JSON"')
 
             const emitter = new EventEmitter()
             const conf = new AppConfiguration(emitter)

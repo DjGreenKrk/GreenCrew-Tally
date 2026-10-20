@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events'
 import OBSWebSocket from 'obs-websocket-js'
 import Channel from '../../domain/Channel'
 import { MixerCommunicator } from '../../lib/MixerCommunicator'
@@ -12,7 +13,7 @@ class ObsConnector implements Connector{
     configuration: ObsConfiguration
     communicator: MixerCommunicator
     // tracks which scenes are embedded into other scenes
-    embeddedScenes: {} = {}
+    embeddedScenes: Record<string, string[]> = {}
     reconnectTimeout: NodeJS.Timeout | null = null
     obs: OBSWebSocket | null
     connected: boolean = false
@@ -27,35 +28,37 @@ class ObsConnector implements Connector{
     }
     connect() {
         this.obs = new OBSWebSocket()
-        // @ts-ignore https://github.com/haganbmj/obs-websocket-js/issues/203
-        this.obs.on('error', err => {
+        // the v4 typings do not declare the 'error' event (https://github.com/haganbmj/obs-websocket-js/issues/203),
+        // so register it through the underlying EventEmitter
+        const emitter: EventEmitter = this.obs
+        emitter.on('error', (err: unknown) => {
             console.error("obs socket error:", err)
         })
         this.obs.on('SwitchScenes', data => {
             // console.debug('SwitchScenes', data)
             this.notifyProgramChanged([data["scene-name"]])
         })
-        this.obs.on('ScenesChanged', data => {
+        this.obs.on('ScenesChanged', () => {
             // console.debug('ScenesChanged', data)
             this.updateScenes()
         })
-        this.obs.on('SceneItemRemoved', data => {
+        this.obs.on('SceneItemRemoved', () => {
             // console.debug('ScenesChanged', data)
             this.updateScenes()
         })
-        this.obs.on('SceneItemAdded', data => {
+        this.obs.on('SceneItemAdded', () => {
             // console.debug('ScenesChanged', data)
             this.updateScenes()
         })
-        this.obs.on('SceneItemVisibilityChanged', data => {
+        this.obs.on('SceneItemVisibilityChanged', () => {
             // console.debug('ScenesChanged', data)
             this.updateScenes()
         })
-        this.obs.on('SceneCollectionChanged', data => {
+        this.obs.on('SceneCollectionChanged', () => {
             // console.debug('SceneCollectionChanged', data)
             this.updateScenes()
         })
-        this.obs.on('SceneCollectionListChanged', data => {
+        this.obs.on('SceneCollectionListChanged', () => {
             // console.debug('SceneCollectionListChanged', data)
             this.updateScenes()
         })
@@ -83,32 +86,32 @@ class ObsConnector implements Connector{
             }
         })
 
-        this.obs.on('StreamStarting', data => {
+        this.obs.on('StreamStarting', () => {
             // console.debug('StreamStarted', data)
             this.isStreaming = true
             this.notifyChanged()
         })
-        this.obs.on('StreamStopped', data => {
+        this.obs.on('StreamStopped', () => {
             // console.debug('StreamStopped', data)
             this.isStreaming = false
             this.notifyChanged()
         })
-        this.obs.on('RecordingStarting', data => {
+        this.obs.on('RecordingStarting', () => {
             // console.debug('RecordingStarting', data)
             this.isRecording = true
             this.notifyChanged()
         })
-        this.obs.on('RecordingStopped', data => {
+        this.obs.on('RecordingStopped', () => {
             // console.debug('RecordingStopped', data)
             this.isRecording = false
             this.notifyChanged()
         })
-        this.obs.on('RecordingPaused', data => {
+        this.obs.on('RecordingPaused', () => {
             // console.debug('RecordingPaused', data)
             this.isRecording = false
             this.notifyChanged()
         })
-        this.obs.on('RecordingResumed', data => {
+        this.obs.on('RecordingResumed', () => {
             // console.debug('RecordingResumed', data)
             this.isRecording = true
             this.notifyChanged()
@@ -155,7 +158,7 @@ class ObsConnector implements Connector{
         this.obs?.send("GetPreviewScene").then(data => {
             // console.debug("GetPreviewScene", data)
             this.notifyPreviewChanged([data.name])
-        }).catch(err => {
+        }).catch(() => {
             // if studio mode is disabled we get an error and fail gracefully
         })
     }
@@ -201,7 +204,7 @@ class ObsConnector implements Connector{
         } else if(mode === "streamOrRecord") {
             return !this.isStreaming && !this.isRecording
         } else {
-            ((_: never) => {})(mode) // if typescript complains about this, we forgot a case
+            const exhaustive: never = mode; return exhaustive // if typescript complains about this, we forgot a case
         }
     }
 
@@ -242,7 +245,7 @@ class ObsConnector implements Connector{
     isConnected() {
         return this.obs !== undefined && this.connected
     }
-    static readonly ID: "obs" = "obs"
+    static readonly ID = "obs" as const
 }
 
 export default ObsConnector

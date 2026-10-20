@@ -1,3 +1,17 @@
+# GC Tally 0.6.0 (GreenCrew Tally)
+
+First release under the GreenCrew Tally name. Based on kuuminsh/wifi-tally v0.5.3-kuuminsh.1, itself a fork of vTally by Christian Zenker.
+
+* [FEATURE] AUX tally state (orange; cyan in Yellow-Pink), priority Program > AUX > Preview, optional on the stage light
+* [FEATURE] Bitfocus Companion 5 module "GreenCrew Tally" 0.6.0 and Companion HTTP source with heartbeat, UNKNOWN on timeout and LAN token
+* [FEATURE] WS2812B 4x4 matrix lights (ESP8266 D1 Mini)
+* [FEATURE] Flasher: serial port choice, FTDI adapters, reliable upload of precompiled bytecode, verified on ESP8266 hardware
+* [FEATURE] Windows ZIP with first-flash script (esptool + NodeMCU image), Companion module and a step-by-step guide
+* [CHANGE] Idle state is off by default (dim green was mistaken for Preview)
+* [CHANGE] Hub runs on Node.js 24 with TypeScript 6, ESLint 10, Jest 30 and Vite
+* [BUGFIX] Busy HTTP/UDP ports are explained at startup instead of crashing the EXE
+* [BUGFIX] A lost vMix connection no longer stops the Hub (after 10 minutes of retries it stays disconnected until the Hub is restarted or the mixer re-selected)
+
 # Upcoming
 
 * [BUGFIX] Don't suggest vMix is connected until a hello message is received and tally subscription was acknowledged #85

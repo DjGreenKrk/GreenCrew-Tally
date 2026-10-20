@@ -38,7 +38,7 @@ function BrightnessSlider({value, testId, onChange, minValue, minMessage, disabl
 
   const handleChange = (e, value) => {
     value = Math.max(value as number, minValue)
-    onChange && onChange(value)
+    onChange(value)
   }
 
   return (

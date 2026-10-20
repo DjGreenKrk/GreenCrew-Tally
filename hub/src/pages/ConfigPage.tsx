@@ -3,6 +3,7 @@ import Layout from '../components/layout/Layout'
 import AtemSettings from '../mixer/atem/react/AtemSettings'
 import MixerSelection from '../components/config/MixerSelection'
 import NullSettings from '../mixer/null/react/NullSettings'
+import CompanionSettings from '../mixer/companion/react/CompanionSettings'
 import MockSettings from '../mixer/mock/react/MockSettings'
 import ObsSettings from '../mixer/obs/react/ObsSettings'
 import RolandV8HDSettings from '../mixer/rolandV8HD/react/RolandV8HDSettings'
@@ -16,6 +17,7 @@ const ConfigPage = () => {
     <Layout testId="config">
       <MixerSelection>
         <NullSettings />
+        <CompanionSettings />
         <AtemSettings />
         <MockSettings />
         <ObsSettings />

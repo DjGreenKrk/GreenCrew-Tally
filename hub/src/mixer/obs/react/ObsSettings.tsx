@@ -1,15 +1,15 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import MixerSettingsWrapper from '../../../components/config/MixerSettingsWrapper'
 import ValidatingInput from '../../../components/config/ValidatingInput'
 import ExternalLink from '../../../components/ExternalLink'
 import { useObsConfiguration } from '../../../hooks/useConfiguration'
 import { socket } from '../../../hooks/useSocket'
 import { ObsConfigurationLiveMode } from '../ObsConfiguration'
-import ObsConnector from '../ObsConnector'
+import { MIXER_IDS } from '../../ids'
 import ObsLiveModeSelect from './ObsLiveModeSelect'
 
 type ObsSettingsProps = {
-    id: typeof ObsConnector.ID,
+    id: typeof MIXER_IDS.obs,
     label: string,
 }
 
@@ -24,7 +24,7 @@ function ObsSettings(props: ObsSettingsProps) {
     const isLoading = !configuration
     const isValid = ipValid && portValid && liveModeValid
 
-    useMemo(() => {
+    useEffect(() => {
         // when default settings change
         if (configuration) {
             setLiveMode(configuration.getLiveMode())
@@ -34,7 +34,7 @@ function ObsSettings(props: ObsSettingsProps) {
     const handleSave = () => {
         if (configuration === undefined) {
             console.error("Not saving, because there is an invalid value in the form.")
-        } else if (props.id !== ObsConnector.ID) {
+        } else if (props.id !== MIXER_IDS.obs) {
             console.warn(`Changing id prop of ObsSettings is not supported. But got ${props.id}.`)
         } else {
             const config = configuration.clone()
@@ -65,7 +65,7 @@ function ObsSettings(props: ObsSettingsProps) {
 }
 
 ObsSettings.defaultProps = {
-    id: ObsConnector.ID,
+    id: MIXER_IDS.obs,
     label: "OBS Studio",
 }
 

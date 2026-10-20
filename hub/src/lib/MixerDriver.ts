@@ -11,8 +11,9 @@ import type { AppConfiguration } from './AppConfiguration'
 import ServerEventEmitter from './ServerEventEmitter'
 import { Configuration, Connector } from '../mixer/interfaces'
 import TestConnector from '../mixer/test/TestConnector'
+import CompanionConnector from '../mixer/companion/CompanionConnector'
 
-const haveValuesChanged = (one: any, two: any) => {
+const haveValuesChanged = (one: unknown, two: unknown) => {
     //@TODO: this could probably be more performant
     return JSON.stringify(one) !== JSON.stringify(two)
 }
@@ -101,6 +102,9 @@ export class MixerDriver {
             } else if(newMixerId === NullConnector.ID) {
                 MixerClass = NullConnector
                 this.getCurrentMixerSettings = this.configuration.getNullConfiguration.bind(this.configuration)
+            } else if(newMixerId === CompanionConnector.ID) {
+                MixerClass = CompanionConnector
+                this.getCurrentMixerSettings = this.configuration.getCompanionConfiguration.bind(this.configuration)
             } else if(newMixerId === TestConnector.ID) {
                 MixerClass = TestConnector
                 this.getCurrentMixerSettings = this.configuration.getTestConfiguration.bind(this.configuration)
@@ -126,6 +130,10 @@ export class MixerDriver {
     getCurrentPreviews() {
         return this.communicator.getCurrentPreviews()
     }
+
+    getCurrentAuxes() {
+        return this.communicator.getCurrentAuxes()
+    }
     isConnected() {
         return this.currentMixerInstance !== undefined && this.currentMixerInstance.isConnected()
     }
@@ -135,6 +143,7 @@ export class MixerDriver {
             MockConnector.ID,
             TestConnector.ID,
             NullConnector.ID,
+            CompanionConnector.ID,
             // --- order of the first items is important as they act as defaults ---
             AtemConnector.ID,
             ObsConnector.ID,

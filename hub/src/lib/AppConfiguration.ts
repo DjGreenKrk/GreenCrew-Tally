@@ -8,16 +8,36 @@ import RolandV8HDConfiguration from '../mixer/rolandV8HD/RolandV8HDConfiguration
 import RolandV60HDConfiguration from '../mixer/rolandV60HD/RolandV60HDConfiguration'
 import VmixConfiguration from '../mixer/vmix/VmixConfiguration'
 import NullConfiguration from '../mixer/null/NullConfiguration'
+import CompanionConfiguration from '../mixer/companion/CompanionConfiguration'
 import { Configuration } from '../mixer/interfaces'
 import Tally, { TallySaveObjectType } from '../domain/Tally'
 import TestConfiguration from '../mixer/test/TestConfiguration'
 import { DefaultTallyConfiguration } from '../tally/TallyConfiguration'
+
+type ConfigPayload<C extends { fromJson(data: never): void }> = Parameters<C['fromJson']>[0]
+
+// Persisted configuration payload. Every section is optional and the remaining
+// keys (mixer, channels, tallies, ...) are validated by the individual loaders.
+type AppConfigurationPayload = {
+    atem?: ConfigPayload<AtemConfiguration>
+    mock?: ConfigPayload<MockConfiguration>
+    null?: ConfigPayload<NullConfiguration>
+    companion?: ConfigPayload<CompanionConfiguration>
+    obs?: ConfigPayload<ObsConfiguration>
+    rolandV8HD?: ConfigPayload<RolandV8HDConfiguration>
+    rolandV60HD?: ConfigPayload<RolandV60HDConfiguration>
+    test?: ConfigPayload<TestConfiguration>
+    vmix?: ConfigPayload<VmixConfiguration>
+    tallyDefaults?: ConfigPayload<DefaultTallyConfiguration>
+    [key: string]: unknown
+}
 
 export class AppConfiguration extends Configuration {
     emitter: ServerEventEmitter
     atemConfiguration: AtemConfiguration
     mockConfiguration: MockConfiguration
     nullConfiguration: NullConfiguration
+    companionConfiguration: CompanionConfiguration
     obsConfiguration: ObsConfiguration
     rolandV8HDConfiguration: RolandV8HDConfiguration
     rolandV60HDConfiguration: RolandV60HDConfiguration
@@ -40,6 +60,7 @@ export class AppConfiguration extends Configuration {
         this.atemConfiguration = new AtemConfiguration()
         this.mockConfiguration = new MockConfiguration()
         this.nullConfiguration = new NullConfiguration()
+        this.companionConfiguration = new CompanionConfiguration()
         this.obsConfiguration = new ObsConfiguration()
         this.rolandV8HDConfiguration = new RolandV8HDConfiguration()
         this.rolandV60HDConfiguration = new RolandV60HDConfiguration()
@@ -98,7 +119,8 @@ export class AppConfiguration extends Configuration {
         }
     }
 
-    fromJson(data: any): void {
+    fromJson(payload: object): void {
+        const data = payload as AppConfigurationPayload
         if (data.atem) {
             this.atemConfiguration.fromJson(data.atem)
         }
@@ -107,6 +129,9 @@ export class AppConfiguration extends Configuration {
         }
         if (data.null) {
             this.nullConfiguration.fromJson(data.null)
+        }
+        if (data.companion) {
+            this.companionConfiguration.fromJson(data.companion)
         }
         if (data.obs) {
             this.obsConfiguration.fromJson(data.obs)
@@ -137,6 +162,7 @@ export class AppConfiguration extends Configuration {
             atem: this.atemConfiguration.toJson(),
             mock: this.mockConfiguration.toJson(),
             "null": this.nullConfiguration.toJson(),
+            companion: this.companionConfiguration.toJson(),
             obs: this.obsConfiguration.toJson(),
             rolandV8HD: this.rolandV8HDConfiguration.toJson(),
             rolandV60HD: this.rolandV60HDConfiguration.toJson(),
@@ -176,6 +202,10 @@ export class AppConfiguration extends Configuration {
 
     getNullConfiguration() {
         return this.nullConfiguration.clone()
+    }
+
+    getCompanionConfiguration() {
+        return this.companionConfiguration.clone()
     }
 
     setNullConfiguration(nullConfiguration: NullConfiguration) {

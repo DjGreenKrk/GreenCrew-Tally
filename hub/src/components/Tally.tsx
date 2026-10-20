@@ -7,7 +7,9 @@ import { socket } from '../hooks/useSocket'
 import { Paper } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core'
 import TallyMenu from './TallyMenu'
+import { DefaultColorScheme } from '../tally/ColorScheme'
 
+const AuxColor = DefaultColorScheme.aux.toCss()
 
 const useStyles = makeStyles(theme => {
     return {
@@ -21,6 +23,9 @@ const useStyles = makeStyles(theme => {
         borderInPreview: {
             borderColor: theme.palette.success.main,
         },
+        borderInAux: {
+            borderColor: AuxColor,
+        },
         borderInProgram: {
             borderColor: theme.palette.error.main,
         },
@@ -29,6 +34,10 @@ const useStyles = makeStyles(theme => {
         },
         bgInPreview: {
             backgroundColor: theme.palette.success.main,
+        },
+        bgInAux: {
+            backgroundColor: AuxColor,
+            color: theme.palette.getContrastText(AuxColor),
         },
         bgInProgram: {
             backgroundColor: theme.palette.error.main,
@@ -80,7 +89,7 @@ type TallyProps = {
 
 function Tally({ tally, className }: TallyProps) {
     const channels = useChannels()
-    const [programs, previews] = useProgramPreview()
+    const [programs, previews, auxes] = useProgramPreview()
     const classes = useStyles()
 
     const patchTally = function (tally, channel) {
@@ -88,7 +97,7 @@ function Tally({ tally, className }: TallyProps) {
     }
 
     const classRoot: string[] = []
-    className && classRoot.push(className)
+    if (className) classRoot.push(className)
     classRoot.push(classes.tally)
     const classHead = [classes.tallyHead]
     let dataColor = "idle"
@@ -99,6 +108,9 @@ function Tally({ tally, className }: TallyProps) {
     } else if (programs && tally.isIn(programs)) {
         classRoot.push(classes.borderInProgram)
         dataColor = "program"
+    } else if (programs && tally.isIn(auxes)) {
+        classRoot.push(classes.borderInAux)
+        dataColor = "aux"
     } else if (previews && tally.isIn(previews)) {
         classRoot.push(classes.borderInPreview)
         dataColor = "preview"
@@ -109,6 +121,8 @@ function Tally({ tally, className }: TallyProps) {
             classHead.push(classes.bgUnpatched)
         } else if (programs && tally.isIn(programs)) {
             classHead.push(classes.bgInProgram)
+        } else if (programs && tally.isIn(auxes)) {
+            classHead.push(classes.bgInAux)
         } else if (previews && tally.isIn(previews)) {
             classHead.push(classes.bgInPreview)
         }

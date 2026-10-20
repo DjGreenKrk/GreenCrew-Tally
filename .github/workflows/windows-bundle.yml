@@ -1,0 +1,218 @@
+name: GC Tally Windows bundle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'hub/**'
+      - 'tally/**'
+      - 'companion-module-greencrew-vtally/**'
+      - 'release/**'
+      - '.github/workflows/windows-bundle.yml'
+  pull_request:
+    paths:
+      - 'hub/**'
+      - 'tally/**'
+      - 'companion-module-greencrew-vtally/**'
+      - 'release/**'
+      - '.github/workflows/windows-bundle.yml'
+  workflow_dispatch:
+
+env:
+  # Pinned downloads for the first flash of a new ESP8266 (checked by sha256).
+  ESPTOOL_VERSION: v4.12.0
+  ESPTOOL_SHA256: 42fddc5e6a05716868ad77fb43acbf53be041f97abed87ff850df1dc88140889
+  NODEMCU_ZIP_URL: https://github.com/wifi-tally/wifi-tally/releases/download/0.5.2/vtally-0.5.2-esp8266.zip
+  NODEMCU_ZIP_SHA256: a130019a95971de66fcff453041f6dde46527599439e5bd13866d007a0566f10
+  NODEMCU_BIN: nodemcu-3.0-master_20200610-cfe68233-float.bin
+  NODEMCU_BIN_SHA256: 566bdb85ff566da9a7b8e384d84716017e892fac7fbcefaff6571436c5f52d40
+
+jobs:
+  windows-exe:
+    runs-on: windows-2022
+    defaults:
+      run:
+        working-directory: hub
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install native dependencies without peer overrides
+        run: npm ci --foreground-scripts --no-audit --no-fund
+      - name: Native serialport and MIDI addons load on Node 24
+        run: |
+          node -e "require('@serialport/bindings'); const midi = require('midi'); console.log('native OK', typeof midi.Input)"
+      - name: Run firmware and Hub unit tests
+        env:
+          CI: 'true'
+        run: npm run test:ci
+      - name: Build Hub EXE and flashable ESP8266 firmware
+        run: npm run build:windows
+      - name: Check Windows firmware files and native dependency
+        run: |
+          if (-not (Test-Path 'dist/gc-tally.exe')) { throw 'gc-tally.exe was not created' }
+          $scripts = @(Get-ChildItem 'dist/esp8266' -File | Where-Object { $_.Extension -in @('.lua', '.lc') })
+          if ($scripts.Count -ne 8) { throw "Expected 8 firmware scripts, got $($scripts.Count)" }
+          if (-not (Test-Path 'dist/esp8266/init.lua')) { throw 'ESP8266 boot script missing' }
+          $modules = @($scripts | Where-Object { $_.Extension -eq '.lc' })
+          if ($modules.Count -ne 7) { throw "Expected 7 precompiled .lc modules, got $($modules.Count)" }
+          Write-Host "Firmware bundle OK: $($scripts.Name -join ', ')"
+      - name: Start packaged Hub and test firmware probe without ESP
+        run: |
+          # Execute the real Hub EXE and all its files from a different directory.
+          # This catches accidental reads of repo, node_modules, build or tally/src.
+          $isolated = Join-Path $env:RUNNER_TEMP ('gc-tally-isolated-' + [guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path $isolated -Force | Out-Null
+          Copy-Item -LiteralPath 'dist/gc-tally.exe' -Destination $isolated
+          Copy-Item -LiteralPath 'dist/frontend' -Destination $isolated -Recurse
+          Copy-Item -LiteralPath 'dist/esp8266' -Destination $isolated -Recurse
+          if (Test-Path (Join-Path $isolated 'node_modules')) { throw 'Isolation compromised by node_modules' }
+          $stdout = Join-Path $isolated 'hub-smoke-out.log'
+          $stderr = Join-Path $isolated 'hub-smoke-err.log'
+          $exe = Join-Path $isolated 'gc-tally.exe'
+          $process = Start-Process -FilePath $exe -WorkingDirectory $isolated -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 40; $i++) {
+              Start-Sleep -Milliseconds 500
+              if ($process.HasExited) { throw "Hub exited with code $($process.ExitCode)" }
+              try {
+                $null = Invoke-RestMethod -Uri 'http://127.0.0.1:3000/api/companion/tally' -TimeoutSec 2
+                $ready = $true
+                break
+              } catch {}
+            }
+            if (-not $ready) { throw 'Packaged Hub did not start on port 3000' }
+            # Ask the USB flasher to enumerate serial devices. No ESP is required;
+            # this loads nodemcu-tool and native serialport from inside pkg.
+            node -e "const s = require('socket.io-client')('http://127.0.0.1:3000'); const t = setTimeout(() => { console.error('flasher probe timeout'); process.exit(1) }, 10000); s.on('connect', () => s.emit('flasher.device.get')); s.on('flasher.device', d => { clearTimeout(t); console.log('flasher probe response', JSON.stringify(d)); s.disconnect(); process.exit(0) });"
+            if ($LASTEXITCODE -ne 0) { throw 'Serial flasher did not respond' }
+            Start-Sleep -Milliseconds 500
+            $logs = (Get-Content $stdout -Raw) + (Get-Content $stderr -Raw)
+            if ($logs -match 'Could not load the NodeMCU tool') { throw 'Native NodeMCU flasher failed to load inside the EXE' }
+            if ($logs -match 'Firmware unavailable') { throw 'Firmware files could not be found from the EXE' }
+          } finally {
+            if ($process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force }
+            Get-Content $stdout -ErrorAction SilentlyContinue
+            Get-Content $stderr -ErrorAction SilentlyContinue
+            if ($isolated -and (Test-Path $isolated)) { Remove-Item -LiteralPath $isolated -Recurse -Force }
+          }
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: gc-tally-windows-exe
+          path: |
+            hub/dist/gc-tally.exe
+            hub/dist/frontend/**
+            hub/dist/esp8266/**
+          retention-days: 7
+
+  companion-module:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: companion-module-greencrew-vtally
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.20.0'
+      - run: npm install --no-audit --no-fund
+      - run: npm run check
+      - run: npm test
+      - run: npm run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: greencrew-vtally-companion-module
+          path: companion-module-greencrew-vtally/greencrew-vtally-*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  # One ZIP that takes a Windows laptop from nothing to working tallies:
+  # Hub, first-flash tooling for new ESP8266 boards and the Companion module.
+  bundle:
+    needs: [windows-exe, companion-module]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gc-tally-windows-exe
+          path: bundle
+      - uses: actions/download-artifact@v4
+        with:
+          name: greencrew-vtally-companion-module
+          path: bundle/companion
+      - name: Add esptool and the base NodeMCU image
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          curl -fsSL -o "$work/esptool.zip" "https://github.com/espressif/esptool/releases/download/$ESPTOOL_VERSION/esptool-$ESPTOOL_VERSION-windows-amd64.zip"
+          echo "$ESPTOOL_SHA256  $work/esptool.zip" | sha256sum -c -
+          unzip -q "$work/esptool.zip" -d "$work/esptool"
+          mkdir -p bundle/tools/esptool
+          cp "$work"/esptool/esptool-windows-amd64/{esptool.exe,LICENSE,README.md} bundle/tools/esptool/
+
+          curl -fsSL -o "$work/vtally-esp8266.zip" "$NODEMCU_ZIP_URL"
+          echo "$NODEMCU_ZIP_SHA256  $work/vtally-esp8266.zip" | sha256sum -c -
+          unzip -q -j "$work/vtally-esp8266.zip" "*$NODEMCU_BIN" -d "$work/nodemcu"
+          echo "$NODEMCU_BIN_SHA256  $work/nodemcu/$NODEMCU_BIN" | sha256sum -c -
+          mkdir -p bundle/firmware
+          cp "$work/nodemcu/$NODEMCU_BIN" bundle/firmware/
+      - name: Add scripts and docs
+        run: |
+          set -euo pipefail
+          cp release/windows/flash-nodemcu.cmd release/windows/START-TUTAJ.txt release/windows/THIRD-PARTY.txt bundle/
+          mkdir -p bundle/examples
+          cp tally/examples/d1-mini-ws2812-4x4.ini.example bundle/examples/
+          # cmd.exe needs CRLF line endings (set by release/.gitattributes)
+          grep -q $'\r$' bundle/flash-nodemcu.cmd || { echo 'flash-nodemcu.cmd is not CRLF'; exit 1; }
+      - name: Check bundle contents
+        run: |
+          set -euo pipefail
+          cd bundle
+          for f in gc-tally.exe frontend/index.html esp8266/init.lua flash-nodemcu.cmd START-TUTAJ.txt THIRD-PARTY.txt \
+                   tools/esptool/esptool.exe tools/esptool/LICENSE "firmware/$NODEMCU_BIN" examples/d1-mini-ws2812-4x4.ini.example; do
+            test -s "$f" || { echo "missing $f"; exit 1; }
+          done
+          test "$(ls esp8266/*.lc | wc -l)" -eq 7
+          ls companion/greencrew-vtally-*.tgz
+          find . -type f | sort
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gc-tally-windows-bundle
+          path: bundle
+          if-no-files-found: error
+          retention-days: 14
+
+  bundle-check:
+    needs: bundle
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: gc-tally-windows-bundle
+          path: gc-tally
+      - name: First-flash script runs esptool and fails cleanly without a board
+        working-directory: gc-tally
+        run: |
+          # "99" must be normalised to COM99; no board there, so the script
+          # has to stop after the connection check, before erasing anything.
+          $out = cmd /c "flash-nodemcu.cmd 99 < NUL" 2>&1 | Out-String
+          $code = $LASTEXITCODE
+          Write-Host $out
+          if ($code -ne 1) { throw "expected exit code 1, got $code" }
+          if ($out -notmatch 'esptool\.py v4\.12\.0') { throw 'esptool did not start' }
+          if ($out -notmatch 'COM99') { throw 'port was not normalised to COM99' }
+          if ($out -notmatch 'Nie udalo sie polaczyc') { throw 'missing connection hint' }
+          if ($out -match 'Kasowanie') { throw 'script went on to erase' }
+          # the expected exit code 1 must not fail this step
+          exit 0

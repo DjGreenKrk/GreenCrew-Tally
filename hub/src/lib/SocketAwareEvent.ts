@@ -1,10 +1,6 @@
 import ServerEventEmitter, { EventHandlersDataMap } from './ServerEventEmitter'
 import { ServerSideSocket } from './SocketEvents'
 
-export interface SocketAwareEvent<EventName extends keyof EventHandlersDataMap> {
-    constructor(eventEmitter: ServerEventEmitter, eventName: EventName, socket: ServerSideSocket, fnc: (socket: ServerSideSocket, ...args: Parameters<EventHandlersDataMap[EventName]>) => void)
-}
-
 /* Takes care that an event on the server is passed through
  * a socket to the browser.
  * 
@@ -12,22 +8,26 @@ export interface SocketAwareEvent<EventName extends keyof EventHandlersDataMap> 
  * and unregistered accordingly. This should prevent dangling event
  * listeners as much as possible.
  */
-export class SocketAwareEvent<EventName> {
+export class SocketAwareEvent<EventName extends keyof EventHandlersDataMap> {
     eventEmitter: ServerEventEmitter
     socket: ServerSideSocket
     eventName: EventName
-    eventListener // @TODO: i failed to infere the correct type here :(
+    eventListener: EventHandlersDataMap[EventName]
     isRegistered: boolean
+    private disconnectListener: () => void
     
     constructor(eventEmitter: ServerEventEmitter, eventName: EventName, socket: ServerSideSocket, fnc: (socket: ServerSideSocket, ...args: Parameters<EventHandlersDataMap[EventName]>) => void) {
         this.eventEmitter = eventEmitter
         this.socket = socket
         this.eventName = eventName
 
-        this.eventListener = (...args: Parameters<EventHandlersDataMap[EventName]>) : void => {
+        // Parameters<> preserves the runtime contract, but TypeScript cannot
+        // infer the mapped function type through a generic key without this assertion.
+        this.eventListener = ((...args: Parameters<EventHandlersDataMap[EventName]>) : void => {
             fnc(socket, ...args)
-        }
+        }) as EventHandlersDataMap[EventName]
         this.isRegistered = false
+        this.disconnectListener = () => this.unregister()
 
     }
 
@@ -35,7 +35,7 @@ export class SocketAwareEvent<EventName> {
         if (!this.isRegistered) {
             console.debug(`Connecting event ${this.eventName} to socket ${this.socket.id}`)
             this.eventEmitter.on(this.eventName, this.eventListener)
-            this.socket.on("disconnect", () => this.unregister())
+            this.socket.on("disconnect", this.disconnectListener)
             this.isRegistered = true
         }   
     }
@@ -45,6 +45,7 @@ export class SocketAwareEvent<EventName> {
             console.debug(`Detatching event ${this.eventName} from socket ${this.socket.id}`)
         }
         this.eventEmitter.off(this.eventName, this.eventListener)
+        this.socket.off("disconnect", this.disconnectListener)
         this.isRegistered = false
     }
 }
