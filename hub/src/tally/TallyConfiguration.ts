@@ -6,6 +6,7 @@ export type TallyConfigurationObjectType = {
   stColor?: ColorSchemeId
   opColor?: ColorSchemeId
   stPreview?: boolean
+  stAux?: boolean
   opIdle?: boolean
 }
 
@@ -23,6 +24,9 @@ export class DefaultTallyConfiguration {
   private _operatorLightBrightness?: number = DefaultTallyConfiguration.defaultBrightness
   private _operatorColorScheme: ColorSchemeId = DefaultTallyConfiguration.defaultColorScheme
   private _stageShowsPreview: boolean = true
+  // The stage light is for the people in front of the camera; AUX is mostly
+  // relevant to the operator, so it is opt-in there.
+  private _stageShowsAux: boolean = false
   // Off by default: on a single RGB light a dim idle colour was mistaken for
   // preview. Power is visible on the ESP board and "no hub" is shown in blue.
   private _operatorShowsIdle: boolean = false
@@ -56,6 +60,9 @@ export class DefaultTallyConfiguration {
   getStageShowsPreview() { return this._stageShowsPreview }
   setStageShowsPreview(shouldItShow: boolean) { this._stageShowsPreview = shouldItShow }
 
+  getStageShowsAux() { return this._stageShowsAux }
+  setStageShowsAux(shouldItShow: boolean) { this._stageShowsAux = shouldItShow }
+
   getOperatorShowsIdle() { return this._operatorShowsIdle}
   setOperatorShowsIdle(shouldItShow: boolean) { this._operatorShowsIdle = shouldItShow }
 
@@ -66,6 +73,7 @@ export class DefaultTallyConfiguration {
       stColor: this._stageColorScheme,
       opColor: this._operatorColorScheme,
       stPreview: this._stageShowsPreview,
+      stAux: this._stageShowsAux,
       opIdle: this._operatorShowsIdle,
     }
   }
@@ -75,6 +83,7 @@ export class DefaultTallyConfiguration {
     if (valueObject.stColor !== undefined) this.setStageColorScheme(valueObject.stColor)
     if (valueObject.opColor !== undefined) this.setOperatorColorScheme(valueObject.opColor)
     if (valueObject.stPreview !== undefined) this.setStageShowsPreview(valueObject.stPreview)
+    if (valueObject.stAux !== undefined) this.setStageShowsAux(valueObject.stAux)
     if (valueObject.opIdle !== undefined) this.setOperatorShowsIdle(valueObject.opIdle)
   }
 
@@ -94,6 +103,7 @@ export class TallyConfiguration {
   private _stageColorScheme: ColorSchemeId = undefined
   private _operatorColorScheme: ColorSchemeId = undefined
   private _stageShowsPreview: boolean = undefined
+  private _stageShowsAux: boolean = undefined
   private _operatorShowsIdle: boolean = undefined
 
   getStageLightBrightness() { return this._stageLightBrightness }
@@ -127,6 +137,9 @@ export class TallyConfiguration {
   getStageShowsPreview() { return this._stageShowsPreview }
   setStageShowsPreview(shouldItShow: boolean) { this._stageShowsPreview = shouldItShow }
 
+  getStageShowsAux() { return this._stageShowsAux }
+  setStageShowsAux(shouldItShow: boolean) { this._stageShowsAux = shouldItShow }
+
   getOperatorShowsIdle() { return this._operatorShowsIdle}
   setOperatorShowsIdle(shouldItShow: boolean) { this._operatorShowsIdle = shouldItShow }
 
@@ -137,6 +150,7 @@ export class TallyConfiguration {
       stColor: this._stageColorScheme,
       opColor: this._operatorColorScheme,
       stPreview: this._stageShowsPreview,
+      stAux: this._stageShowsAux,
       opIdle: this._operatorShowsIdle,
     }
   }
@@ -146,6 +160,7 @@ export class TallyConfiguration {
     this.setStageColorScheme(valueObject.stColor)
     this.setOperatorColorScheme(valueObject.opColor)
     this.setStageShowsPreview(valueObject.stPreview)
+    this.setStageShowsAux(valueObject.stAux)
     this.setOperatorShowsIdle(valueObject.opIdle)
   }
 }

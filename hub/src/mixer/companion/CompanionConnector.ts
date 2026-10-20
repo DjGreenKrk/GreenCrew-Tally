@@ -45,14 +45,14 @@ class CompanionConnector implements Connector {
         return this.lastSnapshotTime === null ? null : Math.max(0, Date.now() - this.lastSnapshotTime)
     }
 
-    setState(programs: string[], previews: string[]): void {
+    setState(programs: string[], previews: string[], auxes: string[] = []): void {
         if (!this.active) throw new Error('Companion source is not active')
         this.lastSnapshotTime = Date.now()
         if (!this.receiving) {
             this.receiving = true
             this.communicator.notifyMixerIsConnected()
         }
-        this.communicator.notifyProgramPreviewChanged(programs, previews)
+        this.communicator.notifyProgramPreviewChanged(programs, previews, auxes)
     }
 
     private checkTimeout(): void {

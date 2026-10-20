@@ -22,6 +22,10 @@ ESP8266/NodeMCU tally clients need no protocol changes.
 - Always include **both arrays**. Camera IDs 1–8 are accepted, as strings
   or numbers. Multiple camera IDs are supported per array; Program has
   priority over Preview in vTally.
+- Optional third array `"auxes":["3"]` marks cameras routed to an AUX output.
+  Missing `auxes` means none. Priority on the light is Program > AUX > Preview.
+  AUX is orange on the operator light (cyan in the Yellow-Pink scheme); the
+  stage light shows it only when **Shows AUX State** is enabled.
 
 ### PowerShell smoke test
 
@@ -29,6 +33,7 @@ ESP8266/NodeMCU tally clients need no protocol changes.
 $uri = 'http://127.0.0.1:3000/api/companion/tally'
 Invoke-RestMethod -Uri $uri -Method Post -ContentType 'application/json' -Body '{"programs":["1"],"previews":["2"]}'
 Invoke-RestMethod -Uri $uri -Method Post -ContentType 'application/json' -Body '{"programs":["2"],"previews":["3"]}'
+Invoke-RestMethod -Uri $uri -Method Post -ContentType 'application/json' -Body '{"programs":["2"],"previews":["3"],"auxes":["1"]}'
 Invoke-RestMethod -Uri $uri -Method Post -ContentType 'application/json' -Body '{"programs":[],"previews":[]}'
 ```
 

@@ -24,7 +24,7 @@ export interface ServerSentEvents {
     'webTally.invalid': (tallyName: string) => void
 
     'mixer.state': (data: {isConnected: boolean}) => void
-    'program.state': (data: {programs: ChannelList, previews: ChannelList}) => void
+    'program.state': (data: {programs: ChannelList, previews: ChannelList, auxes: string[]}) => void
     'channel.state': (data: {channels: ChannelSaveObject[]}) => void
     'vmix.project.state': (state: VmixProjectState) => void
 

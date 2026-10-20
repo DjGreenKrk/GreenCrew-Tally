@@ -168,6 +168,10 @@ function WebTallyPage() {
     bgColor = colorScheme.program.toCss()
     text = "On Program"
     dataColor = "program"
+  } else if (command === "aux") {
+    bgColor = colorScheme.aux.toCss()
+    text = "On AUX"
+    dataColor = "aux"
   } else if (command === "preview") {
     bgColor = colorScheme.preview.toCss()
     text = "On Preview"

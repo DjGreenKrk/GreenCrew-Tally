@@ -32,6 +32,7 @@ export type ColorScheme = {
   description?: string
   program: Color
   preview: Color
+  aux: Color
   highlight: Color
   unknown: Color
   idle: Color
@@ -45,6 +46,7 @@ export const DefaultColorScheme: ColorScheme = {
   description: "The traditional color scheme for Tally Lights.",
   program: new Color(255, 0, 0),
   preview: new Color(0, 255, 0),
+  aux: new Color(255, 80, 0),
   highlight: new Color(255, 255, 255),
   unknown: new Color(0, 0, 255),
   idle: new Color(0, 1, 0),
@@ -55,6 +57,8 @@ export const YellowPinkColorScheme: ColorScheme = {
   description: "Intended to give better contrast for the red-green color blind (Protanopia, Deuteranopia).",
   program: new Color(255, 255, 0),
   preview: new Color(255, 0, 255),
+  // orange would be hard to tell from the yellow program light
+  aux: new Color(0, 255, 255),
   highlight: new Color(255, 255, 255),
   unknown: new Color(0, 0, 255),
   idle: new Color(0, 1, 0),

@@ -32,6 +32,7 @@ function TallySettings() {
   const [operatorColorScheme, setOperatorColorScheme] = useState<ColorSchemeId>(undefined)
   const [stageColorScheme, setStageColorScheme] = useState<ColorSchemeId>(undefined)
   const [stageShowsPreview, setStageShowsPreview] = useState<boolean>(undefined)
+  const [stageShowsAux, setStageShowsAux] = useState<boolean>(undefined)
   const [operatorShowsIdle, setOperatorShowsIdle] = useState<boolean>(undefined)
   useEffect(() => {
     // called when setting changed
@@ -40,6 +41,7 @@ function TallySettings() {
     setOperatorColorScheme(settings?.getOperatorColorScheme())
     setStageColorScheme(settings?.getStageColorScheme())
     setStageShowsPreview(settings?.getStageShowsPreview())
+    setStageShowsAux(settings?.getStageShowsAux())
     setOperatorShowsIdle(settings?.getOperatorShowsIdle())
   }, [settings])
 
@@ -53,6 +55,7 @@ function TallySettings() {
     if (operatorColorScheme !== undefined) settings.setOperatorColorScheme(operatorColorScheme)
     if (stageColorScheme !== undefined) settings.setStageColorScheme(stageColorScheme)
     if (stageShowsPreview !== undefined) settings.setStageShowsPreview(stageShowsPreview)
+    if (stageShowsAux !== undefined) settings.setStageShowsAux(stageShowsAux)
     if (operatorShowsIdle !== undefined) settings.setOperatorShowsIdle(operatorShowsIdle)
 
     socket.emit('config.change.tallyconfig', settings.toJson())
@@ -122,6 +125,18 @@ function TallySettings() {
             size="small"
           />}
           label="Shows Preview State"
+        />
+        <FormControlLabel
+          classes={{label: classes.checkboxLabel}}
+          control={<Checkbox
+            data-testid="tally-defaults-sa"
+            data-value={stageShowsAux}
+            checked={stageShowsAux}
+            color="primary"
+            onChange={(e) => {setStageShowsAux(e.target.checked)}}
+            size="small"
+          />}
+          label="Shows AUX State"
         />
       </div>
       <div className={classes.footer}>

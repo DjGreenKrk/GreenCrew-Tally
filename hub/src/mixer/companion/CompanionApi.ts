@@ -21,11 +21,11 @@ export function isAuthorizedCompanionRequest(address: string | undefined, author
     return received.length === expected.length && timingSafeEqual(received, expected)
 }
 
-export type CompanionTallyState = { programs: string[], previews: string[] }
+export type CompanionTallyState = { programs: string[], previews: string[], auxes: string[] }
 
 export function parseCompanionState(value: unknown): CompanionTallyState | null {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-    const body = value as { programs?: unknown, previews?: unknown }
+    const body = value as { programs?: unknown, previews?: unknown, auxes?: unknown }
     const parseChannels = (items: unknown): string[] | null => {
         if (!Array.isArray(items) || items.length > 8) return null
         const normalized: string[] = []
@@ -39,7 +39,9 @@ export function parseCompanionState(value: unknown): CompanionTallyState | null 
     }
     const programs = parseChannels(body.programs)
     const previews = parseChannels(body.previews)
-    return programs && previews ? { programs, previews } : null
+    // optional, so that senders without AUX support keep working
+    const auxes = body.auxes === undefined ? [] : parseChannels(body.auxes)
+    return programs && previews && auxes ? { programs, previews, auxes } : null
 }
 
 export default function registerCompanionApi(app: express.Express, driver: MixerDriver): void {
@@ -72,6 +74,7 @@ export default function registerCompanionApi(app: express.Express, driver: Mixer
             timeoutMs: CompanionConnector.TIMEOUT_MS,
             programs: active ? (driver.getCurrentPrograms() || []) : [],
             previews: active ? (driver.getCurrentPreviews() || []) : [],
+            auxes: active ? driver.getCurrentAuxes() : [],
         })
     })
 
@@ -83,10 +86,10 @@ export default function registerCompanionApi(app: express.Express, driver: Mixer
         }
         const state = parseCompanionState(req.body)
         if (!state) {
-            res.status(400).json({ error: 'Expected {"programs":[],"previews":[]} with unique channel IDs 1..8' })
+            res.status(400).json({ error: 'Expected {"programs":[],"previews":[],"auxes":[]} with unique channel IDs 1..8 ("auxes" is optional)' })
             return
         }
-        connector.setState(state.programs, state.previews)
-        res.json({ active: true, receiving: true, programs: state.programs, previews: state.previews })
+        connector.setState(state.programs, state.previews, state.auxes)
+        res.json({ active: true, receiving: true, programs: state.programs, previews: state.previews, auxes: state.auxes })
     })
 }

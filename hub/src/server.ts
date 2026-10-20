@@ -85,8 +85,8 @@ myEmitter.on('tally.logged', ({tally, log}) => {
     }
     fn(`${tally.name}: ${log.message}`)
 })
-myEmitter.on('program.changed', ({programs, previews}) => {
-    console.info("Program/Preview was changed to ", programs, previews)
+myEmitter.on('program.changed', ({programs, previews, auxes}) => {
+    console.info("Program/Preview/AUX was changed to ", programs, previews, auxes)
 })
 
 // socket.io server
@@ -117,10 +117,11 @@ io.on('connection', (socket: ServerSideSocket) => {
   })
 
   const programEvents = [
-    new SocketAwareEvent(myEmitter, 'program.changed', socket, (socket, {programs, previews}) => {
+    new SocketAwareEvent(myEmitter, 'program.changed', socket, (socket, {programs, previews, auxes}) => {
       socket.emit('program.state', {
         programs: programs,
         previews: previews,
+        auxes: auxes,
       })
     })
   ]
@@ -130,6 +131,7 @@ io.on('connection', (socket: ServerSideSocket) => {
     socket.emit('program.state', {
       programs: myMixerDriver.getCurrentPrograms(),
       previews: myMixerDriver.getCurrentPreviews(),
+      auxes: myMixerDriver.getCurrentAuxes(),
     })
   })
   socket.on('events.program.unsubscribe', () => {

@@ -172,6 +172,43 @@ describe("stageShowPreview()", () => {
         })
     })
 })
+describe("AUX", () => {
+    const defaultConfig = new DefaultTallyConfiguration()
+    test('it shows AUX in orange on the operator light only by default', () => {
+        const tally = new UdpTally("test", "channel")
+        expect(CommandCreator.createStateCommand(tally, ["other-channel"], [], defaultConfig, ["channel"])).toEqual("O255/080/000 S000/000/000")
+    })
+    test('AUX beats PREVIEW', () => {
+        const tally = new UdpTally("test", "channel")
+        expect(CommandCreator.getState(tally, ["other-channel"], ["channel"], ["channel"])).toEqual("aux")
+    })
+    test('PROGRAM beats AUX', () => {
+        const tally = new UdpTally("test", "channel")
+        expect(CommandCreator.getState(tally, ["channel"], ["channel"], ["channel"])).toEqual("on-air")
+    })
+    test('UNKNOWN beats AUX when the mixer is disconnected', () => {
+        const tally = new UdpTally("test", "channel")
+        expect(CommandCreator.getState(tally, null, null, ["channel"])).toEqual("unknown")
+    })
+    test('the yellow-pink scheme uses cyan instead of orange', () => {
+        const tally = new UdpTally("test", "channel")
+        tally.configuration.setOperatorColorScheme("yellow-pink")
+        expect(CommandCreator.createStateCommand(tally, [], [], defaultConfig, ["channel"])).toEqual("O000/255/255 S000/000/000")
+    })
+    test('the stage light can show AUX by default', () => {
+        const config = new DefaultTallyConfiguration()
+        config.setStageShowsAux(true)
+        const tally = new UdpTally("test", "channel")
+        expect(CommandCreator.createStateCommand(tally, [], [], config, ["channel"])).toEqual("O255/080/000 S255/080/000")
+    })
+    test('a tally can override the stage AUX default', () => {
+        const config = new DefaultTallyConfiguration()
+        config.setStageShowsAux(true)
+        const tally = new UdpTally("test", "channel")
+        tally.configuration.setStageShowsAux(false)
+        expect(CommandCreator.createStateCommand(tally, [], [], config, ["channel"])).toEqual("O255/080/000 S000/000/000")
+    })
+})
 describe("operatorShowsIdle()", () => {
     test('an unused camera keeps the light off unless idle is enabled', () => {
         const tally = new UdpTally("test", "channel")

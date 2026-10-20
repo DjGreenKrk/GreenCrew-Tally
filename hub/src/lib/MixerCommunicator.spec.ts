@@ -32,6 +32,21 @@ describe('MixerCommunicator', () => {
             expect(communicator.getCurrentPrograms()).toEqual(null)
             expect(communicator.getCurrentPreviews()).toEqual(null)
         })
+        test('carries AUX and clears it when a source without AUX reports', () => {
+            const emitter = new EventEmitter()
+            const seen: string[][] = []
+            emitter.on("program.changed", ({auxes}) => seen.push(auxes))
+            const communicator = new MixerCommunicator(new AppConfiguration(emitter), emitter)
+
+            communicator.notifyProgramPreviewChanged(["1"], ["2"], ["3"])
+            expect(communicator.getCurrentAuxes()).toEqual(["3"])
+            // only the AUX changed
+            communicator.notifyProgramPreviewChanged(["1"], ["2"], ["4"])
+            communicator.notifyProgramPreviewChanged(["1"], ["2"], ["4"])
+            communicator.notifyProgramPreviewChanged(null, null)
+            expect(seen).toEqual([["3"], ["4"], []])
+            expect(communicator.getCurrentAuxes()).toEqual([])
+        })
         test('debounces', () => {
             const emitter = new EventEmitter()
             let eventSeen = 0

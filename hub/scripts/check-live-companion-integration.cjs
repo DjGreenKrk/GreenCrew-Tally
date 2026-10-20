@@ -94,7 +94,13 @@ async function run(){
  await waitFor(()=>hasFrameSince(seen.udp,recoverUdpOffset,'O000/255/000 S000/255/000'),2500,'UDP PREVIEW green recovery frame')
  assert.equal((await state()).receiving,true)
  assert.ok(seen.udp.length>2,'UDP updates must continue')
- console.log('PASS real Hub HTTP Companion heartbeat/timeout/UNKNOWN/recovery → Socket.IO, Web Tally and UDP')
+ const auxProgramOffset=seen.program.length, auxWebOffset=seen.web.length, auxUdpOffset=seen.udp.length
+ await snapshot({programs:['2'],previews:['1'],auxes:['1']})
+ await waitFor(()=>seen.program.slice(auxProgramOffset).some(s=>s.auxes?.length===1&&s.auxes[0]==='1'),2500,'AUX socket broadcast')
+ await waitFor(()=>seen.web.slice(auxWebOffset).some(s=>s.command==='aux'),2500,'WebTally AUX beats preview')
+ await waitFor(()=>hasFrameSince(seen.udp,auxUdpOffset,'O255/080/000 S000/000/000'),2500,'UDP AUX orange frame')
+ assert.deepEqual((await state()).auxes,['1'])
+ console.log('PASS real Hub HTTP Companion heartbeat/timeout/UNKNOWN/recovery/AUX → Socket.IO, Web Tally and UDP')
  console.log('Socket events: '+seen.program.length+' program, '+seen.web.length+' WebTally; UDP frames: '+seen.udp.length)
 }
 async function cleanup(){

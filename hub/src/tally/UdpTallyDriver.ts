@@ -94,7 +94,7 @@ class UdpTallyDriver {
         // - compensate for lost packages
         setInterval(() => {
             this.container.getUdpTallies().forEach(tally => {
-                this.updateTallyState(tally, this.container.lastPrograms, this.container.lastPreviews)
+                this.updateTallyState(tally, this.container.lastPrograms, this.container.lastPreviews, this.container.lastAuxes)
             })
         }, 1000 / this.configuration.getTallyKeepAlivesPerSecond())
     }
@@ -115,9 +115,9 @@ class UdpTallyDriver {
         return tally
     }
 
-    updateTallyState(tally: UdpTally, programs: ChannelList, previews: ChannelList) {
+    updateTallyState(tally: UdpTally, programs: ChannelList, previews: ChannelList, auxes: string[] = []) {
         if(tally.isActive()) {
-            const command = CommandCreator.createStateCommand(tally, programs, previews, this.configuration.getTallyConfiguration())
+            const command = CommandCreator.createStateCommand(tally, programs, previews, this.configuration.getTallyConfiguration(), auxes)
             this.io.send(command, tally.port, tally.address)
         }
     }

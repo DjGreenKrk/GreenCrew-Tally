@@ -130,6 +130,10 @@ export class MixerDriver {
     getCurrentPreviews() {
         return this.communicator.getCurrentPreviews()
     }
+
+    getCurrentAuxes() {
+        return this.communicator.getCurrentAuxes()
+    }
     isConnected() {
         return this.currentMixerInstance !== undefined && this.currentMixerInstance.isConnected()
     }

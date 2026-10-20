@@ -44,6 +44,9 @@ function TallySettings({ tally, open, onClose }: TallySettingsProps) {
   // stageShowPreview
   const [sp, setSp] = useState<boolean>(settings ? settings.getStageShowsPreview() : undefined)
   const [isSpDefault, setSpDefault] = useState(settings && settings.getStageShowsPreview() === undefined)
+  // stageShowAux
+  const [sa, setSa] = useState<boolean>(settings ? settings.getStageShowsAux() : undefined)
+  const [isSaDefault, setSaDefault] = useState(settings && settings.getStageShowsAux() === undefined)
   // operatorShowIdle
   const [oi, setOi] = useState<boolean>(settings ? settings.getOperatorShowsIdle() : undefined)
   const [isOiDefault, setOiDefault] = useState(settings && settings.getOperatorShowsIdle() === undefined)
@@ -55,9 +58,10 @@ function TallySettings({ tally, open, onClose }: TallySettingsProps) {
       if (isOcDefault) { setOc(defaultSettings.getOperatorColorScheme()) }
       if (isScDefault) { setSc(defaultSettings.getStageColorScheme()) }
       if (isSpDefault) { setSp(defaultSettings.getStageShowsPreview()) }
+      if (isSaDefault) { setSa(defaultSettings.getStageShowsAux()) }
       if (isOiDefault) { setOi(defaultSettings.getOperatorShowsIdle()) }
     }
-  }, [defaultSettings, isObDefault, isSbDefault, isOcDefault, isScDefault, isSpDefault, isOiDefault])
+  }, [defaultSettings, isObDefault, isSbDefault, isOcDefault, isScDefault, isSpDefault, isSaDefault, isOiDefault])
   useEffect(() => {
     // when settings are changed
     if (settings) {
@@ -66,12 +70,14 @@ function TallySettings({ tally, open, onClose }: TallySettingsProps) {
       const newIsOcDefault = settings.getOperatorColorScheme() === undefined
       const newIsScDefault = settings.getStageColorScheme() === undefined
       const newIsSpDefault = settings.getStageShowsPreview() === undefined
+      const newIsSaDefault = settings.getStageShowsAux() === undefined
       const newIsOiDefault = settings.getOperatorShowsIdle() === undefined
       setObDefault(newIsObDefault)
       setSbDefault(newIsSbDefault)
       setOcDefault(newIsOcDefault)
       setScDefault(newIsScDefault)
       setSpDefault(newIsSpDefault)
+      setSaDefault(newIsSaDefault)
       setOiDefault(newIsOiDefault)
 
       if (!newIsObDefault) { setOb(settings.getOperatorLightBrightness()) }
@@ -79,6 +85,7 @@ function TallySettings({ tally, open, onClose }: TallySettingsProps) {
       if (!newIsOcDefault) { setOc(settings.getOperatorColorScheme()) }
       if (!newIsScDefault) { setSc(settings.getStageColorScheme()) }
       if (!newIsSpDefault) { setSp(settings.getStageShowsPreview()) }
+      if (!newIsSaDefault) { setSa(settings.getStageShowsAux()) }
       if (!newIsOiDefault) { setOi(settings.getOperatorShowsIdle()) }
     }
   }, [settings])
@@ -94,6 +101,7 @@ function TallySettings({ tally, open, onClose }: TallySettingsProps) {
     settings.setStageLightBrightness((!tally.hasStageLight || isSbDefault) ? undefined : sb)
     settings.setStageColorScheme((!tally.hasStageLight || isScDefault) ? undefined : sc)
     settings.setStageShowsPreview((!tally.hasStageLight || isSpDefault) ? undefined : sp)
+    settings.setStageShowsAux((!tally.hasStageLight || isSaDefault) ? undefined : sa)
     settings.setOperatorShowsIdle((isOiDefault) ? undefined : oi)
     socket.emit('tally.settings', tally.name, tally.type, settings.toJson())
     onClose?.()
@@ -207,6 +215,27 @@ function TallySettings({ tally, open, onClose }: TallySettingsProps) {
               size="small"
             />}
             label="Shows Preview State"
+          />
+        </TallySettingsField>
+        <TallySettingsField
+          label="Stage AUX"
+          isDefault={isSaDefault}
+          onChange={setSaDefault}
+          testId="tally-settings-sa"
+          className={classes.input}
+        >
+          <FormControlLabel
+            classes={{label: classes.checkboxLabel}}
+            control={<Checkbox
+              data-testid="tally-settings-sa"
+              data-value={isSaDefault ? defaultSettings.getStageShowsAux() : sa}
+              checked={isSaDefault ? defaultSettings.getStageShowsAux() : sa}
+              disabled={isSaDefault}
+              color="primary"
+              onChange={(e) => {setSa(e.target.checked)}}
+              size="small"
+            />}
+            label="Shows AUX State"
           />
         </TallySettingsField>
         </>)}
