@@ -4,6 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Hub CI](https://github.com/DjGreenKrk/GreenCrew-Tally/actions/workflows/hub-ci.yml/badge.svg)](https://github.com/DjGreenKrk/GreenCrew-Tally/actions/workflows/hub-ci.yml) [![Windows bundle](https://github.com/DjGreenKrk/GreenCrew-Tally/actions/workflows/windows-bundle.yml/badge.svg)](https://github.com/DjGreenKrk/GreenCrew-Tally/actions/workflows/windows-bundle.yml) [![Tally bytecode](https://github.com/DjGreenKrk/GreenCrew-Tally/actions/workflows/tally-bytecode.yml/badge.svg)](https://github.com/DjGreenKrk/GreenCrew-Tally/actions/workflows/tally-bytecode.yml) [![Latest release](https://img.shields.io/github/v/release/DjGreenKrk/GreenCrew-Tally?include_prereleases&label=release)](https://github.com/DjGreenKrk/GreenCrew-Tally/releases) [![Release date](https://img.shields.io/github/release-date-pre/DjGreenKrk/GreenCrew-Tally?label=released)](https://github.com/DjGreenKrk/GreenCrew-Tally/releases) [![Last commit](https://img.shields.io/github/last-commit/DjGreenKrk/GreenCrew-Tally)](https://github.com/DjGreenKrk/GreenCrew-Tally/commits)
 
+<img src="art/GreenCrew_Tally_logo.svg" alt="GreenCrew Tally logo" width="160">
+
 **GC Tally** is a Wi-Fi camera tally system, part of the GreenCrew Tools family. A local Hub
 receives the Program / Preview / AUX state from your production (via Bitfocus Companion or
 a supported mixer) and drives ESP8266 tally lights and browser-based web tallies.
@@ -18,6 +20,7 @@ GC Tally is a fork of a fork, and builds on the work of others:
 
 Thank you to Christian Zenker, kuuminsh and everyone who contributed to vTally.
 The MIT license and the original copyright notice are kept in [LICENSE](LICENSE).
+Branding: [BRANDING.md](BRANDING.md).
 
 ## Getting started (Windows)
 
