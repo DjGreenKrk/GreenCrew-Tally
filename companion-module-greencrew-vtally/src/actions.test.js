@@ -67,12 +67,12 @@ test('sync sources sets Program + Preview atomically with varying camera count',
     assert.equal(module.sent.length, 2)
 })
 
-test('unmapped source rejects snapshot and stops stale heartbeats', async () => {
+test('unavailable Program source rejects snapshot and stops stale heartbeats', async () => {
     const module = fakeModule(2)
     defineActions(module)
     await module.actions.sync_sources.callback({
         options: {
-            programSource: 'unknown input',
+            programSource: '',
             previewSource: 'Camera B',
             source_1: 'Camera A',
             source_2: 'Camera B',
@@ -80,7 +80,22 @@ test('unmapped source rejects snapshot and stops stale heartbeats', async () => 
     })
     assert.equal(module.sent.length, 0)
     assert.equal(module.errors.length, 1)
-    assert.match(module.errors[0], /Unmapped Program source/)
+    assert.match(module.errors[0], /Program source is empty/)
+})
+
+test('non-camera Program source is sent as no camera on air', async () => {
+    const module = fakeModule(2)
+    defineActions(module)
+    await module.actions.sync_sources.callback({
+        options: {
+            programSource: 'Graphics',
+            previewSource: 'Camera B',
+            source_1: 'Camera A',
+            source_2: 'Camera B',
+        },
+    })
+    assert.equal(module.errors.length, 0)
+    assert.deepEqual(module.sent, [{ programs: [], previews: ['2'], auxes: [] }])
 })
 
 test('AUX actions and optional AUX fields stay backward compatible', async () => {

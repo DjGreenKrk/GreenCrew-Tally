@@ -108,8 +108,11 @@ export function snapshotFromSources(programSource, previewSource, sources, auxSo
             throw new Error('Program source is empty or unavailable')
         }
         const id = sourceToId.get(value)
-        if (!id) throw new Error(`Unmapped ${bus} source: "${value}"`)
-        return [id]
+        // Program/Preview/AUX often carry a non-camera input (graphics, media,
+        // multiview): no camera is on that bus then. Throwing would stop the
+        // heartbeat and turn every tally UNKNOWN at the Hub. An empty Program
+        // (variable unavailable) is still an error, see above.
+        return id ? [id] : []
     }
 
     return {
