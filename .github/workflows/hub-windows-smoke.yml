@@ -6,12 +6,26 @@ on:
     paths:
       - 'hub/**'
       - 'tally/**'
+      - 'companion-module-greencrew-vtally/**'
+      - 'release/**'
       - '.github/workflows/hub-windows-smoke.yml'
   pull_request:
     paths:
       - 'hub/**'
       - 'tally/**'
+      - 'companion-module-greencrew-vtally/**'
+      - 'release/**'
       - '.github/workflows/hub-windows-smoke.yml'
+  workflow_dispatch:
+
+env:
+  # Pinned downloads for the first flash of a new ESP8266 (checked by sha256).
+  ESPTOOL_VERSION: v4.12.0
+  ESPTOOL_SHA256: 42fddc5e6a05716868ad77fb43acbf53be041f97abed87ff850df1dc88140889
+  NODEMCU_ZIP_URL: https://github.com/wifi-tally/wifi-tally/releases/download/0.5.2/vtally-0.5.2-esp8266.zip
+  NODEMCU_ZIP_SHA256: a130019a95971de66fcff453041f6dde46527599439e5bd13866d007a0566f10
+  NODEMCU_BIN: nodemcu-3.0-master_20200610-cfe68233-float.bin
+  NODEMCU_BIN_SHA256: 566bdb85ff566da9a7b8e384d84716017e892fac7fbcefaff6571436c5f52d40
 
 jobs:
   windows-exe:
@@ -94,3 +108,106 @@ jobs:
             hub/dist/frontend/**
             hub/dist/esp8266/**
           retention-days: 7
+
+  companion-module:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: companion-module-greencrew-vtally
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.20.0'
+      - run: npm install --no-audit --no-fund
+      - run: npm run check
+      - run: npm test
+      - run: npm run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: greencrew-vtally-companion-module
+          path: companion-module-greencrew-vtally/greencrew-vtally-*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  # One ZIP that takes a Windows laptop from nothing to working tallies:
+  # Hub, first-flash tooling for new ESP8266 boards and the Companion module.
+  bundle:
+    needs: [windows-exe, companion-module]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: vtally-windows-exe-with-esp8266-firmware
+          path: bundle
+      - uses: actions/download-artifact@v4
+        with:
+          name: greencrew-vtally-companion-module
+          path: bundle/companion
+      - name: Add esptool and the base NodeMCU image
+        run: |
+          set -euo pipefail
+          work=$(mktemp -d)
+          curl -fsSL -o "$work/esptool.zip" "https://github.com/espressif/esptool/releases/download/$ESPTOOL_VERSION/esptool-$ESPTOOL_VERSION-windows-amd64.zip"
+          echo "$ESPTOOL_SHA256  $work/esptool.zip" | sha256sum -c -
+          unzip -q "$work/esptool.zip" -d "$work/esptool"
+          mkdir -p bundle/tools/esptool
+          cp "$work"/esptool/esptool-windows-amd64/{esptool.exe,LICENSE,README.md} bundle/tools/esptool/
+
+          curl -fsSL -o "$work/vtally-esp8266.zip" "$NODEMCU_ZIP_URL"
+          echo "$NODEMCU_ZIP_SHA256  $work/vtally-esp8266.zip" | sha256sum -c -
+          unzip -q -j "$work/vtally-esp8266.zip" "*$NODEMCU_BIN" -d "$work/nodemcu"
+          echo "$NODEMCU_BIN_SHA256  $work/nodemcu/$NODEMCU_BIN" | sha256sum -c -
+          mkdir -p bundle/firmware
+          cp "$work/nodemcu/$NODEMCU_BIN" bundle/firmware/
+      - name: Add scripts and docs
+        run: |
+          set -euo pipefail
+          cp release/windows/flash-nodemcu.cmd release/windows/START-TUTAJ.txt release/windows/THIRD-PARTY.txt bundle/
+          mkdir -p bundle/examples
+          cp tally/examples/d1-mini-ws2812-4x4.ini.example bundle/examples/
+          # cmd.exe needs CRLF line endings (set by release/.gitattributes)
+          grep -q $'\r$' bundle/flash-nodemcu.cmd || { echo 'flash-nodemcu.cmd is not CRLF'; exit 1; }
+      - name: Check bundle contents
+        run: |
+          set -euo pipefail
+          cd bundle
+          for f in vtally.exe frontend/index.html esp8266/init.lua flash-nodemcu.cmd START-TUTAJ.txt THIRD-PARTY.txt \
+                   tools/esptool/esptool.exe tools/esptool/LICENSE "firmware/$NODEMCU_BIN" examples/d1-mini-ws2812-4x4.ini.example; do
+            test -s "$f" || { echo "missing $f"; exit 1; }
+          done
+          test "$(ls esp8266/*.lc | wc -l)" -eq 7
+          ls companion/greencrew-vtally-*.tgz
+          find . -type f | sort
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vtally-windows-bundle
+          path: bundle
+          if-no-files-found: error
+          retention-days: 14
+
+  bundle-check:
+    needs: bundle
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: vtally-windows-bundle
+          path: vtally
+      - name: First-flash script runs esptool and fails cleanly without a board
+        working-directory: vtally
+        run: |
+          # "99" must be normalised to COM99; no board there, so the script
+          # has to stop after the connection check, before erasing anything.
+          $out = cmd /c "flash-nodemcu.cmd 99 < NUL" 2>&1 | Out-String
+          $code = $LASTEXITCODE
+          Write-Host $out
+          if ($code -ne 1) { throw "expected exit code 1, got $code" }
+          if ($out -notmatch 'esptool\.py v4\.12\.0') { throw 'esptool did not start' }
+          if ($out -notmatch 'COM99') { throw 'port was not normalised to COM99' }
+          if ($out -notmatch 'Nie udalo sie polaczyc') { throw 'missing connection hint' }
+          if ($out -match 'Kasowanie') { throw 'script went on to erase' }

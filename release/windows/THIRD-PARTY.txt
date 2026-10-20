@@ -1,0 +1,16 @@
+Third-party components in this package
+======================================
+
+tools\esptool\  - esptool v4.12.0 by Espressif Systems
+    License: GNU General Public License v2 or later (tools\esptool\LICENSE)
+    Unmodified binaries from
+    https://github.com/espressif/esptool/releases/tag/v4.12.0
+    Source code: https://github.com/espressif/esptool/tree/v4.12.0
+
+firmware\nodemcu-3.0-master_20200610-cfe68233-float.bin
+    NodeMCU Lua firmware for ESP8266, MIT License
+    https://github.com/nodemcu/nodemcu-firmware
+    Built from commit 8d091c476edf6ae2977a5f2a74bf5824d07d6183 with the modules
+    encoder, file, gpio, net, node, pwm2, struct, tmr, uart, wifi, ws2812.
+    Taken unchanged from the vTally 0.5.2 release:
+    https://github.com/wifi-tally/wifi-tally/releases/tag/0.5.2

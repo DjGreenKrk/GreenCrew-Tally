@@ -1,0 +1,107 @@
+vTally dla Windows - od zera do dzialajacych lampek
+====================================================
+
+Zawartosc paczki
+----------------
+  vtally.exe                 vTally Hub (serwer + strona www na porcie 3000)
+  frontend\, esp8266\        pliki Huba - musza lezec obok vtally.exe
+  flash-nodemcu.cmd          pierwsze wgranie NodeMCU na nowa plytke ESP8266
+  firmware\                  bazowy obraz NodeMCU dla ESP8266
+  tools\esptool\             esptool (Espressif) uzywany przez flash-nodemcu.cmd
+  companion\*.tgz            modul "GreenCrew vTally" do Bitfocus Companion
+  examples\                  przykladowy tally-settings.ini dla matrycy 4x4
+  THIRD-PARTY.txt            licencje dolaczonych narzedzi
+
+Rozpakuj CALY ZIP do jednego folderu, np. C:\vTally.
+
+
+1. Uruchom Hub
+--------------
+1. Kliknij dwukrotnie vtally.exe. Otworzy sie okno konsoli - nie zamykaj go.
+2. Przy pierwszym starcie Windows zapyta o zapore: zezwol w sieciach
+   PRYWATNYCH. Lampki wysylaja dane do Huba po UDP na port 7411.
+3. Otworz w przegladarce http://localhost:3000
+4. Sprawdz adres IP laptopa w sieci, w ktorej beda lampki
+   (cmd -> ipconfig, "IPv4 Address"). To jest "Hub IP" dla lampek.
+
+Jesli okno pokaze "port ... is already in use" - dziala juz inny vtally.exe
+(zamknij go w Menedzerze zadan) albo inny program zajmuje port 3000/7411.
+
+
+2. Przygotuj kazda nowa plytke ESP8266 (raz na plytke)
+------------------------------------------------------
+Pomin ten krok, jesli plytka juz ma NodeMCU (np. byla wczesniej lampka vTally).
+
+1. Podlacz ESP8266 kablem USB.
+2. Upewnij sie, ze w Hubie nie jest otwarta strona Flash.
+3. Kliknij dwukrotnie flash-nodemcu.cmd i postepuj wedlug instrukcji:
+   - skrypt pokaze porty COM - wpisz port plytki (np. COM11),
+   - opcjonalnie zrobi kopie obecnej zawartosci do folderu backup\,
+   - po wpisaniu TAK skasuje plytke i wgra NodeMCU (ok. 1 min).
+4. Odczekaj ok. 30 s - przy pierwszym starcie NodeMCU formatuje pamiec.
+
+Gdy skrypt nie moze polaczyc sie z plytka: na golym module bez automatycznego
+resetu przytrzymaj GPIO0 przy masie (przycisk FLASH), nacisnij RST, uruchom
+skrypt i pusc GPIO0 po pojawieniu sie "Connecting...".
+
+
+3. Wgraj aplikacje lampki i ustawienia (z Huba)
+-----------------------------------------------
+1. W Hubie otworz strone Flash (plytka nadal podlaczona przez USB).
+   Jesli komputer ma kilka portow COM, wybierz wlasciwy z listy.
+2. Kliknij "Update now" - wgrywa aplikacje lampki (ok. 30 s).
+3. W formularzu ustawien wpisz:
+     Name      nazwa lampki, np. CAM1
+     Ssid      nazwa sieci Wi-Fi
+     Password  haslo Wi-Fi
+     Hub IP    adres laptopa z punktu 1.4
+     Hub Port  7411
+   Matryca WS2812B 4x4 (D4/GPIO2): wlacz "Expert Mode" i dopisz linie
+     operator.ws2812=16 grb
+     stage.ws2812=0 grb
+   (pelny przyklad: examples\d1-mini-ws2812-4x4.ini.example)
+4. Kliknij Save. Lampka sie zrestartuje, polaczy z Wi-Fi i pojawi w Hubie
+   na stronie glownej (Tallies).
+
+Zmiana Wi-Fi / Huba / nazwy pozniej: podlacz lampke przez USB, strona Flash,
+popraw formularz, Save. "Update now" nie jest wtedy potrzebne.
+
+
+4. Przypisz lampki do kamer
+---------------------------
+Na stronie glownej Huba w kafelku kazdej lampki wybierz kanal (1, 2, 3 ...).
+Kanal = numer kamery wysylany przez Companion.
+
+
+5. Companion
+------------
+1. W Hubie: Configuration -> Video Mixer -> "Companion (HTTP)" -> Save.
+2. W Bitfocus Companion: strona Modules -> "Import module package" ->
+   wybierz plik z folderu companion\ (greencrew-vtally-*.tgz).
+3. Connections -> dodaj "GreenCrew vTally":
+     Hub IP address   127.0.0.1 (Companion na tym samym komputerze co Hub)
+     Hub HTTP port    3000
+     Number of cameras  liczba kamer
+   Companion na innym komputerze: patrz "Hub on a different computer (LAN)"
+   w README modulu (wymaga tokenu VTALLY_COMPANION_TOKEN po stronie Huba).
+4. Uzyj gotowych przyciskow (Presets -> GreenCrew vTally) albo akcji
+   "Sync Program + Preview from Companion variables" z wyzwalaczem
+   na zmiane zmiennych Program/Preview Twojego miksera.
+
+
+Kolory lampki
+-------------
+  czerwony             PROGRAM (na wizji)
+  pomaranczowy         AUX (kamera na wyjsciu AUX)
+  zielony              PREVIEW
+  zgaszona             kamera wolna
+  niebieski, krotki blysk co 2 s
+                       Hub nie ma danych z miksera / Companion (stan nieznany)
+  niebieski, szybkie podwojne miganie
+                       lampka nie ma polaczenia z Hubem (zly Hub IP, zapora)
+  niebieski, wolne miganie
+                       lampka laczy sie z Wi-Fi
+  niebieski staly      lampka startuje
+  bialy migajacy       "Highlight" wywolany z Huba (identyfikacja lampki)
+Schemat Yellow-Pink (dla daltonistow): PROGRAM zolty, PREVIEW rozowy, AUX cyjan.
+Priorytet: PROGRAM > AUX > PREVIEW.

@@ -5,6 +5,10 @@ Communication with the Hub uses HTTP on localhost or an authenticated LAN IP;
 no direct OBS, ATEM, or vMix dependency is required. Hub forwards tally state to the
 configured Web/UDP tally clients.
 
+## Version 0.5.0
+
+Adds the AUX tally state (see **AUX tally** below).
+
 ## Version 0.4.0
 
 The old OBS-specific `sync_obs` action is intentionally **removed**.
@@ -101,7 +105,7 @@ npm run package
 
 The latest greencrew-vtally Companion artifact is also built in GitHub Actions
 on the `feat/companion-http-tally` branch. Import the `.tgz` inside the artifact
-ZIP into Companion, then verify the module version is **0.4.0**.
+ZIP into Companion, then verify the module version is **0.5.0**.
 
 For a basic test, set the Hub mixer to **Companion (HTTP)**, create several
 Web Tallies with matching numbered channels, switch your source mixer, and
@@ -159,21 +163,10 @@ must point to the machine running the Hub backend.
 
 ## Windows firmware distribution (ESP8266)
 
-The Hub's Windows build must provide both `dist/vtally.exe` **and**
-`dist/esp8266/` containing the complete tally firmware files. The build
-prefers precompiled `.lc` firmware from `tally/out` (if the set is complete);
-otherwise it packages `tally/src/*.lua`, which the NodeMCU firmware can
-execute directly. The boot script supports either form.
-
-For an unpacked `vtally.exe`, place the `esp8266` directory beside the EXE.
-The Electron portable distribution also includes it as an external resource.
-The flasher now refuses missing/partial firmware explicitly rather than
-crashing the whole Hub on a missing `tally/out` directory.
-
-Windows packaging must use Node 16 and have native `@serialport/bindings`
-modules installed, because serial flash uses the NodeMCU tool. A passing
-software test is not proof of successful flashing: the final check requires
-a physical ESP8266 and a serial upload/readback test.
+The Windows release ZIP (`vtally-windows-*.zip`) contains everything for a
+setup from scratch: `vtally.exe` with the tally application in `esp8266\`,
+`flash-nodemcu.cmd` with esptool and the base NodeMCU image for a new
+ESP8266, this module as a `.tgz`, and `START-TUTAJ.txt` with the steps.
 
 ## AUX tally
 
