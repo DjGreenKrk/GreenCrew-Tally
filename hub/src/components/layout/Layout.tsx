@@ -8,8 +8,12 @@ import { socket } from '../../hooks/useSocket'
 const useStyles = makeStyles(theme => {
   return {
     logo: {
-      height: theme.typography.h2.fontSize,
-      margin: theme.spacing(1, 2, 2, 0)
+      height: 40,
+      margin: theme.spacing(1, 1, 1, 0)
+    },
+    productName: {
+      marginRight: theme.spacing(2),
+      whiteSpace: 'nowrap',
     },
     contentContainer: {
       marginTop: theme.spacing(2),
@@ -41,7 +45,8 @@ const Layout = ({testId: cypressId, children}: LayoutProps) => {
   return (<div data-testid={`page-${cypressId}`}>
     <AppBar position="static">
       <Toolbar>
-        <img width="106" height="40" className={classes.logo} src="/logo-with-text.svg" alt="GC Tally" />
+        <img width="40" height="40" className={classes.logo} src="/favicon.svg" alt="" />
+        <Typography variant="h6" component="span" className={classes.productName}>GC Tally</Typography>
         <Button component={RouterLink} to="/">Tallies</Button>
         <Button component={RouterLink} to="/config">Configuration</Button>
         <Button component={RouterLink} to="/flasher">Flash</Button>

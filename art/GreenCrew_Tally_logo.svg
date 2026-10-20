@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080" role="img" aria-label="GreenCrew Tally logo">
+  <polygon fill="#55dc4e" points="541.8 152.5 772.02 447.86 878.05 346.37"/>
+  <polygon fill="#1ed61f" points="878.05 735.64 878.05 346.37 772.02 447.86"/>
+  <polygon fill="#82e279" points="655.39 762.9 878.05 735.64 772.02 447.86"/>
+  <polygon fill="#8ce585" points="541.8 928 655.39 762.9 878.05 735.64"/>
+  <polygon fill="#78df6f" points="278.25 564.48 541.8 928 655.39 762.9"/>
+  <polygon fill="#8de485" points="772.02 447.86 278.25 564.48 541.8 152.5"/>
+  <polygon fill="#c8f2c3" points="201 346.38 278.25 564.48 541.8 152.5"/>
+  <polygon fill="#a1e999" points="201 735.64 278.25 564.48 201 346.37"/>
+  <polygon fill="#60dc57" points="541.8 928 201 735.64 278.25 564.48"/>
+  <polygon fill="#48da3f" points="655.39 762.9 772.02 447.86 278.25 564.48"/>
+
+  <path d="M460 389 Q466 373 485 373 H595 Q614 373 620 389 L692 541 Q701 560 677 560 H403 Q379 560 388 541 Z" fill="#fff"/>
+  <path d="M397 577 H683 Q711 577 711 605 V687 Q711 709 687 709 H393 Q369 709 369 687 V605 Q369 577 397 577 Z" fill="none" stroke="#fff" stroke-width="33"/>
+  <rect x="417" y="616" width="104" height="39" rx="10" fill="#fff"/>
+  <rect x="563" y="616" width="104" height="39" rx="10" fill="#fff" opacity=".52"/>
+
+</svg>

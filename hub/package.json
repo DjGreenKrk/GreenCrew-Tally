@@ -112,8 +112,8 @@
         "to": "frontend"
       },
       {
-        "from": "../art/vtally-logo.svg",
-        "to": "vtally-logo.svg"
+        "from": "../art/GreenCrew_Tally_logo.svg",
+        "to": "GreenCrew_Tally_logo.svg"
       },
       {
         "from": "tray-icon.png",

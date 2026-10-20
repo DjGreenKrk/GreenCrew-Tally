@@ -14,7 +14,6 @@ first. Each item is a separate change, taken on when it brings a real benefit, a
 | vMix: manual reconnect (#4) | After 10 minutes of retries the connector stays disconnected until the Hub restarts or the mixer is re-selected | A "Reconnect" button in the mixer settings |
 | Base NodeMCU flash from the Hub (#5) | Today a new ESP8266 needs `flash-nodemcu.cmd` once | Would need a bundled esptool-compatible flasher in the EXE |
 | Tray app (#6) | `npm run build:tray` (Electron 22 → 44) is not built or tested | Start Hub, open browser, Exit, no orphan process |
-| GC Tally logo (#7) | `logo-with-text.svg` and the tray icon still show the vTally artwork | Design task |
 
 ## Dependency upgrades
 
