@@ -36,7 +36,7 @@ function AtemSettings(props: AtemSettingsProps) {
         <MixerSettingsWrapper 
             title="ATEM Configuration"
             testId="atem"
-            description="Connects to any ATEM device over network."
+            description="Connects to an ATEM switcher over the network (Ethernet, not USB). Use the IP address shown in ATEM Setup → Network; 192.168.10.240 is the factory default. The computer running the Hub must be in the same network. Tallies light for program and preview of M/E 1 and for every input on an aux output."
             canBeSaved={isValid}
             isLoading={isLoading}
             onSave={handleSave}

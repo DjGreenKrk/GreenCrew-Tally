@@ -1,3 +1,10 @@
+# Unreleased
+
+* [FEATURE] ATEM: inputs on the aux outputs light the tallies in the AUX state; an aux showing a M/E output counts every input visible in it
+* [CHANGE] ATEM: the default IP is the switcher factory default 192.168.10.240; the settings explain where to find the IP
+* [CHANGE] atem-connection 3.10.3 (the version used by the current Companion ATEM module)
+* [DEV] `hub/scripts/atem-simulator.cjs`: a fake ATEM switcher for testing without hardware
+
 # GC Tally 0.6.1
 
 * [FEATURE] Companion LAN access token is generated, shown and copied in the Hub under Configuration → Companion (HTTP); it is visible only in a browser on the Hub computer. `VTALLY_COMPANION_TOKEN` still works and takes precedence

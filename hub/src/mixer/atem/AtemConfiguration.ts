@@ -61,7 +61,7 @@ class AtemConfiguration extends Configuration {
         return this.port
     }
 
-    private static readonly defaultIp = ipAddress("127.0.0.1")
+    private static readonly defaultIp = ipAddress("192.168.10.240") // factory default of ATEM switchers
     private static readonly defaultPort = ipPort(9910)
 }
 
