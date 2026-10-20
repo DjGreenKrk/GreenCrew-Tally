@@ -1,5 +1,9 @@
 # GreenCrew Tally (GC Tally)
 
+### Wi-Fi camera tally system
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Hub CI](https://github.com/DjGreenKrk/wifi-tally/actions/workflows/hub-ci.yml/badge.svg)](https://github.com/DjGreenKrk/wifi-tally/actions/workflows/hub-ci.yml) [![Windows bundle](https://github.com/DjGreenKrk/wifi-tally/actions/workflows/windows-bundle.yml/badge.svg)](https://github.com/DjGreenKrk/wifi-tally/actions/workflows/windows-bundle.yml) [![Tally bytecode](https://github.com/DjGreenKrk/wifi-tally/actions/workflows/tally-bytecode.yml/badge.svg)](https://github.com/DjGreenKrk/wifi-tally/actions/workflows/tally-bytecode.yml) [![Latest release](https://img.shields.io/github/v/release/DjGreenKrk/wifi-tally?include_prereleases&label=release)](https://github.com/DjGreenKrk/wifi-tally/releases) [![Release date](https://img.shields.io/github/release-date-pre/DjGreenKrk/wifi-tally?label=released)](https://github.com/DjGreenKrk/wifi-tally/releases) [![Last commit](https://img.shields.io/github/last-commit/DjGreenKrk/wifi-tally)](https://github.com/DjGreenKrk/wifi-tally/commits)
+
 **GC Tally** is a Wi-Fi camera tally system, part of the GreenCrew Tools family. A local Hub
 receives the Program / Preview / AUX state from your production (via Bitfocus Companion or
 a supported mixer) and drives ESP8266 tally lights and browser-based web tallies.
