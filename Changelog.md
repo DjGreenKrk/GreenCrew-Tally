@@ -1,3 +1,7 @@
+# Unreleased
+
+* [FEATURE] About screen: click the logo in the menu bar for the version, author, GreenCrew, licence, repository and the credits to vTally and kuuminsh/wifi-tally (#35)
+
 # GC Tally 0.8.0
 
 * [FEATURE] Manual control without a vision mixer (#21, stage 1 of #19): choose **Manual (phone control)** in Configuration, name the channels, and set each one to Off / Preview / AUX / Program on the new **Control** page, e.g. from a phone in the same network. Flash calls attention on the patched tallies; All off clears every channel. Channels are added, removed and renamed in Configuration → Manual (one name per line, up to 32). The setting **Only one channel on Program** (also there) turns the previous Program channel off when another one goes to Program. Changing the channels or the switch does not blink the lights; the states are cleared when the Hub restarts.

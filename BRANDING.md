@@ -1,8 +1,10 @@
 # GreenCrew Tally — branding
 
-GreenCrew Tally (short: **GC Tally**) belongs to GreenCrew Tools. Shared branding, design and
-writing rules live in [GreenCrew_Tools_Docs](https://github.com/DjGreenKrk/GreenCrew_Tools_Docs)
-and are not copied here.
+GreenCrew Tally (short: **GC Tally**) belongs to GreenCrew Tools. The product branding rules
+(naming, tally colour exceptions, font, language, About screen) live in
+[BRANDING_GCTALLY.md](https://github.com/DjGreenKrk/GreenCrew_Tools_Docs/blob/main/project/BRANDING_GCTALLY.md)
+in [GreenCrew_Tools_Docs](https://github.com/DjGreenKrk/GreenCrew_Tools_Docs), together with the
+shared GreenCrew Tools standards. They are not copied here.
 
 ## Logo
 
@@ -19,12 +21,3 @@ by this repository:
 | `hub/tray-icon.png` (32 px) | Windows tray |
 
 Regenerate the PNGs from the SVG (for example `rsvg-convert -w 512 -h 512 …`); do not draw them by hand.
-
-## Platform-specific decisions
-
-- The Hub UI still uses Material-UI 4 with its default theme; moving it to the GreenCrew design
-  system is part of the UI upgrade ([#8](https://github.com/DjGreenKrk/GreenCrew-Tally/issues/8)).
-- Tally light colours (red Program, orange AUX, green Preview, blue for errors) follow broadcast
-  conventions, not the GreenCrew palette.
-- Technical identifiers keep the vTally names for compatibility (`~/.wifi-tally.json`,
-  Companion module id `greencrew-vtally`, `VTALLY_COMPANION_TOKEN`).
