@@ -3,7 +3,9 @@
 * [FEATURE] ATEM: inputs on the aux outputs light the tallies in the AUX state; an aux showing a M/E output counts every input visible in it
 * [CHANGE] ATEM: the default IP is the switcher factory default 192.168.10.240; the settings explain where to find the IP
 * [CHANGE] atem-connection 3.10.3 (the version used by the current Companion ATEM module)
-* [DEV] `hub/scripts/atem-simulator.cjs`: a fake ATEM switcher for testing without hardware
+* [FEATURE] OBS: connects to OBS Studio 28+ through its built-in WebSocket server (obs-websocket 5) with an optional password; obs-websocket 4 is no longer supported. Default port 4455; a saved old default 4444 moves to 4455, any other port is kept
+* [FEATURE] OBS: scenes nested more than one level deep are on air too; a hidden nested scene is not
+* [DEV] `hub/scripts/atem-simulator.cjs` and `hub/scripts/obs-simulator.cjs`: a fake ATEM switcher and a fake OBS for testing without hardware; `hub/scripts/check-live-atem.cjs` checks a real ATEM
 
 # GC Tally 0.6.1
 

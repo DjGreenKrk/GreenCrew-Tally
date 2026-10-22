@@ -69,6 +69,35 @@ describe('fromJson/toJson', () => {
     })
 })
 
+describe('password', () => {
+    it("is empty by default and survives a save", () => {
+        const conf = createDefaultObsConfiguration()
+        expect(conf.getPassword()).toEqual("")
+        conf.setPassword("secret")
+        const loadedConf = createDefaultObsConfiguration()
+        loadedConf.fromJson(conf.toJson())
+        expect(loadedConf.getPassword()).toEqual("secret")
+    })
+})
+
+describe('port migration', () => {
+    it("moves the obs-websocket 4 default 4444 to 4455", () => {
+        const conf = createDefaultObsConfiguration()
+        conf.fromJson({ ip: "1.2.3.4", port: 4444 })
+        expect(conf.getPort().toNumber()).toEqual(4455)
+    })
+    it("keeps 4444 when it was chosen with the current settings", () => {
+        const conf = createDefaultObsConfiguration()
+        conf.fromJson({ ip: "1.2.3.4", port: 4444, password: "" })
+        expect(conf.getPort().toNumber()).toEqual(4444)
+    })
+    it("keeps other ports", () => {
+        const conf = createDefaultObsConfiguration()
+        conf.fromJson({ ip: "1.2.3.4", port: 4456 })
+        expect(conf.getPort().toNumber()).toEqual(4456)
+    })
+})
+
 describe('clone', () => {
     it("does work", () => {
         const conf = createDefaultObsConfiguration()

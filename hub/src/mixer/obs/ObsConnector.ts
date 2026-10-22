@@ -1,196 +1,215 @@
-import { EventEmitter } from 'events'
-import OBSWebSocket from 'obs-websocket-js'
+import { OBSWebSocket } from 'obs-websocket-js/json'
 import Channel from '../../domain/Channel'
 import { MixerCommunicator } from '../../lib/MixerCommunicator'
 import { Connector } from '../interfaces'
 import ObsConfiguration from './ObsConfiguration'
 
 const reconnectTimeoutMs = 1000
+// OBS reports the new program scene and the start of a transition as two
+// events whose order is not guaranteed; a scene change this close to the
+// start of a transition belongs to it
+const transitionGraceMs = 100
+const RECORD_PAUSED = 'OBS_WEBSOCKET_OUTPUT_PAUSED'
 
-// uses obs-websockets
-// @see https://github.com/Palakis/obs-websocket
-class ObsConnector implements Connector{
+type SceneItem = { sourceName?: unknown, sourceType?: unknown, sceneItemEnabled?: unknown }
+
+// uses the obs-websocket 5 server built into OBS Studio 28+
+// @see https://github.com/obsproject/obs-websocket/blob/master/docs/generated/protocol.md
+class ObsConnector implements Connector {
     configuration: ObsConfiguration
     communicator: MixerCommunicator
-    // tracks which scenes are embedded into other scenes
+    // tracks which scenes are embedded into other scenes - directly or nested
     embeddedScenes: Record<string, string[]> = {}
     reconnectTimeout: NodeJS.Timeout | null = null
-    obs: OBSWebSocket | null
+    obs: OBSWebSocket | null = null
     connected: boolean = false
-    private previewScenes: string[] = []
-    private programScenes: string[] = []
+    private programScene: string | null = null
+    private previousProgramScene: string | null = null
+    private programChangedAt = 0
+    private transitionStartedAt = 0
+    private transitionFrom: string | null = null
+    private previewScene: string | null = null
     private isStreaming: boolean = false
     private isRecording: boolean = false
-    
-    constructor(configuration: ObsConfiguration, communicator: MixerCommunicator) {
+    private createObs: () => OBSWebSocket
+
+    // createObs is injectable for tests
+    constructor(configuration: ObsConfiguration, communicator: MixerCommunicator, createObs = () => new OBSWebSocket()) {
         this.configuration = configuration
         this.communicator = communicator
+        this.createObs = createObs
     }
+
     connect() {
-        this.obs = new OBSWebSocket()
-        // the v4 typings do not declare the 'error' event (https://github.com/haganbmj/obs-websocket-js/issues/203),
-        // so register it through the underlying EventEmitter
-        const emitter: EventEmitter = this.obs
-        emitter.on('error', (err: unknown) => {
-            console.error("obs socket error:", err)
+        const obs = this.createObs()
+        this.obs = obs
+        obs.on('CurrentProgramSceneChanged', ({ sceneName }) => this.onProgramSceneChanged(sceneName))
+        obs.on('SceneTransitionStarted', () => this.onTransitionStarted())
+        obs.on('SceneTransitionVideoEnded', () => this.onTransitionEnded())
+        // a transition that is cut short does not send VideoEnded
+        obs.on('SceneTransitionEnded', () => this.onTransitionEnded())
+        obs.on('CurrentPreviewSceneChanged', ({ sceneName }) => {
+            this.previewScene = sceneName
+            this.notifyChanged()
         })
-        this.obs.on('SwitchScenes', data => {
-            // console.debug('SwitchScenes', data)
-            this.notifyProgramChanged([data["scene-name"]])
-        })
-        this.obs.on('ScenesChanged', () => {
-            // console.debug('ScenesChanged', data)
-            this.updateScenes()
-        })
-        this.obs.on('SceneItemRemoved', () => {
-            // console.debug('ScenesChanged', data)
-            this.updateScenes()
-        })
-        this.obs.on('SceneItemAdded', () => {
-            // console.debug('ScenesChanged', data)
-            this.updateScenes()
-        })
-        this.obs.on('SceneItemVisibilityChanged', () => {
-            // console.debug('ScenesChanged', data)
-            this.updateScenes()
-        })
-        this.obs.on('SceneCollectionChanged', () => {
-            // console.debug('SceneCollectionChanged', data)
-            this.updateScenes()
-        })
-        this.obs.on('SceneCollectionListChanged', () => {
-            // console.debug('SceneCollectionListChanged', data)
-            this.updateScenes()
-        })
-        this.obs.on('TransitionBegin', data => {
-            // console.debug('TransitionBegin', data)
-            this.notifyProgramChanged([data["from-scene"], data["to-scene"]].filter(scene => scene /* remove non-truthy values */))
-        })
-        this.obs.on('TransitionEnd', data => {
-            // console.debug('TransitionEnd', data)
-            this.notifyProgramChanged([data["to-scene"]])
-        })
-        this.obs.on('PreviewSceneChanged', data => {
-            // console.debug('PreviewSceneChanged', data)
-            this.notifyPreviewChanged([data["scene-name"]])
-        })
-        this.obs.on('StudioModeSwitched', data => {
-            // console.debug('StudioModeSwitched', data)
-            if (data["new-state"]) {
-                // if: switched INTO studio mode
+        obs.on('StudioModeStateChanged', ({ studioModeEnabled }) => {
+            if (studioModeEnabled) {
                 this.updatePreviewScene()
             } else {
-                // if: switched OUT OF studio mode
-                this.previewScenes = []
+                this.previewScene = null
                 this.notifyChanged()
             }
         })
-
-        this.obs.on('StreamStarting', () => {
-            // console.debug('StreamStarted', data)
-            this.isStreaming = true
+        const updateScenes = () => this.updateScenes()
+        obs.on('SceneListChanged', updateScenes)
+        obs.on('SceneNameChanged', updateScenes)
+        obs.on('SceneItemCreated', updateScenes)
+        obs.on('SceneItemRemoved', updateScenes)
+        obs.on('SceneItemEnableStateChanged', updateScenes)
+        obs.on('CurrentSceneCollectionChanged', () => {
+            this.updateScenes()
+            this.updatePreviewScene()
+        })
+        obs.on('StreamStateChanged', ({ outputActive }) => {
+            this.isStreaming = outputActive
             this.notifyChanged()
         })
-        this.obs.on('StreamStopped', () => {
-            // console.debug('StreamStopped', data)
-            this.isStreaming = false
+        obs.on('RecordStateChanged', ({ outputActive, outputState }) => {
+            this.isRecording = outputActive && outputState !== RECORD_PAUSED
             this.notifyChanged()
         })
-        this.obs.on('RecordingStarting', () => {
-            // console.debug('RecordingStarting', data)
-            this.isRecording = true
-            this.notifyChanged()
+        obs.on('ConnectionClosed', error => {
+            if (this.obs !== obs || !this.connected) return
+            console.error("Connection to OBS lost:", error.message)
+            this.connected = false
+            this.communicator.notifyMixerIsDisconnected()
+            this.scheduleReconnect()
         })
-        this.obs.on('RecordingStopped', () => {
-            // console.debug('RecordingStopped', data)
-            this.isRecording = false
-            this.notifyChanged()
-        })
-        this.obs.on('RecordingPaused', () => {
-            // console.debug('RecordingPaused', data)
-            this.isRecording = false
-            this.notifyChanged()
-        })
-        this.obs.on('RecordingResumed', () => {
-            // console.debug('RecordingResumed', data)
-            this.isRecording = true
-            this.notifyChanged()
-        })
-        this.obs.on('StreamStatus', data => {
-            this.isStreaming = data.streaming
-            this.isRecording = data.recording
-            this.notifyChanged()
-        })
-
-        const connect = () => {
-            if (!this.obs) { return }
-            if (this.reconnectTimeout) { 
-                clearTimeout(this.reconnectTimeout)
-            }
-            console.log(`Connecting to OBS at ${this.configuration.getIp().toString()}:${this.configuration.getPort().toNumber()}`)
-            this.obs.connect({address: `${this.configuration.getIp().toString()}:${this.configuration.getPort().toNumber()}`}).then(() => {
-                this.connected = true
-                this.communicator.notifyMixerIsConnected()
-                this.updateScenes()
-                this.updatePreviewScene()
-                console.log("Connected to OBS")
-
-                this.obs?.on('ConnectionClosed', () => {
-                    this.connected = false
-                    this.communicator.notifyMixerIsDisconnected()
-                    this.obs?.removeAllListeners('ConnectionClosed')
-                    console.error("Connection to OBS lost")
-                    this.reconnectTimeout = setTimeout(connect, reconnectTimeoutMs)
-                })
-            }).catch(err => {
-                this.connected = false
-                this.communicator.notifyMixerIsDisconnected()
-                console.error("error when connecting to OBS:", err.error)
-                this.reconnectTimeout = setTimeout(connect, reconnectTimeoutMs)
-            })
-        }
-
-        connect()
 
         this.communicator.notifyProgramPreviewChanged(null, null)
+        this.connectSocket()
     }
-    private updatePreviewScene() {
-        this.obs?.send("GetPreviewScene").then(data => {
-            // console.debug("GetPreviewScene", data)
-            this.notifyPreviewChanged([data.name])
-        }).catch(() => {
-            // if studio mode is disabled we get an error and fail gracefully
+
+    private connectSocket() {
+        const obs = this.obs
+        if (!obs) { return }
+        const url = `ws://${this.configuration.getIp().toString()}:${this.configuration.getPort().toNumber()}`
+        console.log(`Connecting to OBS at ${url}`)
+        obs.connect(url, this.configuration.getPassword() || undefined).then(async () => {
+            if (this.obs !== obs) return
+            this.connected = true
+            this.communicator.notifyMixerIsConnected()
+            console.log("Connected to OBS")
+            await Promise.all([this.updateScenes(), this.updatePreviewScene(), this.updateOutputs()])
+        }).catch(error => {
+            if (this.obs !== obs) return
+            // 4009: wrong password, 4010: OBS too old for obs-websocket 5
+            console.error("error when connecting to OBS:", error?.code ? `${error.code} ${error.message}` : error?.message || error)
+            this.connected = false
+            this.communicator.notifyMixerIsDisconnected()
+            this.scheduleReconnect()
         })
     }
-    private updateScenes() {
-        this.obs?.send("GetSceneList").then(data => {
-            // console.debug("GetSceneList", data)
 
-            this.updateEmbeddedScenes(data.scenes)
-            this.communicator.notifyChannels(data.scenes.map(scene => new Channel(scene.name, scene.name)))
+    private scheduleReconnect() {
+        if (this.reconnectTimeout) {
+            clearTimeout(this.reconnectTimeout)
+        }
+        this.reconnectTimeout = setTimeout(() => this.connectSocket(), reconnectTimeoutMs)
+    }
 
-            if (data["current-scene"]) {
-                this.notifyProgramChanged([data["current-scene"]])
+    private onProgramSceneChanged(sceneName: string) {
+        this.previousProgramScene = this.programScene
+        this.programScene = sceneName
+        this.programChangedAt = Date.now()
+        if (this.transitionStartedAt && this.transitionFrom === null) {
+            // the transition was announced before the new scene
+            this.transitionFrom = this.previousProgramScene
+        }
+        this.notifyChanged()
+    }
+
+    private onTransitionStarted() {
+        this.transitionStartedAt = Date.now()
+        // the new scene was announced before the transition
+        this.transitionFrom = this.programChangedAt > this.transitionStartedAt - transitionGraceMs ? this.previousProgramScene : null
+        this.notifyChanged()
+    }
+
+    private onTransitionEnded() {
+        if (!this.transitionStartedAt) return
+        this.transitionStartedAt = 0
+        this.transitionFrom = null
+        this.notifyChanged()
+    }
+
+    private async updatePreviewScene() {
+        try {
+            const { currentPreviewSceneName } = await this.obs!.call('GetCurrentPreviewScene')
+            this.previewScene = currentPreviewSceneName
+        } catch {
+            // fails when studio mode is off
+            this.previewScene = null
+        }
+        this.notifyChanged()
+    }
+
+    private async updateOutputs() {
+        try {
+            const [stream, record] = await Promise.all([this.obs!.call('GetStreamStatus'), this.obs!.call('GetRecordStatus')])
+            this.isStreaming = stream.outputActive
+            this.isRecording = record.outputActive && !record.outputPaused
+            this.notifyChanged()
+        } catch (err) {
+            console.error("Could not read the OBS stream and record state:", err)
+        }
+    }
+
+    private async updateScenes() {
+        try {
+            const obs = this.obs!
+            const sceneList = await obs.call('GetSceneList')
+            const sceneNames = (sceneList.scenes as { sceneName?: unknown }[])
+                .map(scene => scene.sceneName)
+                .filter((name): name is string => typeof name === 'string')
+                // OBS lists the scenes bottom to top
+                .reverse()
+            const children: Record<string, string[]> = {}
+            await Promise.all(sceneNames.map(async sceneName => {
+                const { sceneItems } = await obs.call('GetSceneItemList', { sceneName })
+                children[sceneName] = (sceneItems as SceneItem[])
+                    .filter(item => item.sourceType === 'OBS_SOURCE_TYPE_SCENE' && item.sceneItemEnabled === true && typeof item.sourceName === 'string')
+                    .map(item => item.sourceName as string)
+            }))
+            this.embeddedScenes = ObsConnector.resolveEmbeddedScenes(children)
+            this.communicator.notifyChannels(sceneNames.map(name => new Channel(name, name)))
+            if (sceneList.currentProgramSceneName && sceneList.currentProgramSceneName !== this.programScene) {
+                this.programScene = sceneList.currentProgramSceneName
             }
-        }).catch(err => {
-            console.error(err)
-            // @TODO
-        })
+            this.notifyChanged()
+        } catch (err) {
+            console.error("Could not read the OBS scenes:", err)
+        }
     }
-    // update the information which scenes are embedded into other scenes - so they can also get the right state
-    private updateEmbeddedScenes(scenes: OBSWebSocket.Scene[]) {
-        this.embeddedScenes = {}
-        scenes.forEach(scene => {
-            this.embeddedScenes[scene.name] = scene.sources.filter(source => source.type === "scene" && source.render === true).map(source => source.name)
-        })
-    }
-    private notifyProgramChanged(scenes: string[]) {
-        this.programScenes = scenes
-        this.notifyChanged()
-    }
-    private notifyPreviewChanged(scenes: string[]) {
-        this.previewScenes = scenes
-        this.notifyChanged()
+
+    /** every scene visible inside a scene, also through scenes nested deeper */
+    static resolveEmbeddedScenes(children: Record<string, string[]>): Record<string, string[]> {
+        const resolve = (scene: string, seen: Set<string>) => {
+            for (const child of children[scene] || []) {
+                if (!seen.has(child)) {
+                    seen.add(child)
+                    resolve(child, seen)
+                }
+            }
+            return seen
+        }
+        const result: Record<string, string[]> = {}
+        for (const scene of Object.keys(children)) {
+            const embedded = resolve(scene, new Set())
+            embedded.delete(scene)
+            result[scene] = Array.from(embedded)
+        }
+        return result
     }
 
     private shouldProgramBeShownAsPreview(): boolean {
@@ -208,42 +227,46 @@ class ObsConnector implements Connector{
         }
     }
 
-    private notifyChanged() {
-        let programs: string[] = []
-        
-        this.programScenes.forEach(scene => {
-            programs.push(scene)
-            programs.push(...(this.embeddedScenes[scene] || []))
-        })
+    private withEmbedded(scenes: (string | null)[]): string[] {
+        const result: string[] = []
+        for (const scene of scenes) {
+            if (scene && !result.includes(scene)) {
+                result.push(scene, ...(this.embeddedScenes[scene] || []).filter(child => !result.includes(child)))
+            }
+        }
+        return result
+    }
 
-        let previews: string[] = []
+    private notifyChanged() {
+        if (this.programScene === null) return
+        const programScenes = this.transitionStartedAt ? [this.transitionFrom, this.programScene] : [this.programScene]
+        let programs = this.withEmbedded(programScenes)
+        let previews: string[]
         if (this.shouldProgramBeShownAsPreview()) {
             previews = programs
             programs = []
         } else {
-            this.previewScenes.forEach(scene => {
-                previews.push(scene)
-                previews.push(...(this.embeddedScenes[scene] || []))
-            })
+            previews = this.withEmbedded([this.previewScene])
         }
-        
-        
-
         this.communicator.notifyProgramPreviewChanged(programs, previews)
     }
 
     disconnect() {
-        if (this.reconnectTimeout) { 
+        if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout)
+            this.reconnectTimeout = null
         }
-        if (this.obs) {
-            this.obs.removeAllListeners('ConnectionClosed')
-            this.obs.disconnect()
+        const obs = this.obs
+        this.obs = null
+        this.connected = false
+        if (obs) {
+            obs.removeAllListeners()
+            obs.disconnect().catch(() => {})
         }
     }
 
     isConnected() {
-        return this.obs !== undefined && this.connected
+        return this.obs !== null && this.connected
     }
     static readonly ID = "obs" as const
 }

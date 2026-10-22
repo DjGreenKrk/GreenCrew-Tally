@@ -85,7 +85,8 @@ describe('it can load configuration files from previous versions', () => {
 
         expect(config.getMixerSelection()).toEqual("obs")
         expect(config.getObsConfiguration().getIp().toString()).toEqual("127.0.0.1")
-        expect(config.getObsConfiguration().getPort().toString()).toEqual("4444")
+        // obs-websocket 4 default, moved to the obs-websocket 5 default
+        expect(config.getObsConfiguration().getPort().toString()).toEqual("4455")
         expect(config.getTallies()).toHaveLength(4)
         expect(config.getTallies()[0].name).toEqual("Tally01")
         expect(config.getTallies()[0].channelId).toEqual("1")
