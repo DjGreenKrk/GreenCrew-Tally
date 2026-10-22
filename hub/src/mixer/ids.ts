@@ -7,6 +7,7 @@ export const MIXER_IDS = {
   rolandV8HD: 'rolandV8HD',
   rolandV60HD: 'rolandV60HD',
   companion: 'companion',
+  manual: 'manual',
   null: 'null',
   mock: 'mock',
   test: 'test',

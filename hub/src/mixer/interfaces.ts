@@ -10,6 +10,9 @@ export interface Connector {
     connect() : void
     disconnect() : void
     isConnected(): boolean
+    // optional: apply changed settings without disconnecting (the tallies
+    // would show UNKNOWN for a moment during a reconnect)
+    updateSettings?(settings: Configuration): void
 }
 
 export abstract class Configuration {

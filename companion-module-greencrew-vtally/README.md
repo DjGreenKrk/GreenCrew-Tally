@@ -5,6 +5,10 @@ Communication with the Hub uses HTTP on localhost or an authenticated LAN IP;
 no direct OBS, ATEM, or vMix dependency is required. Hub forwards tally state to the
 configured Web/UDP tally clients.
 
+## Version 0.8.0
+
+Released with GC Tally 0.8.0; no module changes since 0.6.2.
+
 ## Version 0.7.0
 
 Released with GC Tally 0.7.0; no module changes since 0.6.2.

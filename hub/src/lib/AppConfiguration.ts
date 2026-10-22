@@ -9,6 +9,7 @@ import RolandV60HDConfiguration from '../mixer/rolandV60HD/RolandV60HDConfigurat
 import VmixConfiguration from '../mixer/vmix/VmixConfiguration'
 import NullConfiguration from '../mixer/null/NullConfiguration'
 import CompanionConfiguration from '../mixer/companion/CompanionConfiguration'
+import ManualConfiguration from '../mixer/manual/ManualConfiguration'
 import { Configuration } from '../mixer/interfaces'
 import Tally, { TallySaveObjectType } from '../domain/Tally'
 import TestConfiguration from '../mixer/test/TestConfiguration'
@@ -23,6 +24,7 @@ type AppConfigurationPayload = {
     mock?: ConfigPayload<MockConfiguration>
     null?: ConfigPayload<NullConfiguration>
     companion?: ConfigPayload<CompanionConfiguration>
+    manual?: ConfigPayload<ManualConfiguration>
     obs?: ConfigPayload<ObsConfiguration>
     rolandV8HD?: ConfigPayload<RolandV8HDConfiguration>
     rolandV60HD?: ConfigPayload<RolandV60HDConfiguration>
@@ -38,6 +40,7 @@ export class AppConfiguration extends Configuration {
     mockConfiguration: MockConfiguration
     nullConfiguration: NullConfiguration
     companionConfiguration: CompanionConfiguration
+    manualConfiguration: ManualConfiguration
     obsConfiguration: ObsConfiguration
     rolandV8HDConfiguration: RolandV8HDConfiguration
     rolandV60HDConfiguration: RolandV60HDConfiguration
@@ -63,6 +66,7 @@ export class AppConfiguration extends Configuration {
         this.mockConfiguration = new MockConfiguration()
         this.nullConfiguration = new NullConfiguration()
         this.companionConfiguration = new CompanionConfiguration()
+        this.manualConfiguration = new ManualConfiguration()
         this.obsConfiguration = new ObsConfiguration()
         this.rolandV8HDConfiguration = new RolandV8HDConfiguration()
         this.rolandV60HDConfiguration = new RolandV60HDConfiguration()
@@ -129,6 +133,9 @@ export class AppConfiguration extends Configuration {
         if (data.mock) {
             this.mockConfiguration.fromJson(data.mock)
         }
+        if (data.manual) {
+            this.manualConfiguration.fromJson(data.manual)
+        }
         if (data.null) {
             this.nullConfiguration.fromJson(data.null)
         }
@@ -168,6 +175,7 @@ export class AppConfiguration extends Configuration {
             mock: this.mockConfiguration.toJson(),
             "null": this.nullConfiguration.toJson(),
             companion: this.companionConfiguration.toJson(),
+            manual: this.manualConfiguration.toJson(),
             obs: this.obsConfiguration.toJson(),
             rolandV8HD: this.rolandV8HDConfiguration.toJson(),
             rolandV60HD: this.rolandV60HDConfiguration.toJson(),
@@ -208,6 +216,16 @@ export class AppConfiguration extends Configuration {
 
     getNullConfiguration() {
         return this.nullConfiguration.clone()
+    }
+
+    getManualConfiguration() {
+        return this.manualConfiguration.clone()
+    }
+
+    setManualConfiguration(manualConfiguration: ManualConfiguration) {
+        this.manualConfiguration = manualConfiguration.clone()
+        this.emitter.emit("config.changed", this)
+        this.emitter.emit("config.changed.manual", this.manualConfiguration)
     }
 
     getCompanionConfiguration() {

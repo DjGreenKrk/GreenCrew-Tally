@@ -21,6 +21,9 @@ import ObsConfiguration from './mixer/obs/ObsConfiguration'
 import RolandV8HDConfiguration from './mixer/rolandV8HD/RolandV8HDConfiguration'
 import RolandV60HDConfiguration from './mixer/rolandV60HD/RolandV60HDConfiguration'
 import MockConfiguration from './mixer/mock/MockConfiguration'
+import ManualConfiguration from './mixer/manual/ManualConfiguration'
+import ManualConnector from './mixer/manual/ManualConnector'
+import { isManualChannelState } from './mixer/manual/ManualState'
 import TestConnector from './mixer/test/TestConnector'
 import TestConfiguration from './mixer/test/TestConfiguration'
 import WebTallyDriver from './tally/WebTallyDriver'
@@ -148,6 +151,9 @@ io.on('connection', (socket: ServerSideSocket) => {
     new SocketAwareEvent(myEmitter, 'config.changed.mock', socket, (socket, mockConfiguration) => {
       socket.emit('config.state.mock', mockConfiguration.toJson())
     }),
+    new SocketAwareEvent(myEmitter, 'config.changed.manual', socket, (socket, manualConfiguration) => {
+      socket.emit('config.state.manual', manualConfiguration.toJson())
+    }),
     new SocketAwareEvent(myEmitter, 'config.changed.obs', socket, (socket, obsConfiguration) => {
       socket.emit('config.state.obs', obsConfiguration.toJson())
     }),
@@ -167,6 +173,7 @@ io.on('connection', (socket: ServerSideSocket) => {
     socket.emit('config.state.atem', myConfiguration.getAtemConfiguration().toJson())
     socket.emit('config.state.mixer', {mixerName: myConfiguration.getMixerSelection() || "", allowedMixers: MixerDriver.getAllowedMixers(myConfiguration.isDev(), myConfiguration.isTest())})
     socket.emit('config.state.mock', myConfiguration.getMockConfiguration().toJson())
+    socket.emit('config.state.manual', myConfiguration.getManualConfiguration().toJson())
     socket.emit('config.state.obs', myConfiguration.getObsConfiguration().toJson())
     socket.emit('config.state.rolandV8HD', myConfiguration.getRolandV8HDConfiguration().toJson())
     socket.emit('config.state.rolandV60HD', myConfiguration.getRolandV60HDConfiguration().toJson())
@@ -292,6 +299,30 @@ io.on('connection', (socket: ServerSideSocket) => {
     if (newMixerName) {
       myConfiguration.setMixerSelection(newMixerName)
     }
+  })
+  socket.on('config.change.manual', (newManualConfiguration, newMixerName) => {
+    const manual = new ManualConfiguration()
+    manual.fromJson(newManualConfiguration)
+    myConfiguration.setManualConfiguration(manual)
+
+    if (newMixerName) {
+      myConfiguration.setMixerSelection(newMixerName)
+    }
+  })
+  // the manual control page; ignored while another mixer is selected
+  socket.on('manual.set', (channelId, state) => {
+    const mixer = myMixerDriver.currentMixerInstance
+    if (mixer instanceof ManualConnector && typeof channelId === 'string' && isManualChannelState(state)) {
+      try {
+        mixer.setChannelState(channelId, state)
+      } catch (err) {
+        console.warn(`Manual control: ${err}`)
+      }
+    }
+  })
+  socket.on('manual.allOff', () => {
+    const mixer = myMixerDriver.currentMixerInstance
+    if (mixer instanceof ManualConnector) mixer.allOff()
   })
   socket.on('config.change.companion', newMixerName => {
     if (newMixerName) {

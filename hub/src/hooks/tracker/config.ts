@@ -2,6 +2,7 @@ import { EventEmitter } from '../../lib/DisconnectedClientSideSocket'
 import { ClientSideSocket } from '../../lib/SocketEvents'
 import AtemConfiguration from '../../mixer/atem/AtemConfiguration'
 import MockConfiguration from '../../mixer/mock/MockConfiguration'
+import ManualConfiguration from '../../mixer/manual/ManualConfiguration'
 import ObsConfiguration from '../../mixer/obs/ObsConfiguration'
 import RolandV8HDConfiguration from '../../mixer/rolandV8HD/RolandV8HDConfiguration'
 import RolandV60HDConfiguration from '../../mixer/rolandV60HD/RolandV60HDConfiguration'
@@ -15,6 +16,7 @@ class ConfigTracker extends EventEmitter{
     atemConfiguration?: AtemConfiguration
     // @TODO: not needed when not in dev
     mockConfiguration?: MockConfiguration
+    manualConfiguration?: ManualConfiguration
     obsConfiguration?: ObsConfiguration
     rolandV8HDConfiguration?: RolandV8HDConfiguration
     rolandV60HDConfiguration?: RolandV60HDConfiguration
@@ -39,6 +41,11 @@ class ConfigTracker extends EventEmitter{
             this.mockConfiguration = new MockConfiguration()
             this.mockConfiguration.fromJson(mock)
             this.emit('mock', this.mockConfiguration)
+        })
+        socket.on('config.state.manual', (manual) => {
+            this.manualConfiguration = new ManualConfiguration()
+            this.manualConfiguration.fromJson(manual)
+            this.emit('manual', this.manualConfiguration)
         })
         socket.on('config.state.obs', (obs) => {
             this.obsConfiguration = new ObsConfiguration()
