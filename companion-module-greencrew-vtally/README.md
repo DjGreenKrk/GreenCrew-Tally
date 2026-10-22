@@ -5,9 +5,9 @@ Communication with the Hub uses HTTP on localhost or an authenticated LAN IP;
 no direct OBS, ATEM, or vMix dependency is required. Hub forwards tally state to the
 configured Web/UDP tally clients.
 
-## Version 0.6.1
+## Version 0.7.0
 
-Renamed to GreenCrew Tally (0.6.0); the token field points to the Hub page that generates the LAN token (0.6.1).
+Renamed to GreenCrew Tally (0.6.0); the token field points to the Hub page that generates the LAN token (0.6.1); released with GC Tally 0.7.0 without module changes (0.7.0).
 
 ## Version 0.5.0
 
