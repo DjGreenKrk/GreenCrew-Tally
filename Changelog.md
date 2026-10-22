@@ -1,6 +1,6 @@
 # Unreleased
 
-* [FEATURE] Manual control without a vision mixer (#21, stage 1 of #19): choose **Manual (phone control)** in Configuration, name the channels, and set each one to Off / Preview / AUX / Program on the new **Control** page, e.g. from a phone in the same network. Flash calls attention on the patched tallies; All off clears every channel. The states stay when the channel names change.
+* [FEATURE] Manual control without a vision mixer (#21, stage 1 of #19): choose **Manual (phone control)** in Configuration, name the channels, and set each one to Off / Preview / AUX / Program on the new **Control** page, e.g. from a phone in the same network. Flash calls attention on the patched tallies; All off clears every channel. The switch **Only one channel on Program** turns the previous Program channel off when another one goes to Program. Changing the channels or the switch does not blink the lights; the states are cleared when the Hub restarts.
 * [CHANGE] The menu bar fits on a phone screen
 
 # GC Tally 0.7.0

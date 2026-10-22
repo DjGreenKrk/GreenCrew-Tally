@@ -18,9 +18,9 @@ class RecordingCommunicator extends MixerCommunicator {
     notifyMixerIsDisconnected() { this.connected = false }
 }
 
-const create = (names = ['A', 'B', 'C']) => {
+const create = (names = ['A', 'B', 'C'], exclusiveProgram = false) => {
     const communicator = new RecordingCommunicator()
-    const connector = new ManualConnector(new ManualConfiguration().setChannelNames(names), communicator)
+    const connector = new ManualConnector(new ManualConfiguration().setChannelNames(names).setExclusiveProgram(exclusiveProgram), communicator)
     connector.connect()
     return { communicator, connector }
 }
@@ -66,4 +66,19 @@ test('states survive renaming the channels, removed channels go off', () => {
     first.connector.disconnect()
     const second = create(['Actor', 'Singer'])
     expect(second.communicator.state).toEqual({ programs: ['1'], previews: [], auxes: [] })
+})
+
+test('several channels can be on Program by default', () => {
+    const { communicator, connector } = create()
+    connector.setChannelState('1', 'program')
+    connector.setChannelState('2', 'program')
+    expect(communicator.state.programs).toEqual(['1', '2'])
+})
+
+test('with exclusive Program a new Program channel turns the previous one off', () => {
+    const { communicator, connector } = create(['A', 'B', 'C'], true)
+    connector.setChannelState('1', 'program')
+    connector.setChannelState('3', 'preview')
+    connector.setChannelState('2', 'program')
+    expect(communicator.state).toEqual({ programs: ['2'], previews: ['3'], auxes: [] })
 })

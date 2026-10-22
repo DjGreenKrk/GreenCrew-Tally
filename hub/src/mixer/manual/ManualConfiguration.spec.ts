@@ -26,3 +26,11 @@ test('keeps the defaults for invalid saved data', () => {
     conf.fromJson({ channelNames: [] })
     expect(conf.getChannelNames()).toHaveLength(8)
 })
+
+test('exclusive Program is off by default and survives a save', () => {
+    const conf = new ManualConfiguration()
+    expect(conf.isExclusiveProgram()).toBe(false)
+    const loaded = new ManualConfiguration()
+    loaded.fromJson(conf.setExclusiveProgram(true).toJson())
+    expect(loaded.isExclusiveProgram()).toBe(true)
+})

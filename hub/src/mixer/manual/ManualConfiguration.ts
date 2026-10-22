@@ -2,6 +2,7 @@ import { Configuration } from '../interfaces'
 
 export type ManualConfigurationSaveType = {
     channelNames: string[]
+    exclusiveProgram?: boolean
 }
 
 export const MAX_MANUAL_CHANNELS = 32
@@ -9,10 +10,13 @@ export const MAX_MANUAL_CHANNELS = 32
 // Channels the operator switches by hand, e.g. from a phone (no vision mixer).
 class ManualConfiguration extends Configuration {
     channelNames: string[]
+    // setting a channel to Program turns off the channel that was on Program
+    exclusiveProgram: boolean
 
     constructor() {
         super()
         this.channelNames = ManualConfiguration.defaultChannelNames
+        this.exclusiveProgram = false
     }
 
     fromJson(data: ManualConfigurationSaveType): void {
@@ -23,10 +27,14 @@ class ManualConfiguration extends Configuration {
                 console.error(`error loading property "channelNames" of configuration: ${err}`)
             }
         }
+        if (data && typeof data.exclusiveProgram === 'boolean') {
+            this.exclusiveProgram = data.exclusiveProgram
+        }
     }
     toJson(): ManualConfigurationSaveType {
         return {
             channelNames: this.channelNames,
+            exclusiveProgram: this.exclusiveProgram,
         }
     }
     clone(): ManualConfiguration {
@@ -53,6 +61,14 @@ class ManualConfiguration extends Configuration {
     }
     getChannelNames() {
         return this.channelNames
+    }
+
+    setExclusiveProgram(exclusive: boolean) {
+        this.exclusiveProgram = exclusive
+        return this
+    }
+    isExclusiveProgram() {
+        return this.exclusiveProgram
     }
 
     private static readonly defaultChannelNames = Array.from({ length: 8 }, (_, i) => `Channel ${i + 1}`)

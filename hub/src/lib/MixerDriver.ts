@@ -55,7 +55,12 @@ export class MixerDriver {
                     needsRefresh = true
                 }
             }
-            if (needsRefresh) {
+            const sameMixer = configuration.getMixerSelection() === this.currentMixerId
+            if (needsRefresh && sameMixer && this.getCurrentMixerSettings && this.currentMixerInstance?.updateSettings) {
+                // the mixer applies the new settings itself, without a reconnect
+                this.currentMixerSettings = this.getCurrentMixerSettings()
+                this.currentMixerInstance.updateSettings(this.currentMixerSettings)
+            } else if (needsRefresh) {
                 this.changeMixer(configuration.getMixerSelection())
             } else {
                 console.debug("settings were changed, but no need to restart mixer")

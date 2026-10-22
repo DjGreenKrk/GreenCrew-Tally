@@ -52,3 +52,9 @@ test('program beats aux beats preview', () => {
     expect(channelState('1', [], ['1'], ['1'])).toBe('aux')
     expect(channelState('1', null, null, [])).toBe('off')
 })
+
+test('the switch turns exclusive Program on for every phone', () => {
+    const { getByTestId } = renderPage()
+    fireEvent.click(getByTestId('control-exclusive'))
+    expect(mockEmit).toHaveBeenCalledWith('config.change.manual', { ...mockManual.toJson(), exclusiveProgram: true })
+})

@@ -17,14 +17,25 @@ class ManualConnector implements Connector {
 
     connect(): void {
         this.active = true
+        this.applyChannels()
+        this.communicator.notifyMixerIsConnected()
+        this.notify()
+    }
+
+    // renaming channels or switching exclusive Program must not blink the lights
+    updateSettings(configuration: ManualConfiguration): void {
+        this.configuration = configuration
+        this.applyChannels()
+        this.notify()
+    }
+
+    private applyChannels() {
         const names = this.configuration.getChannelNames()
         this.communicator.notifyChannelNames(names.length, Object.fromEntries(names.map((name, i) => [i + 1, name])))
         // channels that no longer exist must not light a tally later
         for (const id of Array.from(channelStates.keys())) {
             if (Number(id) > names.length) channelStates.delete(id)
         }
-        this.communicator.notifyMixerIsConnected()
-        this.notify()
     }
 
     disconnect(): void {
@@ -40,6 +51,11 @@ class ManualConnector implements Connector {
         const count = this.configuration.getChannelNames().length
         if (!/^\d+$/.test(channelId) || Number(channelId) < 1 || Number(channelId) > count) {
             throw new Error(`Unknown channel ${channelId}`)
+        }
+        if (state === 'program' && this.configuration.isExclusiveProgram()) {
+            for (const [id, s] of Array.from(channelStates.entries())) {
+                if (s === 'program' && id !== channelId) channelStates.delete(id)
+            }
         }
         if (state === 'off') {
             channelStates.delete(channelId)
