@@ -62,7 +62,7 @@ describe('Tally display', () => {
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-color', 'unpatched')
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-isactive', 'true')
 
-    cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).select("Channel 1")
+    cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).select("1") // by value; option text is "<id> <name>"
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-color', 'program')
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-isactive', 'true')
     cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] :selected`).contains("Channel 1")
@@ -70,7 +70,8 @@ describe('Tally display', () => {
     cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).select("(unpatched)")
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-color', 'unpatched')
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-isactive', 'true')
-    cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] :selected`).contains("(unpatched)")
+    // the selector is a multi-select: unpatched means no option is selected
+    cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).find(":selected").should("not.exist")
   })
   
   it('updates the interface when a tally is patched/unpatched from a different browser', () => {
@@ -91,7 +92,8 @@ describe('Tally display', () => {
           socket.emit('tally.patch', name, "udp", null)
           cy.getTestId(`tally-${name}`).should('have.attr', 'data-color', 'unpatched')
           cy.getTestId(`tally-${name}`).should('have.attr', 'data-isactive', 'true')
-          cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] :selected`).contains("(unpatched)")
+          // the selector is a multi-select: unpatched means no option is selected
+    cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).find(":selected").should("not.exist")
         })
       })
     })
@@ -112,7 +114,7 @@ describe('Tally display', () => {
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-color', 'unpatched')
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-isactive', 'false')
 
-    cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).select("Channel 1")
+    cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).select("1") // by value; option text is "<id> <name>"
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-color', 'program')
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-isactive', 'false')
     cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] :selected`).contains("Channel 1")
@@ -120,7 +122,8 @@ describe('Tally display', () => {
     cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).select("(unpatched)")
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-color', 'unpatched')
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-isactive', 'false')
-    cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] :selected`).contains("(unpatched)")
+    // the selector is a multi-select: unpatched means no option is selected
+    cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).find(":selected").should("not.exist")
   })
   
   it('updates the interface when a disconnected tally is patched/unpatched from a different browser', () => {
@@ -143,7 +146,8 @@ describe('Tally display', () => {
           socket.emit('tally.patch', name, "udp", null)
           cy.getTestId(`tally-${name}`).should('have.attr', 'data-color', 'unpatched')
           cy.getTestId(`tally-${name}`).should('have.attr', 'data-isactive', 'false')
-          cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] :selected`).contains("(unpatched)")
+          // the selector is a multi-select: unpatched means no option is selected
+    cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).find(":selected").should("not.exist")
         })
       })
     })
