@@ -1,20 +1,21 @@
 import React from 'react'
 import { TallyProgramProgressType } from '../../flasher/NodeMcuConnector'
 import StepDisplay, { StepType } from './StepDisplay'
+import { TranslateFunction, tStored, useTranslation } from '../../i18n'
 
-export function getSteps(progress?: TallyProgramProgressType): StepType[] {
+export function getSteps(progress?: TallyProgramProgressType, t: TranslateFunction = tStored): StepType[] {
   const steps: Array<Pick<StepType, 'id' | 'label' | 'done'> & Partial<Pick<StepType, 'current' | 'max'>>> = [
-    { id: 'initialize', label: 'Initializing', done: Boolean(progress?.inititalizeDone) },
-    { id: 'connection', label: 'Establishing connection', done: Boolean(progress?.connectionDone) },
+    { id: 'initialize', label: t('flasher.step.initializing'), done: Boolean(progress?.inititalizeDone) },
+    { id: 'connection', label: t('flasher.step.connection'), done: Boolean(progress?.connectionDone) },
     {
       id: 'upload',
-      label: 'Uploading files',
+      label: t('flasher.step.uploadingFiles'),
       current: progress?.filesUploaded,
       max: progress?.filesTotal,
       done: Boolean(progress && progress.filesTotal === progress.filesUploaded),
     },
-    { id: 'reboot', label: 'Rebooting Tally to apply settings', done: Boolean(progress?.rebootDone) },
-    { id: 'done', label: 'Upload Done', done: Boolean(progress?.allDone) },
+    { id: 'reboot', label: t('flasher.step.reboot'), done: Boolean(progress?.rebootDone) },
+    { id: 'done', label: t('flasher.step.done'), done: Boolean(progress?.allDone) },
   ]
 
   let precedingDone = true
@@ -33,7 +34,8 @@ type Props = {
   progress?: TallyProgramProgressType
 }
 function ProgramProgress({progress} : Props) {
-  const steps = getSteps(progress)
+  const { t } = useTranslation()
+  const steps = getSteps(progress, t)
 
   return <StepDisplay steps={steps} />
 }

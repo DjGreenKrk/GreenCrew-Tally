@@ -8,6 +8,7 @@ import MiniPage from '../layout/MiniPage'
 import Spinner from '../layout/Spinner'
 import BrightnessSlider from './BrightnessSlider'
 import ColorSchemeSelector from './ColorSchemeSelector'
+import { useTranslation } from '../../i18n'
 
 const useStyle = makeStyles((theme) => ({
   input: {
@@ -26,6 +27,7 @@ const useStyle = makeStyles((theme) => ({
 }))
 
 function TallySettings() {
+  const { t } = useTranslation()
   const settings = useDefaultTallyConfiguration()
   const [operatorBrightness, setOperatorBrightness] = useState<number>(undefined)
   const [stageBrightness, setStageBrightness] = useState<number>(undefined)
@@ -63,20 +65,20 @@ function TallySettings() {
     socket.emit('config.change.tallyconfig', settings.toJson())
   }
 
-  return <MiniPage data-testid="tally-defaults" title="Tally Defaults">
+  return <MiniPage data-testid="tally-defaults" title={t('tallyDefaults.title')}>
     { isLoading ? <Spinner /> : (<form onSubmit={handleSubmit}>
       <div className={classes.input}>
-        <Typography paragraph variant="h6">Operator Light Brightness</Typography>
+        <Typography paragraph variant="h6">{t('tallySettings.operatorBrightness')}</Typography>
         <BrightnessSlider
           testId="tally-defaults-ob"
           minValue={DefaultTallyConfiguration.minOperatorLightBrightness}
-          minMessage="Operator Light can not be turned off."
+          minMessage={t('tallySettings.operatorMin')}
           value={operatorBrightness} 
           onChange={(value) => {setOperatorBrightness(value)}}
         />
       </div>
       <div className={classes.input}>
-        <Typography paragraph variant="h6">Operator Light Colors</Typography>
+        <Typography paragraph variant="h6">{t('tallySettings.operatorColors')}</Typography>
         <ColorSchemeSelector 
           testId="tally-defaults-oc"
           value={operatorColorScheme}
@@ -84,7 +86,7 @@ function TallySettings() {
         />
       </div>
       <div className={classes.input}>
-        <Typography paragraph variant="h6">Operator Display</Typography>
+        <Typography paragraph variant="h6">{t('tallySettings.operatorDisplay')}</Typography>
         <FormControlLabel
           classes={{label: classes.checkboxLabel}}
           control={<Checkbox
@@ -95,11 +97,11 @@ function TallySettings() {
             onChange={(e) => {setOperatorShowsIdle(e.target.checked)}}
             size="small"
           />}
-          label="Shows Idle State"
+          label={t('tallySettings.showsIdle')}
         />
       </div>
       <div className={classes.input}>
-        <Typography paragraph variant="h6">Stage Light Brightness</Typography>
+        <Typography paragraph variant="h6">{t('tallySettings.stageBrightness')}</Typography>
         <BrightnessSlider 
           testId="tally-defaults-sb"
           value={stageBrightness} 
@@ -107,7 +109,7 @@ function TallySettings() {
         />
       </div>
       <div className={classes.input}>
-        <Typography paragraph variant="h6">Stage Light Colors</Typography>
+        <Typography paragraph variant="h6">{t('tallySettings.stageColors')}</Typography>
         <ColorSchemeSelector
           testId="tally-defaults-sc"
           value={stageColorScheme}
@@ -115,7 +117,7 @@ function TallySettings() {
         />
       </div>
       <div className={classes.input}>
-        <Typography paragraph variant="h6">Stage Display</Typography>
+        <Typography paragraph variant="h6">{t('tallySettings.stageDisplay')}</Typography>
         <FormControlLabel
           classes={{label: classes.checkboxLabel}}
           control={<Checkbox
@@ -126,7 +128,7 @@ function TallySettings() {
             onChange={(e) => {setStageShowsPreview(e.target.checked)}}
             size="small"
           />}
-          label="Shows Preview State"
+          label={t('tallySettings.showsPreview')}
         />
         <FormControlLabel
           classes={{label: classes.checkboxLabel}}
@@ -138,11 +140,11 @@ function TallySettings() {
             onChange={(e) => {setStageShowsAux(e.target.checked)}}
             size="small"
           />}
-          label="Shows AUX State"
+          label={t('tallySettings.showsAux')}
         />
       </div>
       <div className={classes.footer}>
-        <Button data-testid="tally-defaults-submit" type="submit" variant="contained" color="primary">Save</Button>
+        <Button data-testid="tally-defaults-submit" type="submit" variant="contained" color="primary">{t('common.save')}</Button>
       </div>
     </form>)}
   </MiniPage> 

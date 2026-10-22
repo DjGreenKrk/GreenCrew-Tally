@@ -3,13 +3,15 @@ import MixerSettingsWrapper from '../../../components/config/MixerSettingsWrappe
 import { socket } from '../../../hooks/useSocket'
 import { MIXER_IDS } from '../../ids'
 import CompanionLanAccess from './CompanionLanAccess'
+import { useTranslation } from '../../../i18n'
 
 function CompanionSettings() {
+    const { t } = useTranslation()
     return (
         <MixerSettingsWrapper
-            title="Companion HTTP Tally"
+            title={t('companion.title')}
             testId="companion"
-            description="Receive Program/Preview/AUX snapshots from Bitfocus Companion (module GreenCrew Tally) at /api/companion/tally."
+            description={t('companion.description')}
             onSave={() => socket.emit('config.change.companion', MIXER_IDS.companion)}
         >
             <CompanionLanAccess />

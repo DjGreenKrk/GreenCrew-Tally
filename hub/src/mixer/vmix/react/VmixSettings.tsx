@@ -4,6 +4,7 @@ import ValidatingInput from '../../../components/config/ValidatingInput'
 import ExternalLink from '../../../components/ExternalLink'
 import { useVmixConfiguration } from '../../../hooks/useConfiguration'
 import { socket } from '../../../hooks/useSocket'
+import { useTranslation } from '../../../i18n'
 
 type VmixSettingsProps = {
     id: "vmix", // @TODO use Vmix.ID
@@ -13,6 +14,7 @@ type VmixSettingsProps = {
 const httpApiPort = "8088"
 
 function VmixSettings(props: VmixSettingsProps) {
+    const { t } = useTranslation()
     const configuration = useVmixConfiguration()
     const [ip, setIp] = useState<string|null>(null)
     const [ipValid, setIpValid] = useState(true)
@@ -39,21 +41,21 @@ function VmixSettings(props: VmixSettingsProps) {
         <MixerSettingsWrapper 
             title="vMix"
             testId="vmix"
-            description={<>Connects to any vMix over network using the <ExternalLink href="https://www.vmix.com/help24/index.htm?TCPAPI.html">TCP API</ExternalLink>.</>}
+            description={<>{t('vmix.descriptionBefore')}<ExternalLink href="https://www.vmix.com/help24/index.htm?TCPAPI.html">TCP API</ExternalLink>{t('vmix.descriptionAfter')}</>}
             canBeSaved={isValid}
             isLoading={isLoading}
             onSave={handleSave}
         >
         { configuration && (<>
-            <ValidatingInput label="vMix IP" testId="vmix-ip" object={configuration} propertyName="ip" onValid={(newIp) => { setIp(newIp); setIpValid(true) }} onInvalid={() => setIpValid(false)} />
+            <ValidatingInput label={t('vmix.ip')} testId="vmix-ip" object={configuration} propertyName="ip" onValid={(newIp) => { setIp(newIp); setIpValid(true) }} onInvalid={() => setIpValid(false)} />
             <ValidatingInput
-                label="vMix Port"
+                label={t('vmix.port')}
                 testId="vmix-port"
                 object={configuration}
                 propertyName="port"
                 onValid={(newPort) => { setPort(newPort); setPortValid(true) }}
                 onInvalid={() => setPortValid(false)}
-                warningMessage={port === httpApiPort ? "This will probably not work. You entered the port of the Web UI, but the port for the TCPAPI is required. If you are unsure what this message means, leave the field blank to use the default." : ""}
+                warningMessage={port === httpApiPort ? t('vmix.portWarning') : ""}
             />
         </>)}
         </MixerSettingsWrapper>

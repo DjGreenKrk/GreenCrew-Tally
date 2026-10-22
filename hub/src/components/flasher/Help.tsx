@@ -3,6 +3,7 @@ import { Button, makeStyles } from '@material-ui/core'
 import TallyDevice from '../../flasher/TallyDevice'
 import { Alert, AlertTitle } from '@material-ui/lab'
 import ExternalLink from '../ExternalLink'
+import { useTranslation } from '../../i18n'
 
 const useStyles = makeStyles(theme => {
   return {
@@ -25,6 +26,7 @@ type Props = {
 
 function Help({tallyDevice, onReload}: Props) {
   const classes = useStyles()
+  const { t } = useTranslation()
   
   if (tallyDevice.path === undefined) {
     const isLocalhost = (() => {
@@ -37,21 +39,21 @@ function Help({tallyDevice, onReload}: Props) {
         className={classes.warning} 
         severity="warning"
         action={
-          <Button color="inherit" size="small" onClick={() => onReload()}>Try again</Button>
+          <Button color="inherit" size="small" onClick={() => onReload()}>{t('flasher.help.tryAgain')}</Button>
         }
       >
         { tallyDevice.ports.length > 0
-          ? 'No known ESP8266 USB adapter (CH340, CP210x, FTDI) was found. If your Tally is connected, choose its serial port above.'
-          : 'Did not find any connected device.' }
+          ? t('flasher.help.noAdapter')
+          : t('flasher.help.noDevice') }
       </Alert>
       <Alert variant="outlined" className={classes.info} severity="info">
-        <AlertTitle>Possible fixes</AlertTitle>
+        <AlertTitle>{t('flasher.help.fixes')}</AlertTitle>
         <ul>
-          <li>Plug the Tally to the computer that runs the hub via USB.</li>
-          { !isLocalhost() && <li>The Tally has to be connected to the computer that <em>runs</em> the hub. It does not work on <em>remote machines</em>.</li> }
-          <li>Some USB cables can just be used for charging. Make sure you use an <em>USB data cable</em>.</li>
-          <li>Close other programs that use the serial port, such as a serial monitor or a second GC Tally Hub.</li>
-          <li>If this has never worked from this computer ever, you might be missing the correct <ExternalLink href="https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers">USB drivers</ExternalLink>.</li>
+          <li>{t('flasher.help.fixPlug')}</li>
+          { !isLocalhost() && <li>{t('flasher.help.fixLocal')}</li> }
+          <li>{t('flasher.help.fixCable')}</li>
+          <li>{t('flasher.help.fixClose')}</li>
+          <li>{t('flasher.help.fixDriversBefore')}<ExternalLink href="https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers">{t('flasher.help.fixDriversLink')}</ExternalLink>{t('flasher.help.fixDriversAfter')}</li>
         </ul>
       </Alert>
     </>
@@ -61,18 +63,18 @@ function Help({tallyDevice, onReload}: Props) {
         className={classes.warning} 
         severity="warning"
         action={
-          <Button color="inherit" size="small" onClick={() => onReload()}>Try again</Button>
+          <Button color="inherit" size="small" onClick={() => onReload()}>{t('flasher.help.tryAgain')}</Button>
         }
       >
-        Device was found on {tallyDevice.path}, but could not determine if LUA is running.
+        {t('flasher.help.noLua', { path: tallyDevice.path })}
         { tallyDevice.errorMessage && <><br />{tallyDevice.errorMessage}</> }
       </Alert>
       <Alert variant="outlined" className={classes.info} severity="info">
-        <AlertTitle>Possible fixes</AlertTitle>
+        <AlertTitle>{t('flasher.help.fixes')}</AlertTitle>
         <ul>
-          <li>This happens sporadically. It could be fixed by trying again.</li>
-          <li>Make sure a firmware is flashed. For example with esptool.</li>
-          <li>Sometimes fault code on the Tally makes the firmware crash. Pushing the reset button might help.</li>
+          <li>{t('flasher.help.fixRetry')}</li>
+          <li>{t('flasher.help.fixFirmware')}</li>
+          <li>{t('flasher.help.fixReset')}</li>
         </ul>
       </Alert>
     </>

@@ -6,6 +6,7 @@ import { useManualConfiguration } from '../../../hooks/useConfiguration'
 import { socket } from '../../../hooks/useSocket'
 import { MIXER_IDS } from '../../ids'
 import { MAX_MANUAL_CHANNELS } from '../ManualConfiguration'
+import { useTranslation } from '../../../i18n'
 
 type ManualSettingsProps = {
     id: typeof MIXER_IDS.manual,
@@ -15,6 +16,7 @@ type ManualSettingsProps = {
 const parseNames = (text: string) => text.split('\n').map(line => line.trim()).filter(line => line !== '')
 
 function ManualSettings(props: ManualSettingsProps) {
+    const { t } = useTranslation()
     const configuration = useManualConfiguration()
     const [names, setNames] = useState('')
     const [exclusiveProgram, setExclusiveProgram] = useState(false)
@@ -44,27 +46,27 @@ function ManualSettings(props: ManualSettingsProps) {
 
     return (
         <MixerSettingsWrapper
-            title="Manual Control"
+            title={t('manual.title')}
             testId="manual"
-            description={<>No vision mixer: set every channel by hand on the <Button component={RouterLink} to="/control" size="small" color="primary">Control</Button> page, e.g. from a phone in the same network. Patch the tallies to these channels as usual.</>}
+            description={<>{t('manual.descriptionBefore')}<Button component={RouterLink} to="/control" size="small" color="primary">{t('manual.controlPage')}</Button>{t('manual.descriptionAfter')}</>}
             canBeSaved={isValid}
             isLoading={!configuration}
             onSave={handleSave}
         >
             {configuration && <TextField
-                label="Channels, one name per line"
+                label={t('manual.channels')}
                 multiline
                 minRows={4}
                 fullWidth
                 value={names}
                 onChange={e => setNames(e.target.value)}
                 error={!isValid}
-                helperText={isValid ? `${count} channel${count === 1 ? '' : 's'}` : `1 to ${MAX_MANUAL_CHANNELS} channels`}
+                helperText={isValid ? t('manual.channelCount', { count }) : t('manual.channelRange', { max: MAX_MANUAL_CHANNELS })}
                 inputProps={{ 'data-testid': 'manual-channel-names' }}
             />}
             {configuration && <FormControlLabel
                 control={<Switch checked={exclusiveProgram} onChange={e => setExclusiveProgram(e.target.checked)} color="primary" inputProps={{ 'data-testid': 'manual-exclusive' } as React.InputHTMLAttributes<HTMLInputElement>} />}
-                label="Only one channel on Program: setting a channel to Program turns off the previous one"
+                label={t('manual.exclusive')}
             />}
         </MixerSettingsWrapper>
     )

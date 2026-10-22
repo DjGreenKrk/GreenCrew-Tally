@@ -1,5 +1,6 @@
 import { darken, FormHelperText, makeStyles, Slider } from '@material-ui/core'
 import React, { useState } from 'react'
+import { useTranslation } from '../../i18n'
 
 const useStyle = makeStyles(theme => ({
   slider: {
@@ -35,6 +36,7 @@ function BrightnessSlider({value, testId, onChange, minValue, minMessage, disabl
   disabled = disabled || false
   const [isFocused, setFocused] = useState(false)
   const classes = useStyle()
+  const { t } = useTranslation()
 
   const handleChange = (e, value) => {
     value = Math.max(value as number, minValue)
@@ -52,7 +54,7 @@ function BrightnessSlider({value, testId, onChange, minValue, minMessage, disabl
         disabled={disabled}
         color="primary"
         valueLabelDisplay="auto" 
-        valueLabelFormat={val => val === 0 ? "off" : `${val}%`} 
+        valueLabelFormat={val => val === 0 ? t('brightness.off') : `${val}%`} 
         onChange={handleChange}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}

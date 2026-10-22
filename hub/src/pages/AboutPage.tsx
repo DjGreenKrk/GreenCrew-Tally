@@ -3,6 +3,8 @@ import { Box, Divider, List, ListItem, ListItemText, makeStyles, Paper, Typograp
 import Layout from '../components/layout/Layout'
 import ExternalLink from '../components/ExternalLink'
 import { buildInfo } from '../buildInfo'
+import { useTranslation } from '../i18n'
+import LanguageSwitch from '../components/layout/LanguageSwitch'
 
 const useStyles = makeStyles(theme => ({
   paper: {
@@ -38,17 +40,18 @@ const noun = [
 
 const AboutPage = () => {
   const classes = useStyles()
-  const buildDate = buildInfo.builtAt ? new Date(buildInfo.builtAt).toLocaleString() : 'Development build'
+  const { t, language } = useTranslation()
+  const buildDate = buildInfo.builtAt ? new Date(buildInfo.builtAt).toLocaleString(language) : t('common.developmentBuild')
 
   const rows: Array<[string, React.ReactNode]> = [
-    ['Version', buildInfo.version],
-    ['Build date', buildDate],
-    ['Author', 'Julian Szymański'],
-    ['Organisation', 'GreenCrew'],
-    ['Website', <ExternalLink href="https://greencrew.pl">https://greencrew.pl</ExternalLink>],
-    ['Repository', <ExternalLink href="https://github.com/DjGreenKrk/GreenCrew-Tally">https://github.com/DjGreenKrk/GreenCrew-Tally</ExternalLink>],
-    ['Licence', <ExternalLink href="https://github.com/DjGreenKrk/GreenCrew-Tally/blob/main/LICENSE">MIT</ExternalLink>],
-    ['Copyright', '© Julian Szymański / GreenCrew'],
+    [t('about.version'), buildInfo.version],
+    [t('about.buildDate'), buildDate],
+    [t('about.author'), 'Julian Szymański'],
+    [t('about.organisation'), 'GreenCrew'],
+    [t('about.website'), <ExternalLink href="https://greencrew.pl">https://greencrew.pl</ExternalLink>],
+    [t('about.repository'), <ExternalLink href="https://github.com/DjGreenKrk/GreenCrew-Tally">https://github.com/DjGreenKrk/GreenCrew-Tally</ExternalLink>],
+    [t('about.licence'), <ExternalLink href="https://github.com/DjGreenKrk/GreenCrew-Tally/blob/main/LICENSE">MIT</ExternalLink>],
+    [t('about.copyright'), '© Julian Szymański / GreenCrew'],
   ]
 
   return (<Layout testId="about">
@@ -57,7 +60,7 @@ const AboutPage = () => {
         <img width="64" height="64" className={classes.logo} src="/favicon.svg" alt="" />
         <div>
           <Typography variant="h5" component="h1">GreenCrew Tally (GC Tally)</Typography>
-          <Typography variant="body2" color="textSecondary">Wi-Fi camera tally system: Hub, ESP8266 tally lights and web tallies</Typography>
+          <Typography variant="body2" color="textSecondary">{t('about.description')}</Typography>
         </div>
       </div>
       <List disablePadding>
@@ -67,15 +70,20 @@ const AboutPage = () => {
           </ListItem>
         ))}
       </List>
-      <Typography variant="body2">Part of GreenCrew Tools</Typography>
+      <Typography variant="body2">{t('about.partOf')}</Typography>
       <Divider className={classes.section} />
       <Box className={classes.section}>
-        <Typography variant="h6" component="h2">Credits</Typography>
+        <Typography variant="h6" component="h2">{t('language.title')}</Typography>
+        <LanguageSwitch />
+      </Box>
+      <Divider className={classes.section} />
+      <Box className={classes.section}>
+        <Typography variant="h6" component="h2">{t('about.credits')}</Typography>
         <List disablePadding>
           <ListItem className={classes.item} disableGutters>
             <ListItemText
               primary={<ExternalLink href="https://github.com/wifi-tally/wifi-tally">vTally / wifi-tally</ExternalLink>}
-              secondary="Christian Zenker and contributors" />
+              secondary={t('about.creditsOriginal')} />
           </ListItem>
           <ListItem className={classes.item} disableGutters>
             <ListItemText
@@ -86,7 +94,7 @@ const AboutPage = () => {
             <ListItemText primary="GreenCrew Tally" secondary="GreenCrew" />
           </ListItem>
         </List>
-        <Typography variant="subtitle2" className={classes.section}>Icons from the Noun Project</Typography>
+        <Typography variant="subtitle2" className={classes.section}>{t('about.icons')}</Typography>
         <List disablePadding>
           {noun.map(n => (
             <ListItem key={n.name} className={classes.item} disableGutters>

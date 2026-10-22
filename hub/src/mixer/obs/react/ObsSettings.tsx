@@ -8,6 +8,7 @@ import { socket } from '../../../hooks/useSocket'
 import { ObsConfigurationLiveMode } from '../ObsConfiguration'
 import { MIXER_IDS } from '../../ids'
 import ObsLiveModeSelect from './ObsLiveModeSelect'
+import { useTranslation } from '../../../i18n'
 
 type ObsSettingsProps = {
     id: typeof MIXER_IDS.obs,
@@ -15,6 +16,7 @@ type ObsSettingsProps = {
 }
 
 function ObsSettings(props: ObsSettingsProps) {
+    const { t } = useTranslation()
     const configuration = useObsConfiguration()
     const [ip, setIp] = useState<string|null>(null)
     const [ipValid, setIpValid] = useState(true)
@@ -52,18 +54,18 @@ function ObsSettings(props: ObsSettingsProps) {
 
     return (
         <MixerSettingsWrapper 
-            title="OBS Studio Configuration"
+            title={t('obs.title')}
             testId="obs"
-            description={<>Connects to OBS Studio 28 or newer over the network through its built-in <ExternalLink href="https://github.com/obsproject/obs-websocket">WebSocket server</ExternalLink>. In OBS open Tools → WebSocket Server Settings, enable the server and use the port and password shown under Show Connect Info.</>}
+            description={<>{t('obs.descriptionBefore')}<ExternalLink href="https://github.com/obsproject/obs-websocket">{t('obs.descriptionLink')}</ExternalLink>{t('obs.descriptionAfter')}</>}
             canBeSaved={isValid}
             isLoading={isLoading}
             onSave={handleSave}
         >
             { configuration && (<>
-                <ValidatingInput label="Obs IP" testId="obs-ip" object={configuration} propertyName="ip" onValid={(newIp) => { setIp(newIp); setIpValid(true) }} onInvalid={() => setIpValid(false)} />
-                <ValidatingInput label="Obs Port" testId="obs-port" object={configuration} propertyName="port" onValid={(newPort) => { setPort(newPort); setPortValid(true) }} onInvalid={() => setPortValid(false)} />
-                <TextField label="Obs Password" type="password" autoComplete="off" value={password} onChange={e => setPassword(e.target.value)} inputProps={{ 'data-testid': 'obs-password' }} style={{ margin: "0 16px 16px 0" }} helperText="Empty if authentication is off in OBS" />
-                <ObsLiveModeSelect label="On-Air Status" testId="obs-liveMode" value={liveMode} onChange={setLiveMode} />
+                <ValidatingInput label={t('obs.ip')} testId="obs-ip" object={configuration} propertyName="ip" onValid={(newIp) => { setIp(newIp); setIpValid(true) }} onInvalid={() => setIpValid(false)} />
+                <ValidatingInput label={t('obs.port')} testId="obs-port" object={configuration} propertyName="port" onValid={(newPort) => { setPort(newPort); setPortValid(true) }} onInvalid={() => setPortValid(false)} />
+                <TextField label={t('obs.password')} type="password" autoComplete="off" value={password} onChange={e => setPassword(e.target.value)} inputProps={{ 'data-testid': 'obs-password' }} style={{ margin: "0 16px 16px 0" }} helperText={t('obs.passwordHelp')} />
+                <ObsLiveModeSelect label={t('obs.liveMode')} testId="obs-liveMode" value={liveMode} onChange={setLiveMode} />
             </>)}
         </MixerSettingsWrapper>
     )

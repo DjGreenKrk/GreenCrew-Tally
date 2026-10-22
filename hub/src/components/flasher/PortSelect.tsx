@@ -1,6 +1,7 @@
 import React from 'react'
 import { FormControl, InputLabel, makeStyles, Select } from '@material-ui/core'
 import { SerialPortChoice } from '../../flasher/TallyDevice'
+import { TranslateFunction, tStored, useTranslation } from '../../i18n'
 
 const adapterNames: Record<string, string> = {
   '1A86': 'CH340',
@@ -8,9 +9,9 @@ const adapterNames: Record<string, string> = {
   '0403': 'FTDI',
 }
 
-export const describePort = (port: SerialPortChoice) => {
+export const describePort = (port: SerialPortChoice, t: TranslateFunction = tStored) => {
   const adapter = port.vendorId && adapterNames[port.vendorId.toUpperCase()]
-  return `${port.path} – ${adapter || (port.supported ? 'USB serial' : 'unknown device')}`
+  return `${port.path} – ${adapter || (port.supported ? t('flasher.port.usbSerial') : t('flasher.port.unknown'))}`
 }
 
 /**
@@ -37,11 +38,12 @@ type Props = {
 
 function PortSelect({ ports, value, disabled, onChange }: Props) {
   const classes = useStyles()
+  const { t } = useTranslation()
   // Recognised ESP adapters first, then the rest in the order Windows lists them.
   const sorted = [...ports.filter(port => port.supported), ...ports.filter(port => !port.supported)]
   return (
     <FormControl className={classes.root} disabled={disabled}>
-      <InputLabel shrink htmlFor="flasher-port">Serial port</InputLabel>
+      <InputLabel shrink htmlFor="flasher-port">{t('flasher.port.label')}</InputLabel>
       <Select
         native
         data-testid="flasher-port"
@@ -49,8 +51,8 @@ function PortSelect({ ports, value, disabled, onChange }: Props) {
         onChange={e => onChange(String(e.target.value))}
         inputProps={{ id: 'flasher-port' }}
       >
-        {value === undefined && <option value="">Choose a port…</option>}
-        {sorted.map(port => <option key={port.path} value={port.path}>{describePort(port)}</option>)}
+        {value === undefined && <option value="">{t('flasher.port.choose')}</option>}
+        {sorted.map(port => <option key={port.path} value={port.path}>{describePort(port, t)}</option>)}
       </Select>
     </FormControl>
   )

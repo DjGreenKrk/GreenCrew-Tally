@@ -3,6 +3,7 @@ import { Button, makeStyles, TextField, Typography } from '@material-ui/core'
 import { Alert } from '@material-ui/lab'
 import { socket } from '../../../hooks/useSocket'
 import { CompanionLanState } from '../../../lib/CompanionLanState'
+import { useTranslation } from '../../../i18n'
 
 const useStyles = makeStyles(theme => ({
     section: {
@@ -29,42 +30,43 @@ type ViewProps = {
 
 export function CompanionLanAccessView({ state, onGenerate, onDisable }: ViewProps) {
     const classes = useStyles()
+    const { t } = useTranslation()
     const [visible, setVisible] = useState(false)
     const [copied, setCopied] = useState(false)
     if (!state) return null
 
-    const hubIps = state.hubAddresses.length ? state.hubAddresses.join(' or ') : 'the IP address of this computer'
+    const hubIps = state.hubAddresses.length ? state.hubAddresses.join(t('companionLan.or')) : t('companionLan.thisComputer')
     const copy = () => {
         if (!state.token) return
         navigator.clipboard?.writeText(state.token).then(() => setCopied(true), () => setVisible(true))
     }
 
     return (<div className={classes.section} data-testid="companion-lan">
-        <Typography variant="h6">Companion on this computer</Typography>
+        <Typography variant="h6">{t('companionLan.localTitle')}</Typography>
         <Typography paragraph>
-            In the GreenCrew Tally connection in Companion use Hub IP <strong>127.0.0.1</strong>, port <strong>{state.httpPort}</strong> and leave the access token empty.
+            {t('companionLan.localBefore')}<strong>127.0.0.1</strong>{t('companionLan.port')}<strong>{state.httpPort}</strong>{t('companionLan.localAfter')}
         </Typography>
 
-        <Typography variant="h6">Companion on another computer (LAN)</Typography>
+        <Typography variant="h6">{t('companionLan.remoteTitle')}</Typography>
         <Typography paragraph>
-            Use Hub IP <strong data-testid="companion-lan-ips">{hubIps}</strong>, port <strong>{state.httpPort}</strong> and the access token below.
+            {t('companionLan.remoteBefore')}<strong data-testid="companion-lan-ips">{hubIps}</strong>{t('companionLan.port')}<strong>{state.httpPort}</strong>{t('companionLan.remoteAfter')}
         </Typography>
 
         {state.source === 'none' && <Typography paragraph data-testid="companion-lan-off">
-            Remote access is off: only Companion on this computer can send tally data.
+            {t('companionLan.off')}
         </Typography>}
 
         {state.source === 'env' && <Alert severity="info" className={classes.token}>
-            The token is set by the <code>VTALLY_COMPANION_TOKEN</code> environment variable of the Hub. Change or remove it there.
+            {t('companionLan.envBefore')}<code>VTALLY_COMPANION_TOKEN</code>{t('companionLan.envAfter')}
         </Alert>}
         {state.tooShort && <Alert severity="error" className={classes.token}>
-            The token is shorter than 16 characters, so remote access stays off.
+            {t('companionLan.tooShort')}
         </Alert>}
 
         {state.source !== 'none' && (state.token !== undefined ? (
             <TextField
                 className={classes.token}
-                label="Access token"
+                label={t('companionLan.token')}
                 value={visible ? state.token : '•'.repeat(24)}
                 InputProps={{ readOnly: true }}
                 inputProps={{ 'data-testid': 'companion-lan-token' }}
@@ -73,27 +75,27 @@ export function CompanionLanAccessView({ state, onGenerate, onDisable }: ViewPro
             />
         ) : (
             <Typography paragraph data-testid="companion-lan-hidden">
-                A token is set. It is shown only on the computer that runs the Hub.
+                {t('companionLan.hidden')}
             </Typography>
         ))}
 
         <div className={classes.buttons}>
             {state.token !== undefined && <>
-                <Button size="small" variant="outlined" onClick={() => setVisible(!visible)}>{visible ? 'Hide' : 'Show'}</Button>
-                <Button size="small" variant="outlined" onClick={copy}>{copied ? 'Copied' : 'Copy'}</Button>
+                <Button size="small" variant="outlined" onClick={() => setVisible(!visible)}>{visible ? t('companionLan.hide') : t('companionLan.show')}</Button>
+                <Button size="small" variant="outlined" onClick={copy}>{copied ? t('companionLan.copied') : t('companionLan.copy')}</Button>
             </>}
             {state.canManage && <>
                 <Button size="small" variant="contained" color="primary" data-testid="companion-lan-generate" onClick={() => { setCopied(false); onGenerate() }}>
-                    {state.source === 'hub' ? 'Generate new token' : 'Allow LAN access (generate token)'}
+                    {state.source === 'hub' ? t('companionLan.regenerate') : t('companionLan.generate')}
                 </Button>
-                {state.source === 'hub' && <Button size="small" variant="outlined" data-testid="companion-lan-disable" onClick={onDisable}>Turn off LAN access</Button>}
+                {state.source === 'hub' && <Button size="small" variant="outlined" data-testid="companion-lan-disable" onClick={onDisable}>{t('companionLan.disable')}</Button>}
             </>}
         </div>
         {state.canManage && state.source === 'hub' && <Typography variant="caption" paragraph>
-            A new token replaces the old one at once; update it in Companion afterwards.
+            {t('companionLan.replaceNote')}
         </Typography>}
         {!state.canManage && state.source !== 'env' && <Typography variant="caption" paragraph>
-            Open this page on the computer that runs the Hub to change LAN access.
+            {t('companionLan.localOnly')}
         </Typography>}
     </div>)
 }

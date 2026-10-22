@@ -10,6 +10,7 @@ import TuneIcon from '@material-ui/icons/Tune'
 import { socket } from '../hooks/useSocket'
 import { Link as RouterLink, LinkProps as RouterLinkProps } from 'react-router-dom'
 import TallySettings from './TallySettings';
+import { useTranslation } from '../i18n';
 
 type TallyMenuProps = {
   tally: Tally
@@ -42,6 +43,7 @@ function MenuItemLink(props: MenuItemLinkProps) {
 }
 
 function TallyMenu({ tally, className }: TallyMenuProps) {
+  const { t } = useTranslation()
   const [anchorEl, setAnchorEl] = useState(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const allowHighlight = tally.isActive()
@@ -72,7 +74,7 @@ function TallyMenu({ tally, className }: TallyMenuProps) {
   }
 
   return (<div data-testid={`tally-${tally.name}-menu`} className={className}>
-    <IconButton size="small" title={`${tally.name} Menu`} aria-controls="menu" aria-haspopup="true" onClick={handleMenuClick}>
+    <IconButton size="small" title={t('tallyMenu.title', { name: tally.name })} aria-controls="menu" aria-haspopup="true" onClick={handleMenuClick}>
       <MoreIcon />
     </IconButton>
     <Menu
@@ -85,28 +87,28 @@ function TallyMenu({ tally, className }: TallyMenuProps) {
       {tally.isWebTally() && (
         <MenuItemLink testid={`tally-${tally.name}-web`} to={`/tally/${tally.getId()}`}>
           <ListItemIcon><LinkIcon fontSize="small" /></ListItemIcon>
-          <ListItemText>Connect</ListItemText>
+          <ListItemText>{t('tallyMenu.connect')}</ListItemText>
         </MenuItemLink>
       )}
       <MenuItem data-testid={`tally-${tally.name}-settings`} onClick={() => {handleClose(); setSettingsOpen(true)}}>
         <ListItemIcon><TuneIcon fontSize="small" /></ListItemIcon>
-        <ListItemText>Settings</ListItemText>
+        <ListItemText>{t('tallyMenu.settings')}</ListItemText>
       </MenuItem>
       <TallySettings tally={tally} open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <MenuItemLink testid={`tally-${tally.name}-logs`} to={`/tally/${tally.getId()}/log`}>
         <ListItemIcon><SubjectIcon fontSize="small" /></ListItemIcon>
-        <ListItemText>Logs</ListItemText>
+        <ListItemText>{t('tallyMenu.logs')}</ListItemText>
       </MenuItemLink>
-      <Tooltip data-testid={`tally-${tally.name}-highlight`} title={!allowHighlight ? "Tally is not connected" : ""}><div>
+      <Tooltip data-testid={`tally-${tally.name}-highlight`} title={!allowHighlight ? t('tallyMenu.notConnected') : ""}><div>
         <MenuItem component="div" disabled={!allowHighlight} onClick={handleHighlightTally}>
           <ListItemIcon><HighlightIcon fontSize="small" /></ListItemIcon>
-          <ListItemText>Highlight</ListItemText>
+          <ListItemText>{t('tallyMenu.highlight')}</ListItemText>
         </MenuItem>
       </div></Tooltip>
-      <Tooltip data-testid={`tally-${tally.name}-remove`} title={!allowRemove ? "Connected Tallies can not be removed" : ""}><div>
+      <Tooltip data-testid={`tally-${tally.name}-remove`} title={!allowRemove ? t('tallyMenu.cannotRemove') : ""}><div>
         <MenuItem disabled={!allowRemove} onClick={handleRemoveTally}>
           <ListItemIcon><DeleteIcon fontSize="small" /></ListItemIcon>
-          <ListItemText>Remove</ListItemText>
+          <ListItemText>{t('tallyMenu.remove')}</ListItemText>
         </MenuItem>
       </div></Tooltip>
     </Menu>
