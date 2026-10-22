@@ -1,3 +1,4 @@
+// MANUAL SCENARIO - not part of CI (excluded in cypress.config.ts). Needs a real unflashed tally via USB; run with `npm run cypress:open:manual`.
 /// <reference types="Cypress" />
 /// <reference types="../support" />
 

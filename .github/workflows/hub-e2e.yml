@@ -1,0 +1,76 @@
+name: GC Tally Hub E2E
+
+# Cypress browser tests against a real, production-built Hub started with
+# --with-test (adds the "Test Mixer" the specs drive). The manual_* specs need
+# hardware and are excluded in cypress.config.ts.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'hub/**'
+      - '.github/workflows/hub-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cypress:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: hub
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: hub/package-lock.json
+      - name: Install dependencies (lifecycle scripts skipped, like the Hub CI)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Cache the Cypress binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: cypress-${{ runner.os }}-${{ hashFiles('hub/package-lock.json') }}
+      - name: Install the Cypress binary
+        run: npx cypress install
+      - name: Build backend and frontend
+        run: |
+          npm run build:backend
+          npm run build:frontend
+          rm -rf dist/frontend
+          cp -r build dist/frontend
+      - name: Start the Hub in test mode
+        run: |
+          CONFIG_FILE="$RUNNER_TEMP/hub-e2e.json" PORT=3000 NODE_ENV=production \
+            nohup node dist/server.js --env=production --with-test > "$RUNNER_TEMP/hub.log" 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/ > /dev/null 2>&1; then
+              echo "Hub is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Hub did not start" >&2
+          cat "$RUNNER_TEMP/hub.log" >&2
+          exit 1
+      - name: Run Cypress (Electron, headless)
+        run: npm run cypress:run
+        env:
+          HUB_URL: http://localhost:3000
+      - name: Upload screenshots and videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-failures
+          path: |
+            hub/cypress/screenshots
+            hub/cypress/videos
+          if-no-files-found: ignore
+      - name: Hub log
+        if: always()
+        run: cat "$RUNNER_TEMP/hub.log" || true

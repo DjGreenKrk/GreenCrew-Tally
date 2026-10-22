@@ -19,34 +19,34 @@ describe('Tally display', () => {
     cy.task('tally', name).then(() => {
       cy.getTestId(`tally-${name}`).contains(name)
       cy.getTestId(`tally-${name}`).should('have.attr', 'data-isactive', 'true')
-      cy.get("*[data-testid=tallies-connected").contains("1")
+      cy.get("*[data-testid=tallies-connected]").contains("1")
     })
     
     const name2 = randomTallyName()
     cy.task('tally', name2).then(() => {
       cy.getTestId(`tally-${name2}`).contains(name2)
-      cy.get("*[data-testid=tallies-connected").contains("2")
+      cy.get("*[data-testid=tallies-connected]").contains("2")
     })
 
     const name3 = randomTallyName()
     cy.task('tally', name3).then(() => {
       cy.getTestId(`tally-${name3}`).contains(name3)
-      cy.get("*[data-testid=tallies-connected").contains("3")
+      cy.get("*[data-testid=tallies-connected]").contains("3")
     })
 
     // a tally disconnects
     cy.task('tallyDisconnect', name3).then(() => {
       cy.getTestId(`tally-${name3}`).contains(name3)
       cy.getTestId(`tally-${name3}`).contains("missing", {matchCase: false})
-      cy.get("*[data-testid=tallies-connected").contains("2")
+      cy.get("*[data-testid=tallies-connected]").contains("2")
 
       cy.getTestId(`tally-${name3}`).should('have.attr', 'data-isactive', 'false')
-      cy.get("*[data-testid=tallies-connected").contains("2")
+      cy.get("*[data-testid=tallies-connected]").contains("2")
     })
 
     // a tally is removed
     cy.task('tallyKill', name2).then(() => {
-      cy.get("*[data-testid=tallies-connected").contains("1")
+      cy.get("*[data-testid=tallies-connected]").contains("1")
     })
   })
 
