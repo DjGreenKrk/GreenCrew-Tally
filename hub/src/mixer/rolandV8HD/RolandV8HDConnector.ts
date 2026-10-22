@@ -30,8 +30,8 @@ class RolandV8HDConnector implements Connector {
     connected: boolean
     interval: NodeJS.Timeout | null
     midi: MidiModule | undefined
-    midi_input: MidiInputPort
-    midi_output: MidiOutputPort
+    midi_input?: MidiInputPort
+    midi_output?: MidiOutputPort
     input_status: number[]
 
     constructor(configuration: RolandV8HDConfiguration, communicator: MixerCommunicator) {
@@ -143,10 +143,11 @@ class RolandV8HDConnector implements Connector {
 
     disconnect() {
       //clean interval
-      clearInterval(this.interval);
+      if (this.interval) clearInterval(this.interval)
       console.log(`RolandV8HD V-8HD connection closed`);
-      this.midi_output.closePort()
-      this.midi_input.closePort()
+      // the ports do not exist when the MIDI module is missing (connect returned early)
+      this.midi_output?.closePort()
+      this.midi_input?.closePort()
       this.connected = false
       this.communicator.notifyMixerIsDisconnected()
       return true

@@ -14,6 +14,7 @@ import { socket } from '../hooks/useSocket';
 import Help from '../components/flasher/Help';
 import ProgramProgress from '../components/flasher/ProgramProgress';
 import PortSelect, { needsPortChoice } from '../components/flasher/PortSelect';
+import { useTranslation } from '../i18n';
 
 const useStyles = makeStyles(theme => {
   return {
@@ -64,6 +65,7 @@ const FlasherPage = () => {
   const isLoading = tallyDevice === undefined
 
   const classes = useStyles()
+  const { t } = useTranslation()
 
   const handleReload = () => {
     setIncrement(increment + 1)
@@ -111,18 +113,18 @@ const FlasherPage = () => {
         disableEscapeKeyDown={isUploading}
         open={uploadingOpen}
       >
-        <DialogTitle>Upload</DialogTitle>
+        <DialogTitle>{t('flasher.upload')}</DialogTitle>
         <DialogContent>
           { uploadProgress && <TallySettingsIniProgress progress={uploadProgress} /> }
           { programProgress && <ProgramProgress progress={programProgress} /> }
         </DialogContent>
         <DialogActions>
-          <Button data-testid="progress-close" disabled={isUploading} onClick={() => setUploadingOpen(false)}>Close</Button>
+          <Button data-testid="progress-close" disabled={isUploading} onClick={() => setUploadingOpen(false)}>{t('common.close')}</Button>
         </DialogActions>
       </Dialog>
-      <MiniPage title="Tally Flasher" addHeaderContent={<IconButton aria-label="reload" disabled={isLoading || isUploading} onClick={handleReload}><RefreshIcon /></IconButton>}>
+      <MiniPage title={t('flasher.title')} addHeaderContent={<IconButton aria-label={t('flasher.reload')} disabled={isLoading || isUploading} onClick={handleReload}><RefreshIcon /></IconButton>}>
         <Typography paragraph>
-          This tool allows to update the configuration or software of a Hardware Tally Light.
+          {t('flasher.description')}
         </Typography>
         { tallyDevice === undefined ? (
           <Spinner />
@@ -136,12 +138,12 @@ const FlasherPage = () => {
           <Help tallyDevice={tallyDevice} onReload={handleReload} />
         </>)}
       </MiniPage>
-      { (tallyDevice?.update === "updateable" || tallyDevice?.update === "up-to-date") && <MiniPage testId="update-software" title="Software Update">
+      { (tallyDevice?.update === "updateable" || tallyDevice?.update === "up-to-date") && <MiniPage testId="update-software" title={t('flasher.update.title')}>
         { tallyDevice?.update === "up-to-date" && <Alert
           className={classes.success}
           variant="outlined"
           severity="success">
-            The software on this Tally is up to date.
+            {t('flasher.update.upToDate')}
         </Alert>}
         { tallyDevice?.update === "updateable" && <>
           <Alert 
@@ -149,20 +151,20 @@ const FlasherPage = () => {
             severity="warning"
             variant="outlined"
           >
-            The Software on this Tally can be updated.
+            {t('flasher.update.available')}
           </Alert>
           <div className={classes.footer}>
-            <Button color="primary" variant="contained" onClick={handleProgram} data-testid="update-software-now">Update now</Button>
+            <Button color="primary" variant="contained" onClick={handleProgram} data-testid="update-software-now">{t('flasher.update.now')}</Button>
           </div>
         </>}
       </MiniPage>}
-      { tallyDevice?.nodeMcuVersion !== undefined && <MiniPage title="Edit tally-settings.ini" testId="tally-settings">
+      { tallyDevice?.nodeMcuVersion !== undefined && <MiniPage title={t('flasher.ini.title')} testId="tally-settings">
         { !tallyDevice.tallySettings && <Alert 
           className={classes.warning} 
           severity="warning"
           variant="outlined"
         >
-          tally-settings.ini does not exist yet and will be created.
+          {t('flasher.ini.missing')}
         </Alert> }
         <EditSettingsIni settingsIni={tallyDevice.tallySettings} onSave={handleSettingsIniSave} disabled={isLoading || isUploading} />
       </MiniPage>}

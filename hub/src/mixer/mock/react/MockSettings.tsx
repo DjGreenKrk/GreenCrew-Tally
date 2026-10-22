@@ -4,6 +4,7 @@ import ValidatingInput from '../../../components/config/ValidatingInput'
 import { useMockConfiguration } from '../../../hooks/useConfiguration'
 import { socket } from '../../../hooks/useSocket'
 import { MIXER_IDS } from '../../ids'
+import { useTranslation } from '../../../i18n'
 
 type MockSettingsProps = {
     id: typeof MIXER_IDS.mock,
@@ -11,6 +12,7 @@ type MockSettingsProps = {
 }
 
 function MockSettings(props: MockSettingsProps) {
+    const { t } = useTranslation()
     const configuration = useMockConfiguration()
     const [tickTime, setTickTime] = useState<string|null>(null)
     const [tickTimeValid, setTickTimeValid] = useState(true)
@@ -38,19 +40,16 @@ function MockSettings(props: MockSettingsProps) {
 
     return (
         <MixerSettingsWrapper 
-            title="Mock Configuration"
+            title={t('mock.title')}
             testId="mock"
-            description="
-            This simulates a Video Mixer by changing the channels randomly at a fixed time interval.
-            It is intended for development, when you do not have a video mixer at hand, but serves
-            no purpose in productive environments."
+            description={t('mock.description')}
             canBeSaved={isValid}
             isLoading={isLoading}
             onSave={handleSave}
         >{configuration && (<>
-            <ValidatingInput label="Tick Time" testId="mock-tick" object={configuration} propertyName="tickTime" onValid={(tickTime) => { setTickTime(tickTime); setTickTimeValid(true) }} onInvalid={() => setTickTimeValid(false)} />
-            <ValidatingInput label="Channel Count" testId="mock-channelCount" object={configuration} propertyName="channelCount" onValid={(channelCount) => { setChannelCount(channelCount); setChannelCountValid(true) }} onInvalid={() => setChannelCountValid(false)} />
-            <ValidatingInput label="Channel Names" testId="mock-channelNames" object={configuration} propertyName="channelNames" onValid={(channelNames) => { setChannelNames(channelNames); setChannelNamesValid(true) }} onInvalid={() => setChannelNamesValid(false)} />
+            <ValidatingInput label={t('mock.tickTime')} testId="mock-tick" object={configuration} propertyName="tickTime" onValid={(tickTime) => { setTickTime(tickTime); setTickTimeValid(true) }} onInvalid={() => setTickTimeValid(false)} />
+            <ValidatingInput label={t('mock.channelCount')} testId="mock-channelCount" object={configuration} propertyName="channelCount" onValid={(channelCount) => { setChannelCount(channelCount); setChannelCountValid(true) }} onInvalid={() => setChannelCountValid(false)} />
+            <ValidatingInput label={t('mock.channelNames')} testId="mock-channelNames" object={configuration} propertyName="channelNames" onValid={(channelNames) => { setChannelNames(channelNames); setChannelNamesValid(true) }} onInvalid={() => setChannelNamesValid(false)} />
         </>)}</MixerSettingsWrapper>
     )
 }

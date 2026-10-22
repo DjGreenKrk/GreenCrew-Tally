@@ -1,3 +1,4 @@
+// MANUAL SCENARIO - not part of CI (excluded in cypress.config.ts). Needs a real ATEM; run with `npm run cypress:open:manual`.
 /// <reference types="Cypress" />
 import { socket } from '../../src/hooks/useSocket'
 
@@ -7,7 +8,7 @@ describe('Live AtemCheck', () => {
   before(() => {
     ip = Cypress.env('atem_ip')
     port = parseInt(Cypress.env('atem_port'), 10)
-    cy.log(`This test expects an ATEM Video Mixer to run at ${ip}:${port}. See "cypress.json" to change these values.`)
+    cy.log(`This test expects an ATEM Video Mixer to run at ${ip}:${port}. Set ATEM_IP and ATEM_PORT or edit "cypress.config.ts" to change these values.`)
     cy.task('atemConnect', {ip, port})
   })
   after(() => {

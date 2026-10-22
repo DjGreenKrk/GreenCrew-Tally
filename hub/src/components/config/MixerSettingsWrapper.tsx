@@ -1,6 +1,7 @@
 import React from 'react'
 import Spinner from '../layout/Spinner'
 import { Button, makeStyles, Tooltip, Typography } from '@material-ui/core'
+import { useTranslation } from '../../i18n'
 
 const useStyles = makeStyles(theme => ({
     text: {
@@ -32,7 +33,8 @@ type MixerSettingsWrapperProps = {
 function MixerSettingsWrapper({title, testId, description, canBeSaved, isLoading, children, onSave}: MixerSettingsWrapperProps ) {
     const classes = useStyles()
 
-    const buttonLabel = "Save"
+    const { t } = useTranslation()
+    const buttonLabel = t('common.save')
     const handleSubmit = e => {
         e.preventDefault()
         if (onSave) {
@@ -52,7 +54,7 @@ function MixerSettingsWrapper({title, testId, description, canBeSaved, isLoading
                 </>) }
                 <div className={classes.footer}>
                 { onSave ? (canBeSaved === false ? (
-                    <Tooltip title="The form contains errors"><div className={classes.tooltipWrapFix}><Button data-testid={`${testId}-submit`} variant="contained" disabled>{buttonLabel}</Button></div></Tooltip>
+                    <Tooltip title={t('settings.formErrors')}><div className={classes.tooltipWrapFix}><Button data-testid={`${testId}-submit`} variant="contained" disabled>{buttonLabel}</Button></div></Tooltip>
                 ) : (
                     <Button data-testid={`${testId}-submit`} type="submit" variant="contained" color="primary">{buttonLabel}</Button>
                 )) : "" }

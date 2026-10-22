@@ -1,6 +1,7 @@
 import { makeStyles, TextField } from '@material-ui/core'
 import React, { useEffect, useRef, useState } from 'react'
 import { Configuration } from '../../mixer/interfaces'
+import { useTranslation } from '../../i18n'
 
 type ValidatingInputProps = {
     label: string
@@ -38,6 +39,7 @@ function ValidatingInput({label, testId, object, propertyName, errorMessage, war
     const [value, setValue] = useState<string|null>(theObjectValue)
     const [isValid, setIsValid] = useState(true)
     const classes = useStyles()
+    const { t } = useTranslation()
 
     // Notify the parent after commit, never schedule a timer from render.
     // A ref keeps the latest callback without resetting edits on every render.
@@ -69,7 +71,7 @@ function ValidatingInput({label, testId, object, propertyName, errorMessage, war
             value={value} 
             onChange={handleChange}
             error={!isValid}
-            helperText={!isValid ? (errorMessage || "invalid") : (warningMessage || "")}
+            helperText={!isValid ? (errorMessage || t('settings.invalid')) : (warningMessage || "")}
             className={classes.input}
         />
     )

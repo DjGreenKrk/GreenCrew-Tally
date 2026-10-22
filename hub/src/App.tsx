@@ -9,9 +9,11 @@ import WebTallyPage from './pages/WebTallyPage'
 import FlasherPage from './pages/FlasherPage'
 import ControlPage from './pages/ControlPage'
 import AboutPage from './pages/AboutPage'
+import { I18nProvider } from './i18n'
 
 function App() {
   return (
+    <I18nProvider>
     <Router>
       <MyTheme>
         <CssBaseline />
@@ -40,6 +42,7 @@ function App() {
         </Switch>
       </MyTheme>
     </Router>
+    </I18nProvider>
   )
 }
 

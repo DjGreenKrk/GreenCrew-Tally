@@ -1,6 +1,7 @@
 import React from 'react'
 import { Button, Dialog, DialogActions, DialogContent, DialogProps, DialogTitle, IconButton, makeStyles, Typography, useMediaQuery, useTheme } from '@material-ui/core'
 import CloseIcon from '@material-ui/icons/Close'
+import { useTranslation } from '../../i18n'
 
 const useStyles = makeStyles(theme => ({
   title: {
@@ -36,6 +37,7 @@ function FormDialog(props: FormDialogProps) {
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('xs'))
   const classes = useStyles()
+  const { t } = useTranslation()
 
   return (
     <Dialog fullWidth={true} fullScreen={fullScreen} maxWidth="sm" scroll="body" {...props}>
@@ -45,7 +47,7 @@ function FormDialog(props: FormDialogProps) {
       }}>
         <DialogTitle className={classes.title} disableTypography={true}>
           <Typography variant="h1">{label}</Typography>
-          <IconButton aria-label="Close Dialog" onClick={onClose}>
+          <IconButton aria-label={t('dialog.close')} onClick={onClose}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -53,8 +55,8 @@ function FormDialog(props: FormDialogProps) {
           {props.children}
         </DialogContent>
         <DialogActions className={classes.actions}>
-          <Button onClick={onClose} color="default" data-testid={`${testId}-close`}>Cancel</Button>
-          <Button disabled={isLoading} color="primary" variant="contained" data-testid={`${testId}-submit`} type="submit">Save</Button>
+          <Button onClick={onClose} color="default" data-testid={`${testId}-close`}>{t('common.cancel')}</Button>
+          <Button disabled={isLoading} color="primary" variant="contained" data-testid={`${testId}-submit`} type="submit">{t('common.save')}</Button>
         </DialogActions>
       </form>
     </Dialog>

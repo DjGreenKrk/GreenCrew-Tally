@@ -44,8 +44,8 @@ describe('Web Tally Creation', () => {
     cy.getTestId("tally-create-popup").should('not.exist')
     cy.getTestId(`tally-${name}`).contains(name)
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-color', 'unpatched').then(() => {
-      cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).select("Channel 1")
-      cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).should('have.value', "1")
+      cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).select("1") // by value; option text is "<id> <name>"
+      cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).invoke('val').should('deep.equal', ["1"]) // multi-select
     })
   })
   it('can create a patched web tally', () => {
@@ -53,7 +53,7 @@ describe('Web Tally Creation', () => {
     cy.getTestId("tally-create").click()
     cy.getTestId("tally-create-popup")
     cy.getTestId("tally-create-name").type('{selectall}' + name)
-    cy.get(`*[data-testid=tally-create-popup] *[data-testid=channel-selector] select`).select("Channel 1")
+    cy.get(`*[data-testid=tally-create-popup] *[data-testid=channel-selector] select`).select("1") // by value; option text is "<id> <name>"
     cy.getTestId("tally-create-ok").click()
 
     // pop up should close

@@ -11,6 +11,7 @@ import WifiIcon from '@material-ui/icons/Wifi'
 import ServerIcon from '@material-ui/icons/Dns';
 import { Alert, AlertTitle } from '@material-ui/lab'
 import TallyCreate from '../components/TallyCreate'
+import { useTranslation } from '../i18n'
 
 
 const useStyles = makeStyles(theme => {
@@ -58,6 +59,7 @@ const IndexPage = () => {
   const isMixerConnected = useMixerInfo()
   const isHubConnected = useSocketInfo()
   const classes = useStyles()
+  const { t } = useTranslation()
 
   const tallies = createTallyList(rawTallies, showDisconnected, showUnpatched)
 
@@ -75,24 +77,24 @@ const IndexPage = () => {
     <Layout testId="index">
       <div className={classes.buttons}>
         <ButtonGroup size="small" variant="contained">
-          <Button data-testid="toggle-disconnected" className={classes.button} color={showDisconnected ? "primary" : "default"} onClick={toggleDisconnected}>Show Disconnected</Button>
-          <Button data-testid="toggle-unpatched" className={classes.button} color={showUnpatched ? "primary" : "default"} onClick={toggleUnpatched}>Show Unpatched</Button>
-          <Tooltip title={"Hub " + (isHubConnected ? "connected" : "disconnected")}>
+          <Button data-testid="toggle-disconnected" className={classes.button} color={showDisconnected ? "primary" : "default"} onClick={toggleDisconnected}>{t('index.showDisconnected')}</Button>
+          <Button data-testid="toggle-unpatched" className={classes.button} color={showUnpatched ? "primary" : "default"} onClick={toggleUnpatched}>{t('index.showUnpatched')}</Button>
+          <Tooltip title={isHubConnected ? t('index.hubConnected') : t('index.hubDisconnected')}>
             <Button data-testid="hub-connected" className={classes.button} color="default" variant="outlined"><DesktopWindowsIcon className={classes.buttonIcon} /> {isHubConnected ? 1 : 0}</Button>
           </Tooltip>
-          <Tooltip title={"Video Mixer " + (isMixerConnected ? "connected" : "disconnected")}>
+          <Tooltip title={isMixerConnected ? t('index.mixerConnected') : t('index.mixerDisconnected')}>
             <Button data-testid="mixer-connected" className={classes.button} color="default" variant="outlined"><ServerIcon className={classes.buttonIcon} /> {isMixerConnected ? 1 : 0}</Button>
           </Tooltip>
-          <Tooltip title={nrConnectedTallies + " connected tallies"}>
+          <Tooltip title={t('index.talliesConnected', { count: String(nrConnectedTallies) })}>
             <Button data-testid="tallies-connected" className={classes.button} color="default" variant="outlined"><WifiIcon className={classes.buttonIcon} /> {nrConnectedTallies === null ? "?" : nrConnectedTallies}</Button>
           </Tooltip>
         </ButtonGroup>
       </div>
       { isHubConnected ? "" : (
         <Alert severity="error" className={classes.alert}>
-          <AlertTitle>Hub disconnected</AlertTitle>
-          <Typography paragraph>The displayed information might be outdated.</Typography>
-          <Typography>We will try to reconnect automatically, but you might also try to reload the page.</Typography>
+          <AlertTitle>{t('index.alert.title')}</AlertTitle>
+          <Typography paragraph>{t('index.alert.outdated')}</Typography>
+          <Typography>{t('index.alert.reconnect')}</Typography>
         </Alert>
       )}
       <Box display="flex" flexWrap="wrap" justifyContent="flex-start" alignItems="stretch" alignContent="flex-start"><>

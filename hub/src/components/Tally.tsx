@@ -8,6 +8,7 @@ import { Paper } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core'
 import TallyMenu from './TallyMenu'
 import { DefaultColorScheme } from '../tally/ColorScheme'
+import { useTranslation } from '../i18n'
 
 const AuxColor = DefaultColorScheme.aux.toCss()
 
@@ -91,6 +92,7 @@ function Tally({ tally, className }: TallyProps) {
     const channels = useChannels()
     const [programs, previews, auxes] = useProgramPreview()
     const classes = useStyles()
+    const { t } = useTranslation()
 
     const patchTally = function (tally, channel) {
         socket.emit('tally.patch', tally.name, tally.type, channel)
@@ -138,7 +140,7 @@ function Tally({ tally, className }: TallyProps) {
                 <ChannelSelector value={tally.channelIds} channels={channels} onChange={value => patchTally(tally, value)} />
             </div>
             <div className={classes.tallyFoot + (tally.isActive() && tally.isMissing() ? " " + classes.tallyFootMissing : "")}>
-                <div className={classes.tallyFootItem}>{ tally.isActive() ? (tally.isMissing() ? "missing": "connected") : "disconnected" }</div>
+                <div className={classes.tallyFootItem}>{ tally.isActive() ? (tally.isMissing() ? t('tally.missing') : t('tally.connected')) : t('tally.disconnected') }</div>
                 {tally.isUdpTally() && tally.address && tally.port && (<div className={classes.tallyFootItem}>{tally.address}:{tally.port}</div>)}
             </div>
         </Paper>

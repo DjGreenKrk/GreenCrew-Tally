@@ -14,6 +14,7 @@ import PageNotFound from './PageNotFound'
 import TallySettings from '../components/TallySettings'
 import { useDefaultTallyConfiguration } from '../hooks/useConfiguration'
 import ColorSchemes from '../tally/ColorScheme'
+import { useTranslation } from '../i18n'
 
 
 const useStyles = makeStyles((theme) => ({
@@ -137,6 +138,7 @@ function WebTallyPage() {
   const isLoading = !tally || !command
   const classes = useStyles()
   const theme = useTheme()
+  const { t } = useTranslation()
   const handle = useFullScreenHandle()
   // @TODO: nosleep is quite hacky, so use https://caniuse.com/?search=Wake%20Lock%20API sooner or later
   const [noSleep] = useState(new NoSleepJs())
@@ -146,7 +148,7 @@ function WebTallyPage() {
   }}, [noSleep])
 
   if (isValid === false) {
-    return <PageNotFound>Tally with name <strong>{tallyName}</strong> not found.</PageNotFound>
+    return <PageNotFound>{t('webTally.notFoundBefore')}<strong>{tallyName}</strong>{t('webTally.notFoundAfter')}</PageNotFound>
   }
 
   const colorSchemeId = tally?.configuration?.getOperatorColorScheme() || defaultTallyConfiguration?.getOperatorColorScheme() || "default"
@@ -158,31 +160,31 @@ function WebTallyPage() {
   let showSpinner = false
   if (isLoading) {
     dataColor = "loading"
-    text = "Waiting for data"
+    text = t('webTally.waiting')
     showSpinner = true
   } else if (command === "highlight") {
     classRoot.push(classes.highlight)
     dataColor = "highlight"
-    text = "Highlight"
+    text = t('webTally.highlight')
   } else if (command === "on-air") {
     bgColor = colorScheme.program.toCss()
-    text = "On Program"
+    text = t('webTally.program')
     dataColor = "program"
   } else if (command === "aux") {
     bgColor = colorScheme.aux.toCss()
-    text = "On AUX"
+    text = t('webTally.aux')
     dataColor = "aux"
   } else if (command === "preview") {
     bgColor = colorScheme.preview.toCss()
-    text = "On Preview"
+    text = t('webTally.preview')
     dataColor = "preview"
   } else if (command === "release") {
     bgColor = colorScheme.idle.toCss()
     dataColor = "idle"
-    text = "Idle"
+    text = t('webTally.idle')
   } else if (command === "unknown") {
     dataColor = "unknown"
-    text = "No connection to Mixer"
+    text = t('webTally.noMixer')
     showSpinner = true
   } else {
     // if typescript fails here, we forgot a case
@@ -209,16 +211,16 @@ function WebTallyPage() {
         <CircularProgress className={classes.spinner} color="inherit" size="min(30vw, 30vh)" />
       ) : (<>
         <Typography component="div" variant="h1" className={classes.name}>{(tally && tally.name) || ""}</Typography>
-        <IconButton data-testid="tally-settings-link" className={classes.settingsIcon} aria-label="Show settings" onClick={() => setSettingsOpen(true)}>
+        <IconButton data-testid="tally-settings-link" className={classes.settingsIcon} aria-label={t('webTally.settings')} onClick={() => setSettingsOpen(true)}>
           <TuneIcon />
         </IconButton>
         <TallySettings tally={tally} open={settingsOpen} onClose={() => setSettingsOpen(false)} />
         { handle.active ? (
-          <IconButton className={classes.fullscreenIcon} aria-label="Exit fullscreen" onClick={exitFullScreen}>
+          <IconButton className={classes.fullscreenIcon} aria-label={t('webTally.exitFullscreen')} onClick={exitFullScreen}>
             <FullscreenExitIcon />
           </IconButton>
         ) : (
-          <IconButton className={classes.fullscreenIcon} aria-label="Enter fullscreen" onClick={enterFullScreen}>
+          <IconButton className={classes.fullscreenIcon} aria-label={t('webTally.enterFullscreen')} onClick={enterFullScreen}>
             <FullscreenIcon />
           </IconButton>
         )}

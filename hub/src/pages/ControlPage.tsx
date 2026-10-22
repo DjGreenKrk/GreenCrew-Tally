@@ -10,18 +10,13 @@ import { MIXER_IDS } from '../mixer/ids'
 import { ManualChannelState } from '../mixer/manual/ManualState'
 import { DefaultColorScheme } from '../tally/ColorScheme'
 import { ChannelList } from '../lib/MixerCommunicator'
+import { useTranslation } from '../i18n'
 
 const stateColors: Record<ManualChannelState, string> = {
     off: '#424242',
     preview: '#2e7d32',
     aux: DefaultColorScheme.aux.toCss(),
     program: '#c62828',
-}
-const stateLabels: Record<ManualChannelState, string> = {
-    off: 'Off',
-    preview: 'Preview',
-    aux: 'AUX',
-    program: 'Program',
 }
 const buttonStates: ManualChannelState[] = ['off', 'preview', 'aux', 'program']
 
@@ -69,6 +64,13 @@ export function channelState(channelId: string, programs: ChannelList, previews:
 
 function ControlPage() {
     const classes = useStyles()
+    const { t } = useTranslation()
+    const stateLabels: Record<ManualChannelState, string> = {
+        off: t('control.state.off'),
+        preview: t('control.state.preview'),
+        aux: t('control.state.aux'),
+        program: t('control.state.program'),
+    }
     const mixerName = useMixerNameConfiguration()
     const manualConfiguration = useManualConfiguration()
     const channels = useChannels()
@@ -84,13 +86,13 @@ function ControlPage() {
     if (!isManual) {
         return (
             <Layout testId="control">
-                <Typography variant="h5" gutterBottom>Manual control</Typography>
+                <Typography variant="h5" gutterBottom>{t('control.title')}</Typography>
                 <Typography paragraph data-testid="control-inactive">
-                    The Hub follows a vision mixer now. Switch to manual control to set the tallies by hand from this page.
+                    {t('control.inactive')}
                 </Typography>
                 <Button variant="contained" color="primary" disabled={!manualConfiguration} data-testid="control-activate"
                     onClick={() => manualConfiguration && socket.emit('config.change.manual', manualConfiguration.toJson(), MIXER_IDS.manual)}>
-                    Use manual control
+                    {t('control.activate')}
                 </Button>
             </Layout>
         )
@@ -99,8 +101,8 @@ function ControlPage() {
     return (
         <Layout testId="control">
             <div className={classes.toolbar}>
-                <Typography variant="h5">Manual control</Typography>
-                <Button variant="outlined" onClick={() => socket.emit('manual.allOff')} data-testid="control-all-off">All off</Button>
+                <Typography variant="h5">{t('control.title')}</Typography>
+                <Button variant="outlined" onClick={() => socket.emit('manual.allOff')} data-testid="control-all-off">{t('control.allOff')}</Button>
             </div>
 
             {channels?.map(channel => {
@@ -110,7 +112,7 @@ function ControlPage() {
                     <Paper key={channel.id} className={classes.channel} style={{ borderLeftColor: stateColors[state] }} data-testid={`control-channel-${channel.id}`} data-state={state}>
                         <div className={classes.header}>
                             <Typography variant="h6">{channel.name || channel.id}</Typography>
-                            <Button size="small" onClick={() => flash(channel.id)} disabled={patched.length === 0}>Flash</Button>
+                            <Button size="small" onClick={() => flash(channel.id)} disabled={patched.length === 0}>{t('control.flash')}</Button>
                         </div>
                         {patched.length > 0 && <Typography variant="body2" className={classes.tallies} gutterBottom>{patched.join(', ')}</Typography>}
                         <div className={classes.buttons}>

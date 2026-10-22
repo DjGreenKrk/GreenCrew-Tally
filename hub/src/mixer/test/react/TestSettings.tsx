@@ -3,10 +3,12 @@ import MixerSettingsWrapper from '../../../components/config/MixerSettingsWrappe
 import { socket } from '../../../hooks/useSocket'
 import { SettingsProps } from '../../interfaces'
 import TestConfiguration from '../TestConfiguration'
+import { useTranslation } from '../../../i18n'
 
 type TestSettingsProps = SettingsProps & {}
 
 function TestSettings(props: TestSettingsProps) {
+    const { t } = useTranslation()
     const handleSave = () => {
         if (props.id !== "test") {
             console.warn(`Changing id prop of TestSettings is not supported. But got ${props.id}.`)
@@ -16,9 +18,9 @@ function TestSettings(props: TestSettingsProps) {
     }
 
     return (<MixerSettingsWrapper 
-        title="Test Configuration"
+        title={t('test.title')}
         testId="test"
-        description="A mixer used for automatic testing. You should never have to select it manually."
+        description={t('test.description')}
         onSave={handleSave}
     ></MixerSettingsWrapper>)
 }

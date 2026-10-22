@@ -5,6 +5,7 @@ import useChannels from '../hooks/useChannels'
 import { socket } from '../hooks/useSocket'
 import useTallies from '../hooks/useTallies'
 import ChannelSelector from './ChannelSelector'
+import { useTranslation } from '../i18n'
 
 const useStyles = makeStyles(theme => {
   return {
@@ -45,6 +46,7 @@ type TallyCreatePopupProps = {
 const maxLength = 26 // same as "tally.name" in tally
 
 function TallyCreatePopup({classes, open, onClose}: TallyCreatePopupProps) {
+  const { t } = useTranslation()
   const channels = useChannels()
   const tallies = useTallies()
   const [channelIds, setChannelIds] = useState<string[]>([])
@@ -53,11 +55,11 @@ function TallyCreatePopup({classes, open, onClose}: TallyCreatePopupProps) {
   
   let errorMessage = ""
   if (name === "") {
-    errorMessage = "Please enter a name"
+    errorMessage = t('tallyCreate.errorName')
   } else if (name.length > maxLength) {
-    errorMessage = `name must not be longer than ${maxLength} characters`
+    errorMessage = t('tallyCreate.errorLength', { max: maxLength })
   } else if (tallies?.find(tally => tally.name === name)) {
-    errorMessage = `a tally with the name ${name} already exists`
+    errorMessage = t('tallyCreate.errorExists', { name })
   }
 
   function handleCreate() {
@@ -67,21 +69,20 @@ function TallyCreatePopup({classes, open, onClose}: TallyCreatePopupProps) {
 
   return (
     <Dialog data-testid="tally-create-popup" maxWidth="xs" open={open} onClose={onClose}>
-      <DialogTitle>Create Web Tally</DialogTitle>
+      <DialogTitle>{t('tallyCreate.title')}</DialogTitle>
       <DialogContent>
         { !hasUdpTally ? (
           <Alert className={classes.alert} severity="warning" variant="outlined" data-testid="tally-create-warning">
-            Hardware-Tallies, based on ESP8266, will automatically register and should not
-            be created via this form.
+            {t('tallyCreate.warning')}
           </Alert>
         ) : "" }
-        <Typography paragraph>A Web Tally, that can be viewed in any browser.</Typography>
+        <Typography paragraph>{t('tallyCreate.description')}</Typography>
 
         <div className={classes.formWrapper}>
           <TextField
             className={classes.mb}
             data-testid="tally-create-name"
-            label="Name" 
+            label={t('tallyCreate.name')} 
             value={name} 
             onChange={(e) => setName(e.target.value)}
             autoFocus={true}
@@ -90,9 +91,9 @@ function TallyCreatePopup({classes, open, onClose}: TallyCreatePopupProps) {
         </div>
         
         <DialogActions>
-          <Button onClick={onClose} color="default" data-testid="tally-create-cancel">Cancel</Button>
+          <Button onClick={onClose} color="default" data-testid="tally-create-cancel">{t('common.cancel')}</Button>
           <Tooltip title={errorMessage}><div>
-            <Button disabled={!!errorMessage} color="primary" variant="contained" data-testid="tally-create-ok" onClick={handleCreate}>Create</Button>
+            <Button disabled={!!errorMessage} color="primary" variant="contained" data-testid="tally-create-ok" onClick={handleCreate}>{t('tallyCreate.submit')}</Button>
           </div></Tooltip>
         </DialogActions>
       </DialogContent>
@@ -102,11 +103,12 @@ function TallyCreatePopup({classes, open, onClose}: TallyCreatePopupProps) {
 
 function TallyCreate() {
   const classes = useStyles()
+  const { t } = useTranslation()
   const [modalOpen, setModalOpen] = useState(false)
   
   return (
     <Paper variant="outlined" className={classes.root}>
-      <Button onClick={() => setModalOpen(true)} data-testid={`tally-create`}>Create Web Tally</Button>
+      <Button onClick={() => setModalOpen(true)} data-testid={`tally-create`}>{t('tallyCreate.title')}</Button>
       <TallyCreatePopup open={modalOpen} onClose={() => setModalOpen(false)} classes={classes} />
     </Paper>
   )
