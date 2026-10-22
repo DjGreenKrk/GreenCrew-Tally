@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import { useAllowedMixersConfiguration, useMixerNameConfiguration } from '../../hooks/useConfiguration'
 import Spinner from '../layout/Spinner'
 import MiniPage from '../layout/MiniPage'
+import { TranslationKey, useTranslation } from '../../i18n'
 
 const useStyles = makeStyles(theme => ({
     text: {
@@ -39,6 +40,7 @@ function MixerSelection({children}: MixerSelectionProps) {
     const [oldMixerName, setOldMixerName] = useState(mixerName)
     const [mixerId, setMixerId] = useState(mixerName)
     const classes = useStyles()
+    const { t } = useTranslation()
 
     const isLoading = mixerName === undefined || allowedMixers === undefined
     if (mixerName !== oldMixerName) {
@@ -59,13 +61,13 @@ function MixerSelection({children}: MixerSelectionProps) {
     }, null)
 
     return (
-        <MiniPage title="Video Mixer">
-            <Typography paragraph className={classes.text}>Select a Video Mixer to use.</Typography>
+        <MiniPage title={t('mixer.title')}>
+            <Typography paragraph className={classes.text}>{t('mixer.select')}</Typography>
             {isLoading ? <Spinner /> : (<>
                 <div className={classes.select}>
                     <NativeSelect data-testid="mixer-select" value={mixerId} onChange={e => setMixerId(e.target.value)}>
                         {availableChildren?.map(child => {
-                            return (<MixerOption key={child.props.id} id={child.props.id} label={child.props.label} />)
+                            return (<MixerOption key={child.props.id} id={child.props.id} label={t(`mixer.label.${child.props.id}` as TranslationKey)} />)
                         })}
                     </NativeSelect>
                 </div>

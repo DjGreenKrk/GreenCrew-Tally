@@ -1,6 +1,7 @@
 import { FormHelperText, makeStyles, TextField } from '@material-ui/core'
 import React from 'react'
 import ObsConfiguration, { ObsConfigurationLiveMode } from '../ObsConfiguration'
+import { TranslationKey, useTranslation } from '../../../i18n'
 
 const useStyles = makeStyles(theme => {
   return {
@@ -19,25 +20,26 @@ type ObsLiveModeSelectProps = {
 
 const options = {
   always: {
-    label: "Always",
-    help: "",
+    label: "obs.mode.always" as TranslationKey,
+    help: undefined as TranslationKey | undefined,
   },
   stream: {
-    label: "Only when streaming",
-    help: "Tally Lights will not show on-air status unless OBS is streaming.",
+    label: "obs.mode.stream" as TranslationKey,
+    help: "obs.mode.streamHelp" as TranslationKey,
   },
   record: {
-    label: "Only when recording",
-    help: "Tally Lights will not show on-air status unless OBS is recording.",
+    label: "obs.mode.record" as TranslationKey,
+    help: "obs.mode.recordHelp" as TranslationKey,
   },
   streamOrRecord: {
-    label: "When recording or streaming",
-    help: "Tally Lights will not show on-air status unless OBS is recording or streaming.",
+    label: "obs.mode.streamOrRecord" as TranslationKey,
+    help: "obs.mode.streamOrRecordHelp" as TranslationKey,
   },
 }
 
 function ObsLiveModeSelect({label, testId, value, onChange}: ObsLiveModeSelectProps) {
   const classes = useStyles()
+  const { t } = useTranslation()
 
   const currentOption = options[value]
 
@@ -50,12 +52,12 @@ function ObsLiveModeSelect({label, testId, value, onChange}: ObsLiveModeSelectPr
   return <div className={classes.root}>
     <TextField select data-testid={testId} label={label} value={value} onChange={handleChange}>
       {Object.keys(options).map(key => {
-        const label = options[key].label
+        const label = t(options[key].label)
         return <option key={key} value={key} label={label} />
       })}
     </TextField>
     {currentOption && currentOption.help && (
-      <FormHelperText disabled={true}>{currentOption.help}</FormHelperText>
+      <FormHelperText disabled={true}>{t(currentOption.help)}</FormHelperText>
     )}
     
   </div>

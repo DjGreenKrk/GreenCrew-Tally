@@ -4,6 +4,8 @@ import { Link as RouterLink } from 'react-router-dom'
 import { buildInfo } from '../../buildInfo'
 import useVmixProject from '../../hooks/useVmixProject'
 import { socket } from '../../hooks/useSocket'
+import { useTranslation } from '../../i18n'
+import LanguageSwitch from './LanguageSwitch'
 
 const useStyles = makeStyles(theme => {
   return {
@@ -45,6 +47,12 @@ const useStyles = makeStyles(theme => {
       textAlign: 'right',
       whiteSpace: 'nowrap',
     },
+    language: {
+      marginLeft: theme.spacing(2),
+      [theme.breakpoints.down('xs')]: {
+        marginLeft: 'auto',
+      },
+    },
     projectInfo: {
       marginLeft: theme.spacing(2),
       textAlign: 'right',
@@ -60,28 +68,30 @@ type LayoutProps = {
 
 const Layout = ({testId: cypressId, children}: LayoutProps) => {
   const classes = useStyles()
-  const buildDate = buildInfo.builtAt ? new Date(buildInfo.builtAt).toLocaleString() : 'Development build'
+  const { t, language } = useTranslation()
+  const buildDate = buildInfo.builtAt ? new Date(buildInfo.builtAt).toLocaleString(language) : t('common.developmentBuild')
   const vmixProject = useVmixProject()
-  const projectStatus = vmixProject.hasUnsavedChanges ? 'Unsaved changes' : (vmixProject.hasSavedConfiguration ? 'Saved' : 'Not saved')
+  const projectStatus = vmixProject.hasUnsavedChanges ? t('project.unsaved') : (vmixProject.hasSavedConfiguration ? t('project.saved') : t('project.notSaved'))
 
   return (<div data-testid={`page-${cypressId}`}>
     <AppBar position="static">
       <Toolbar className={classes.toolbar}>
-        <RouterLink to="/about" className={classes.brand} aria-label="About GC Tally">
+        <RouterLink to="/about" className={classes.brand} aria-label={t('nav.about')}>
           <img width="40" height="40" className={classes.logo} src="/favicon.svg" alt="" />
           <Typography variant="h6" component="span" className={`${classes.productName} ${classes.hideOnPhone}`}>GC Tally</Typography>
         </RouterLink>
-        <Button className={classes.navButton} component={RouterLink} to="/">Tallies</Button>
-        <Button className={classes.navButton} component={RouterLink} to="/control">Control</Button>
-        <Button className={classes.navButton} component={RouterLink} to="/config">Configuration</Button>
-        <Button className={classes.navButton} component={RouterLink} to="/flasher">Flash</Button>
+        <Button className={classes.navButton} component={RouterLink} to="/">{t('nav.tallies')}</Button>
+        <Button className={classes.navButton} component={RouterLink} to="/control">{t('nav.control')}</Button>
+        <Button className={classes.navButton} component={RouterLink} to="/config">{t('nav.config')}</Button>
+        <Button className={classes.navButton} component={RouterLink} to="/flasher">{t('nav.flash')}</Button>
         {vmixProject.projectName && <Typography variant="caption" className={classes.projectInfo}>
-          Project: {vmixProject.projectName} | {projectStatus}
+          {t('project.info', { name: vmixProject.projectName, status: projectStatus })}
         </Typography>}
-        {vmixProject.projectName && <Button size="small" onClick={() => socket.emit('vmix.project.save')}>Save project</Button>}
+        {vmixProject.projectName && <Button size="small" onClick={() => socket.emit('vmix.project.save')}>{t('project.save')}</Button>}
         <Typography variant="caption" className={`${classes.buildInfo} ${classes.hideOnPhone}`}>
-          Build {buildInfo.version} | {buildDate}
+          {t('common.build', { version: buildInfo.version, date: buildDate })}
         </Typography>
+        <div className={classes.language}><LanguageSwitch /></div>
       </Toolbar>
     </AppBar>
     { children && (<Container maxWidth={false} className={classes.contentContainer} children={children} />) }

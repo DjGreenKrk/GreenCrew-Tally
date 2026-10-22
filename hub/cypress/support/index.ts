@@ -16,5 +16,10 @@
 // Import commands.js using ES2015 syntax:
 import './commands'
 
+// the UI is Polish by default; the e2e specs match on English texts
+Cypress.on('window:before:load', win => {
+  win.localStorage.setItem('gc-tally.language', 'en')
+})
+
 // Alternatively you can use CommonJS syntax:
 // require('./commands')

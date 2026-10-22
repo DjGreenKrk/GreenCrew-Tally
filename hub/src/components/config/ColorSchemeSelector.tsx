@@ -2,6 +2,7 @@ import { makeStyles, FormHelperText, Tooltip } from '@material-ui/core'
 import React, { useState } from 'react'
 import ColorSchemes, { ColorSchemeId } from '../../tally/ColorScheme'
 import ChipLikeButton from '../ChipLikeButton'
+import { TranslationKey, useTranslation } from '../../i18n'
 
 const useStyle = makeStyles(theme => ({
   root: {
@@ -58,6 +59,7 @@ type ColorSchemeSelectorProps = {
 
 function ColorSchemeSelector({value, onChange, disabled, testId}: ColorSchemeSelectorProps) {
   const classes = useStyle()
+  const { t } = useTranslation()
   const schemes = ColorSchemes.getAll()
   const [focusTracker, setFocusTracker] = useState(new Map(schemes.map(scheme => [scheme.id, false])))
   const isFocussed = !!Array.from(focusTracker.values()).find(bool => bool)
@@ -90,19 +92,19 @@ function ColorSchemeSelector({value, onChange, disabled, testId}: ColorSchemeSel
               onBlur={() => {handleBlur(scheme)}}
               disabled={disabled}
               key={scheme.id}>
-                {scheme.name}
+                {t(`colorScheme.${scheme.id}.name` as TranslationKey)}
               </ChipLikeButton>)
           })}
         </div>
         { selectedScheme && (
           <div className={classes.previewContainer + (isFocussed ? "" : (" " + classes.previewContainerDim))}>
-            <Tooltip title="On-Air color"><span className={classes.preview} style={{backgroundColor: selectedScheme.program.toCss()}}></span></Tooltip>
-            <Tooltip title="Preview color"><span className={classes.preview} style={{backgroundColor: selectedScheme.preview.toCss()}}></span></Tooltip>
-            <Tooltip title="AUX color"><span className={classes.preview} style={{backgroundColor: selectedScheme.aux.toCss()}}></span></Tooltip>
+            <Tooltip title={t('colorScheme.program')}><span className={classes.preview} style={{backgroundColor: selectedScheme.program.toCss()}}></span></Tooltip>
+            <Tooltip title={t('colorScheme.preview')}><span className={classes.preview} style={{backgroundColor: selectedScheme.preview.toCss()}}></span></Tooltip>
+            <Tooltip title={t('colorScheme.aux')}><span className={classes.preview} style={{backgroundColor: selectedScheme.aux.toCss()}}></span></Tooltip>
           </div>
         )}
       </div>
-      { selectedScheme && selectedScheme.description ? (<FormHelperText disabled={true}>{selectedScheme.description}</FormHelperText>) : "" }
+      { selectedScheme && selectedScheme.description ? (<FormHelperText disabled={true}>{t(`colorScheme.${selectedScheme.id}.description` as TranslationKey)}</FormHelperText>) : "" }
     </div>
   )
 }

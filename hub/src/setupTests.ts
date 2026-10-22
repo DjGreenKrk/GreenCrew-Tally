@@ -4,3 +4,9 @@
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
 import 'jest-extended';
+
+// The component tests assert the English texts: render them in English.
+// (The app itself defaults to Polish; i18n.spec.tsx covers that.)
+beforeEach(() => {
+  window.localStorage.setItem('gc-tally.language', 'en')
+})

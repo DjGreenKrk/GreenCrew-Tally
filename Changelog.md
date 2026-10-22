@@ -1,5 +1,6 @@
 # Unreleased
 
+* [FEATURE] The Hub UI is bilingual: Polish by default, English with the PL | EN switch in the menu bar or on the About screen; the choice is remembered per browser (#37)
 * [FEATURE] About screen: click the logo in the menu bar for the version, author, GreenCrew, licence, repository and the credits to vTally and kuuminsh/wifi-tally (#35)
 
 # GC Tally 0.8.0
