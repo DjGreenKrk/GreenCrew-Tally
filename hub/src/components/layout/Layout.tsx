@@ -22,6 +22,13 @@ const useStyles = makeStyles(theme => {
         display: 'none',
       },
     },
+    brand: {
+      display: 'flex',
+      alignItems: 'center',
+      minHeight: 44,
+      color: 'inherit',
+      textDecoration: 'none',
+    },
     logo: {
       height: 40,
       margin: theme.spacing(1, 1, 1, 0)
@@ -60,8 +67,10 @@ const Layout = ({testId: cypressId, children}: LayoutProps) => {
   return (<div data-testid={`page-${cypressId}`}>
     <AppBar position="static">
       <Toolbar className={classes.toolbar}>
-        <img width="40" height="40" className={classes.logo} src="/favicon.svg" alt="" />
-        <Typography variant="h6" component="span" className={`${classes.productName} ${classes.hideOnPhone}`}>GC Tally</Typography>
+        <RouterLink to="/about" className={classes.brand} aria-label="About GC Tally">
+          <img width="40" height="40" className={classes.logo} src="/favicon.svg" alt="" />
+          <Typography variant="h6" component="span" className={`${classes.productName} ${classes.hideOnPhone}`}>GC Tally</Typography>
+        </RouterLink>
         <Button className={classes.navButton} component={RouterLink} to="/">Tallies</Button>
         <Button className={classes.navButton} component={RouterLink} to="/control">Control</Button>
         <Button className={classes.navButton} component={RouterLink} to="/config">Configuration</Button>

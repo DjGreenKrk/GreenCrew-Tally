@@ -8,6 +8,7 @@ import TallyLogPage from './pages/TallyLogPage'
 import WebTallyPage from './pages/WebTallyPage'
 import FlasherPage from './pages/FlasherPage'
 import ControlPage from './pages/ControlPage'
+import AboutPage from './pages/AboutPage'
 
 function App() {
   return (
@@ -26,6 +27,9 @@ function App() {
           </Route>
           <Route exact path="/control">
             <ControlPage />
+          </Route>
+          <Route exact path="/about">
+            <AboutPage />
           </Route>
           <Route exact path="/flasher">
             <FlasherPage />
