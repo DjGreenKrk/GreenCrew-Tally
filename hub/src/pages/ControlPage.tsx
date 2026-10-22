@@ -1,5 +1,5 @@
 import React from 'react'
-import { Button, FormControlLabel, makeStyles, Paper, Switch, Typography } from '@material-ui/core'
+import { Button, makeStyles, Paper, Typography } from '@material-ui/core'
 import Layout from '../components/layout/Layout'
 import useChannels from '../hooks/useChannels'
 import useProgramPreview from '../hooks/useProgramPreview'
@@ -31,10 +31,6 @@ const useStyles = makeStyles(theme => ({
         justifyContent: 'space-between',
         alignItems: 'center',
         margin: theme.spacing(2, 0),
-    },
-    exclusive: {
-        marginTop: theme.spacing(-1),
-        marginBottom: theme.spacing(1),
     },
     channel: {
         margin: theme.spacing(0, 0, 2),
@@ -80,12 +76,6 @@ function ControlPage() {
     const [programs, previews, auxes] = useProgramPreview()
     const isManual = mixerName === MIXER_IDS.manual
 
-    const exclusiveProgram = manualConfiguration?.isExclusiveProgram() ?? false
-    const toggleExclusiveProgram = () => {
-        if (!manualConfiguration) return
-        socket.emit('config.change.manual', manualConfiguration.clone().setExclusiveProgram(!exclusiveProgram).toJson())
-    }
-
     const flash = (channelId: string) => {
         tallies?.filter(tally => tally.channelIds.includes(channelId))
             .forEach(tally => socket.emit('tally.highlight', tally.name, tally.type))
@@ -112,11 +102,7 @@ function ControlPage() {
                 <Typography variant="h5">Manual control</Typography>
                 <Button variant="outlined" onClick={() => socket.emit('manual.allOff')} data-testid="control-all-off">All off</Button>
             </div>
-            <FormControlLabel
-                className={classes.exclusive}
-                control={<Switch checked={exclusiveProgram} onChange={toggleExclusiveProgram} color="primary" inputProps={{ 'data-testid': 'control-exclusive' } as React.InputHTMLAttributes<HTMLInputElement>} />}
-                label="Only one channel on Program"
-            />
+
             {channels?.map(channel => {
                 const state = channelState(channel.id, programs, previews, auxes)
                 const patched = tallies?.filter(tally => tally.channelIds.includes(channel.id)).map(tally => tally.name) || []

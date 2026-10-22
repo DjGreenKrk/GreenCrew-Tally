@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Button, TextField } from '@material-ui/core'
+import { Button, FormControlLabel, Switch, TextField } from '@material-ui/core'
 import { Link as RouterLink } from 'react-router-dom'
 import MixerSettingsWrapper from '../../../components/config/MixerSettingsWrapper'
 import { useManualConfiguration } from '../../../hooks/useConfiguration'
@@ -17,9 +17,13 @@ const parseNames = (text: string) => text.split('\n').map(line => line.trim()).f
 function ManualSettings(props: ManualSettingsProps) {
     const configuration = useManualConfiguration()
     const [names, setNames] = useState('')
+    const [exclusiveProgram, setExclusiveProgram] = useState(false)
 
     useEffect(() => {
-        if (configuration) setNames(configuration.getChannelNames().join('\n'))
+        if (configuration) {
+            setNames(configuration.getChannelNames().join('\n'))
+            setExclusiveProgram(configuration.isExclusiveProgram())
+        }
     }, [configuration])
 
     const count = parseNames(names).length
@@ -33,6 +37,7 @@ function ManualSettings(props: ManualSettingsProps) {
         } else {
             const config = configuration.clone()
             config.setChannelNames(parseNames(names))
+            config.setExclusiveProgram(exclusiveProgram)
             socket.emit('config.change.manual', config.toJson(), props.id)
         }
     }
@@ -56,6 +61,10 @@ function ManualSettings(props: ManualSettingsProps) {
                 error={!isValid}
                 helperText={isValid ? `${count} channel${count === 1 ? '' : 's'}` : `1 to ${MAX_MANUAL_CHANNELS} channels`}
                 inputProps={{ 'data-testid': 'manual-channel-names' }}
+            />}
+            {configuration && <FormControlLabel
+                control={<Switch checked={exclusiveProgram} onChange={e => setExclusiveProgram(e.target.checked)} color="primary" inputProps={{ 'data-testid': 'manual-exclusive' } as React.InputHTMLAttributes<HTMLInputElement>} />}
+                label="Only one channel on Program: setting a channel to Program turns off the previous one"
             />}
         </MixerSettingsWrapper>
     )
