@@ -112,13 +112,10 @@ describe('ObsConnector', () => {
         await waitFor(['Scene 3'], [])
     })
 
-    test.each([
-        ['the scene before the transition', true],
-        ['the transition before the scene', false],
-    ])('both scenes are on air during a transition (%s)', async (_, sceneFirst) => {
+    test('both scenes are on air during a transition', async () => {
         await connect()
         await waitFor(['Scene 1'], [])
-        fakeObs.transitionStart('Scene 2', sceneFirst)
+        fakeObs.transitionStart('Scene 2')
         await waitFor(['Scene 1', 'Scene 2'], [])
         fakeObs.transitionEnd()
         await waitFor(['Scene 2'], [])
@@ -130,6 +127,7 @@ describe('ObsConnector', () => {
         fakeObs.transitionStart('Scene 2')
         await waitFor(['Scene 1', 'Scene 2'], [])
         fakeObs.cut('Scene 3')
+        await waitFor(['Scene 1', 'Scene 3'], [])
         fakeObs.transitionEnd()
         await waitFor(['Scene 3', 'Scene 1'], [])
     })

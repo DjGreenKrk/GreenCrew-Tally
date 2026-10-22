@@ -105,6 +105,8 @@ class FakeObs {
                     ...scene.children.map(child => ({ sourceName: child.name, sourceType: 'OBS_SOURCE_TYPE_SCENE', sceneItemEnabled: child.enabled })),
                 ] }]
             }
+            case 'GetCurrentProgramScene':
+                return [true, { currentProgramSceneName: this.program }]
             case 'GetCurrentPreviewScene':
                 if (this.preview === null) return [false, { code: 506, comment: 'Studio mode is not active.' }]
                 return [true, { currentPreviewSceneName: this.preview }]
@@ -127,16 +129,17 @@ class FakeObs {
         this.event('CurrentProgramSceneChanged', { sceneName: scene })
     }
 
-    // OBS announces the new scene and the transition in either order
-    transitionStart(scene, sceneFirst = true) {
-        if (sceneFirst) this.cut(scene)
+    // As OBS 32: GetCurrentProgramScene answers the target scene as soon as
+    // the transition starts, CurrentProgramSceneChanged follows at its end.
+    transitionStart(scene) {
+        this.program = scene
         this.event('SceneTransitionStarted', { transitionName: 'Fade' })
-        if (!sceneFirst) this.cut(scene)
     }
 
     transitionEnd() {
-        this.event('SceneTransitionEnded', { transitionName: 'Fade' })
         this.event('SceneTransitionVideoEnded', { transitionName: 'Fade' })
+        this.event('CurrentProgramSceneChanged', { sceneName: this.program })
+        this.event('SceneTransitionEnded', { transitionName: 'Fade' })
     }
 
     setPreview(scene) {

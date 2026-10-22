@@ -5,10 +5,6 @@ import { Connector } from '../interfaces'
 import ObsConfiguration from './ObsConfiguration'
 
 const reconnectTimeoutMs = 1000
-// OBS reports the new program scene and the start of a transition as two
-// events whose order is not guaranteed; a scene change this close to the
-// start of a transition belongs to it
-const transitionGraceMs = 100
 const RECORD_PAUSED = 'OBS_WEBSOCKET_OUTPUT_PAUSED'
 
 type SceneItem = { sourceName?: unknown, sourceType?: unknown, sceneItemEnabled?: unknown }
@@ -24,9 +20,7 @@ class ObsConnector implements Connector {
     obs: OBSWebSocket | null = null
     connected: boolean = false
     private programScene: string | null = null
-    private previousProgramScene: string | null = null
-    private programChangedAt = 0
-    private transitionStartedAt = 0
+    // the program scene when the running transition started, null otherwise
     private transitionFrom: string | null = null
     private previewScene: string | null = null
     private isStreaming: boolean = false
@@ -119,26 +113,31 @@ class ObsConnector implements Connector {
     }
 
     private onProgramSceneChanged(sceneName: string) {
-        this.previousProgramScene = this.programScene
         this.programScene = sceneName
-        this.programChangedAt = Date.now()
-        if (this.transitionStartedAt && this.transitionFrom === null) {
-            // the transition was announced before the new scene
-            this.transitionFrom = this.previousProgramScene
+        this.notifyChanged()
+    }
+
+    /**
+     * OBS 28+ reports CurrentProgramSceneChanged only when a transition has
+     * ended, but already answers GetCurrentProgramScene with the target scene
+     * when it starts. Both scenes are on air while it runs.
+     */
+    private async onTransitionStarted() {
+        const obs = this.obs
+        if (!obs || this.programScene === null) return
+        this.transitionFrom = this.transitionFrom ?? this.programScene
+        try {
+            const { currentProgramSceneName } = await obs.call('GetCurrentProgramScene')
+            if (this.transitionFrom === null || this.obs !== obs) return // already ended
+            this.programScene = currentProgramSceneName
+        } catch (err) {
+            console.error("Could not read the OBS program scene:", err)
         }
         this.notifyChanged()
     }
 
-    private onTransitionStarted() {
-        this.transitionStartedAt = Date.now()
-        // the new scene was announced before the transition
-        this.transitionFrom = this.programChangedAt > this.transitionStartedAt - transitionGraceMs ? this.previousProgramScene : null
-        this.notifyChanged()
-    }
-
     private onTransitionEnded() {
-        if (!this.transitionStartedAt) return
-        this.transitionStartedAt = 0
+        if (this.transitionFrom === null) return
         this.transitionFrom = null
         this.notifyChanged()
     }
@@ -239,8 +238,7 @@ class ObsConnector implements Connector {
 
     private notifyChanged() {
         if (this.programScene === null) return
-        const programScenes = this.transitionStartedAt ? [this.transitionFrom, this.programScene] : [this.programScene]
-        let programs = this.withEmbedded(programScenes)
+        let programs = this.withEmbedded([this.transitionFrom, this.programScene])
         let previews: string[]
         if (this.shouldProgramBeShownAsPreview()) {
             previews = programs
