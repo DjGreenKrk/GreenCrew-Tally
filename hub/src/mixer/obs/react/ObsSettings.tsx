@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { TextField } from '@material-ui/core'
 import MixerSettingsWrapper from '../../../components/config/MixerSettingsWrapper'
 import ValidatingInput from '../../../components/config/ValidatingInput'
 import ExternalLink from '../../../components/ExternalLink'
@@ -19,6 +20,7 @@ function ObsSettings(props: ObsSettingsProps) {
     const [ipValid, setIpValid] = useState(true)
     const [port, setPort] = useState<string|null>(null)
     const [portValid, setPortValid] = useState(true)
+    const [password, setPassword] = useState("")
     const [liveMode, setLiveMode] = useState<ObsConfigurationLiveMode|null>(null)
     const liveModeValid = liveMode !== null
     const isLoading = !configuration
@@ -28,6 +30,7 @@ function ObsSettings(props: ObsSettingsProps) {
         // when default settings change
         if (configuration) {
             setLiveMode(configuration.getLiveMode())
+            setPassword(configuration.getPassword())
         }
     }, [configuration])
 
@@ -40,6 +43,7 @@ function ObsSettings(props: ObsSettingsProps) {
             const config = configuration.clone()
             config.setIp(ip)
             config.setPort(port)
+            config.setPassword(password)
             config.setLiveMode(liveMode)
 
             socket.emit('config.change.obs', config.toJson(), props.id)
@@ -50,7 +54,7 @@ function ObsSettings(props: ObsSettingsProps) {
         <MixerSettingsWrapper 
             title="OBS Studio Configuration"
             testId="obs"
-            description={<>Connects to OBS Studio over network. The <ExternalLink href="https://github.com/Palakis/obs-websocket">obs-websocket plugin version 4.x.x</ExternalLink> has to be installed. Version 5 of the plugin is not yet supported.</>}
+            description={<>Connects to OBS Studio 28 or newer over the network through its built-in <ExternalLink href="https://github.com/obsproject/obs-websocket">WebSocket server</ExternalLink>. In OBS open Tools → WebSocket Server Settings, enable the server and use the port and password shown under Show Connect Info.</>}
             canBeSaved={isValid}
             isLoading={isLoading}
             onSave={handleSave}
@@ -58,6 +62,7 @@ function ObsSettings(props: ObsSettingsProps) {
             { configuration && (<>
                 <ValidatingInput label="Obs IP" testId="obs-ip" object={configuration} propertyName="ip" onValid={(newIp) => { setIp(newIp); setIpValid(true) }} onInvalid={() => setIpValid(false)} />
                 <ValidatingInput label="Obs Port" testId="obs-port" object={configuration} propertyName="port" onValid={(newPort) => { setPort(newPort); setPortValid(true) }} onInvalid={() => setPortValid(false)} />
+                <TextField label="Obs Password" type="password" autoComplete="off" value={password} onChange={e => setPassword(e.target.value)} inputProps={{ 'data-testid': 'obs-password' }} style={{ margin: "0 16px 16px 0" }} helperText="Empty if authentication is off in OBS" />
                 <ObsLiveModeSelect label="On-Air Status" testId="obs-liveMode" value={liveMode} onChange={setLiveMode} />
             </>)}
         </MixerSettingsWrapper>

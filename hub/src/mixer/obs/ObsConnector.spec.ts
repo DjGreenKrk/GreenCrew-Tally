@@ -2,670 +2,242 @@ import ObsConnector from './ObsConnector'
 import { MixerCommunicator } from '../../lib/MixerCommunicator'
 import { AppConfiguration } from '../../lib/AppConfiguration'
 import ServerEventEmitter from '../../lib/ServerEventEmitter'
-import WebSocket from 'ws'
-import ObsConfiguration from './ObsConfiguration'
-
-const waitUntil = (fn) => {
-    return new Promise<void>((resolve) => {
-        setInterval(() => {
-            if (fn() === true) {
-                resolve()
-            }
-        }, 100)
-    })
-}
+import ObsConfiguration, { ObsConfigurationLiveMode } from './ObsConfiguration'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { FakeObs } = require('../../../scripts/obs-simulator.cjs')
 
 class MockCommunicator extends MixerCommunicator {
     constructor() {
         const emitter = new ServerEventEmitter()
         super(new AppConfiguration(emitter), emitter)
     }
-    programs = null
-    previews = null
-    channels = null
+    programs: string[] | null = null
+    previews: string[] | null = null
+    channels: string[] | null = null
     isConnected = false
-
     notifyProgramPreviewChanged(programs, previews) {
         this.programs = programs
         this.previews = previews
     }
-
-    notifyProgramChanged(programs) {
-        this.programs = programs
-    }
-
-    notifyPreviewChanged(previews) {
-        this.previews = previews
-    }
-
     notifyChannels(channels) {
-        this.channels = channels
+        this.channels = channels.map(channel => channel.name)
     }
-
-    notifyMixerIsConnected() {
-        this.isConnected = true
-    }
-
-    notifyMixerIsDisconnected() {
-        this.isConnected = false
-    }
+    notifyMixerIsConnected() { this.isConnected = true }
+    notifyMixerIsDisconnected() { this.isConnected = false }
 }
 
-const sameChannels = (actual: string[] | null, expected: string[]) =>
-    Array.isArray(actual) && actual.length === expected.length &&
-    actual.every((name, index) => name === expected[index])
-
-const defaultScene = {
-    name: null,
-    sources: [],
+const waitUntil = async (fn: () => boolean, what = 'condition') => {
+    const deadline = Date.now() + 3000
+    while (!fn()) {
+        if (Date.now() > deadline) throw new Error(`Timed out waiting for ${what}`)
+        await new Promise(resolve => setTimeout(resolve, 10))
+    }
 }
-
-function createObsCommunicator(ip, port): [ObsConnector, MockCommunicator, ObsConfiguration] {
-    const communicator = new MockCommunicator()
-    const configuration = new ObsConfiguration()
-    configuration.setIp(ip)
-    configuration.setPort(port)
-    const obs = new ObsConnector(configuration, communicator)
-
-    return [obs, communicator, configuration]
-}
+const same = (actual: string[] | null, expected: string[]) => JSON.stringify(actual) === JSON.stringify(expected)
 
 describe('ObsConnector', () => {
-    describe('onData', () => {
-        beforeEach(() => {
-            let socket = null
-            let isTransitionRunning = false
-            global.obsServer = {
-                server: null,
-                scenes: [],
-                currentScene: null,
-                previewScene: null,
-                streaming: false,
-                recording: false,
-                cut: (newScene) => {
-                    global.obsServer.currentScene = newScene
-                    socket.send(JSON.stringify({
-                        'update-type': "SwitchScenes",
-                        'scene-name': newScene
-                        // sources left out in mock
-                    }))
-                },
-                transitionBegin: (newScene) => {
-                    if (isTransitionRunning) {
-                        // if a transition is already running, OBS just cuts to the new scene
-                        global.obsServer.currentScene = newScene
-                        socket.send(JSON.stringify({
-                            'update-type': "TransitionBegin",
-                            'to-scene': newScene,
-                        }))
-                        isTransitionRunning = false
-                    } else {
-                        socket.send(JSON.stringify({
-                            'update-type': "TransitionBegin",
-                            'from-scene': global.obsServer.currentScene,
-                            'to-scene': newScene,
-                        }))
-                        isTransitionRunning = true
-                    }
-                },
-                transitionEnd: (newScene) => {
-                    // it also sends the SwitchScenes event
-                    global.obsServer.cut(newScene)
-                    global.obsServer.currentScene = newScene
-                    socket.send(JSON.stringify({
-                        'update-type': "TransitionEnd",
-                        'to-scene': newScene,
-                    }))
-                    isTransitionRunning = false
-                },
-                preview: (scene) => {
-                    global.obsServer.previewScene = scene
-                    socket.send(JSON.stringify({
-                        'update-type': "PreviewSceneChanged",
-                        'scene-name': scene
-                        // sources left out in mock
-                    }))
-                },
-                enterStudioMode: (previewScene) => {
-                    global.obsServer.previewScene = previewScene
-                    socket.send(JSON.stringify({
-                        'update-type': "StudioModeSwitched",
-                        'new-state': true,
-                    }))
+    let fakeObs
+    let connector: ObsConnector
+    let communicator: MockCommunicator
 
-                },
-                exitStudioMode: () => {
-                    global.obsServer.previewScene = null
-                    socket.send(JSON.stringify({
-                        'update-type': "StudioModeSwitched",
-                        'new-stat': false,
-                    }))
+    async function connect(options: { password?: string, liveMode?: ObsConfigurationLiveMode } = {}) {
+        const configuration = new ObsConfiguration()
+        configuration.setIp('127.0.0.1')
+        configuration.setPort(fakeObs.port)
+        configuration.setPassword(options.password ?? null)
+        if (options.liveMode) configuration.setLiveMode(options.liveMode)
+        communicator = new MockCommunicator()
+        connector = new ObsConnector(configuration, communicator)
+        connector.connect()
+    }
+    const waitFor = (programs: string[], previews: string[]) =>
+        waitUntil(() => same(communicator.programs, programs) && same(communicator.previews, previews),
+            `PGM ${programs} PVW ${previews}, got PGM ${communicator.programs} PVW ${communicator.previews}`)
 
-                },
-                changeScenes: (newScenes) => {
-                    global.obsServer.scenes = newScenes
-                    socket.send(JSON.stringify({
-                        'update-type': "ScenesChanged",
-                    }))
-                },
-                changeSceneCollection: (newScenes, newScene) => {
-                    // !!!IMPORTANT!!! OBS cuts to the new scene before giving hint that scenes have changed
-                    global.obsServer.cut(newScene)
-                    global.obsServer.scenes = newScenes
-                    socket.send(JSON.stringify({
-                        'update-type': "SceneCollectionChanged",
-                    }))
-                },
-                startStream: () => {
-                    global.obsServer.streaming = true
-                    socket.send(JSON.stringify({
-                        'update-type': "StreamStarting",
-                        'preview-only': false,
-                    }))
-                    socket.send(JSON.stringify({
-                        'update-type': "StreamStarted",
-                    }))
-                },
-                stopStream: () => {
-                    global.obsServer.streaming = false
-                    socket.send(JSON.stringify({
-                        'update-type': "StreamStopping",
-                        'preview-only': false,
-                    }))
-                    socket.send(JSON.stringify({
-                        'update-type': "StreamStopped",
-                    }))
-                },
-                startRecording: () => {
-                    global.obsServer.recording = true
-                    socket.send(JSON.stringify({
-                        'update-type': "RecordingStarting",
-                    }))
-                    socket.send(JSON.stringify({
-                        'update-type': "RecordingStarted",
-                    }))
-                },
-                stopRecording: () => {
-                    global.obsServer.recording = false
-                    socket.send(JSON.stringify({
-                        'update-type': "RecordingStopping",
-                    }))
-                    socket.send(JSON.stringify({
-                        'update-type': "RecordingStopped",
-                    }))
-                },
-                pauseRecording: () => {
-                    global.obsServer.recording = false
-                    socket.send(JSON.stringify({
-                        'update-type': "RecordingPaused",
-                    }))
-                },
-                unpauseRecording: () => {
-                    global.obsServer.recording = true
-                    socket.send(JSON.stringify({
-                        'update-type': "RecordingResumed",
-                    }))
-                },
-                onMessageReceive: (data) => {
-                    const requestType = data['request-type']
-                    // console.log(data, requestType)
-                    switch (requestType) {
-                        case "GetAuthRequired":
-                            return {
-                                authRequired: false,
-                            }
-                        case "GetSceneList":
-                            return {
-                                'current-scene': global.obsServer.currentScene,
-                                scenes: global.obsServer.scenes.map(scene => Object.assign({}, defaultScene, scene)),
-                            }
-                        case "GetPreviewScene":
-                            if (global.obsServer.previewScene) {
-                                return {
-                                    name: global.obsServer.previewScene,
-                                    // sources left out in mock
-                                }
-                            } else {
-                                return {
-                                    error: "studio mode not enabled",
-                                    status: "error",
-                                }
-                            }
-                        default: 
-                            throw new Error(`Request "${requestType}" not implemented in mock.`)
-                    }
-                }
-            }
+    beforeEach(async () => {
+        fakeObs = new FakeObs()
+        await fakeObs.start()
+    })
+    afterEach(async () => {
+        connector?.disconnect()
+        await fakeObs.stop()
+    })
 
-            return new Promise<void>((resolve, reject) => {
-                global.obsServer.server = new WebSocket.Server({port: 0}, err => {
-                    if (err) { 
-                        reject(err)
-                    } else {
-                        global.obsServer.serverIp = "localhost"
-                        global.obsServer.serverPort = global.obsServer.server.address()["port"]
-                        resolve()
-                    }
-                })
-                global.obsServer.server.on('connection', sck => {
-                    socket = sck
-                    sck.on('message', msg => {
-                        const requestData = JSON.parse(msg)
-                        const messageId = requestData['message-id']
+    test('reads the scenes and the initial state without studio mode', async () => {
+        await connect()
+        await waitUntil(() => communicator.isConnected, 'connection')
+        await waitUntil(() => same(communicator.channels, ['Scene 1', 'Scene 2', 'Scene 3']), 'channels in OBS order')
+        await waitFor(['Scene 1'], [])
+    })
 
-                        const response = global.obsServer.onMessageReceive(requestData)
-                        const responseData = response || {}
-                        responseData['message-id'] = messageId
-                        responseData.status = responseData.status || 'ok'
+    test('reads the initial state with studio mode', async () => {
+        fakeObs.preview = 'Scene 2'
+        await connect()
+        await waitFor(['Scene 1'], ['Scene 2'])
+    })
 
-                        sck.send(JSON.stringify(responseData))
-                    })
-                })
-            })
-        })
-        afterEach(() => {
-            if (global.obsServer.server) {
-                return new Promise<void>((resolve, reject) => {
-                    global.obsServer.server.close((error) => {
-                        if (error) {
-                            console.error(error)
-                            reject(error)
-                        } else {
-                            resolve()
-                        }
-                    })
-                })
-            }
-        })
-        test('it correctly determines the initial state without studio mode', async () => {
-            const server = global.obsServer
-            const [obs, communicator] = createObsCommunicator(server.serverIp, server.serverPort)
+    test('reports unknown state until connected', async () => {
+        await fakeObs.stop()
+        await connect()
+        expect(communicator.programs).toBeNull()
+        expect(communicator.previews).toBeNull()
+        expect(communicator.isConnected).toBe(false)
+    })
 
-            server.scenes = [
-                { name: "Scene 1" },
-                { name: "Scene 2" },
-            ]
-            server.currentScene = "Scene 1"
+    test('it cuts', async () => {
+        await connect()
+        await waitFor(['Scene 1'], [])
+        fakeObs.cut('Scene 2')
+        await waitFor(['Scene 2'], [])
+    })
 
-            try {
-                obs.connect()
-                await waitUntil(() => obs.isConnected())
-                expect(obs.isConnected()).toEqual(true)
-                expect(communicator.isConnected).toBe(true)
-                expect(communicator.programs).toEqual(["Scene 1"])
-                expect(communicator.previews).toEqual([])
-                expect(communicator.channels[0].name).toEqual("Scene 1")
-                expect(communicator.channels[1].name).toEqual("Scene 2")
+    test('scenes inside scenes are on air too, also nested deeper', async () => {
+        fakeObs.setScenes([
+            { name: 'Cam', children: [] },
+            { name: 'Lower third', children: [{ name: 'Cam', enabled: true }] },
+            { name: 'Show', children: [{ name: 'Lower third', enabled: true }] },
+        ])
+        fakeObs.program = 'Show'
+        await connect()
+        await waitFor(['Show', 'Lower third', 'Cam'], [])
+        fakeObs.setPreview('Lower third')
+        await waitFor(['Show', 'Lower third', 'Cam'], ['Lower third', 'Cam'])
+    })
 
-                server.cut("Scene 2")
-                await waitUntil(() => sameChannels(communicator.programs, ["Scene 2"]))
-                expect(communicator.programs).toEqual(["Scene 2"])
-            } finally {
-                await obs.disconnect()
-            }
-        })
-        test('it correctly determines the initial state with studio mode', async () => {
-            const server = global.obsServer
-            const [obs, communicator] = createObsCommunicator(server.serverIp, server.serverPort)
+    test('a hidden nested scene is not on air', async () => {
+        fakeObs.program = 'Scene 3'
+        await connect()
+        await waitFor(['Scene 3', 'Scene 1'], [])
+        fakeObs.setChildEnabled('Scene 3', 'Scene 1', false)
+        await waitFor(['Scene 3'], [])
+    })
 
-            server.scenes = [
-                { name: "Scene 1" },
-                { name: "Scene 2" },
-                { name: "Scene 3" },
-            ]
-            server.currentScene = "Scene 1"
-            server.previewScene = "Scene 2"
+    test('both scenes are on air during a transition', async () => {
+        await connect()
+        await waitFor(['Scene 1'], [])
+        fakeObs.transitionStart('Scene 2')
+        await waitFor(['Scene 1', 'Scene 2'], [])
+        fakeObs.transitionEnd()
+        await waitFor(['Scene 2'], [])
+    })
 
-            try {
-                obs.connect()
-                await waitUntil(() => obs.isConnected())
-                expect(obs.isConnected()).toEqual(true)
-                expect(communicator.isConnected).toBe(true)
-                expect(communicator.programs).toEqual(["Scene 1"])
-                expect(communicator.previews).toEqual(["Scene 2"])
+    test('a cut during a transition ends with the new scene', async () => {
+        await connect()
+        await waitFor(['Scene 1'], [])
+        fakeObs.transitionStart('Scene 2')
+        await waitFor(['Scene 1', 'Scene 2'], [])
+        fakeObs.cut('Scene 3')
+        await waitFor(['Scene 1', 'Scene 3'], [])
+        fakeObs.transitionEnd()
+        await waitFor(['Scene 3', 'Scene 1'], [])
+    })
 
-                server.preview("Scene 3")
-                await waitUntil(() => sameChannels(communicator.previews, ["Scene 3"]))
-                expect(communicator.previews).toEqual(["Scene 3"])
-            } finally {
-                await obs.disconnect()
-            }
-        })
-        test('it cuts', async () => {
-            const server = global.obsServer
-            const [obs, communicator] = createObsCommunicator(server.serverIp, server.serverPort)
+    test('it follows changes of the scenes', async () => {
+        await connect()
+        await waitUntil(() => same(communicator.channels, ['Scene 1', 'Scene 2', 'Scene 3']))
+        fakeObs.setScenes([{ name: 'Scene 1', children: [] }, { name: 'New', children: [] }])
+        await waitUntil(() => same(communicator.channels, ['Scene 1', 'New']), 'new channels')
+    })
 
-            server.scenes = [
-                { name: "Scene 1" },
-                { name: "Scene 2" },
-            ]
-            server.currentScene = "Scene 1"
+    test('it follows a change of the scene collection', async () => {
+        await connect()
+        await waitFor(['Scene 1'], [])
+        fakeObs.changeSceneCollection([{ name: 'A', children: [] }, { name: 'B', children: [] }], 'B')
+        await waitUntil(() => same(communicator.channels, ['A', 'B']), 'collection channels')
+        await waitFor(['B'], [])
+    })
 
-            try {
-                obs.connect()
-                await waitUntil(() => obs.isConnected())
-                expect(communicator.programs).toEqual(["Scene 1"])
+    test('it switches preview with studio mode', async () => {
+        await connect()
+        await waitFor(['Scene 1'], [])
+        fakeObs.setStudioMode(true, 'Scene 2')
+        await waitFor(['Scene 1'], ['Scene 2'])
+        fakeObs.setPreview('Scene 3')
+        await waitFor(['Scene 1'], ['Scene 3', 'Scene 1'])
+        fakeObs.setStudioMode(false)
+        await waitFor(['Scene 1'], [])
+    })
 
-                server.cut("Scene 2")
-                await waitUntil(() => sameChannels(communicator.programs, ["Scene 2"]))
-                expect(communicator.programs).toEqual(["Scene 2"])
-            } finally {
-                await obs.disconnect()
-            }
-        })
-        test('it handles scenes inside scenes', async () => {
-            const server = global.obsServer
-            const [obs, communicator] = createObsCommunicator(server.serverIp, server.serverPort)
+    test('it authenticates with a password', async () => {
+        await fakeObs.stop()
+        fakeObs = new FakeObs({ password: 'secret' })
+        await fakeObs.start()
+        await connect({ password: 'secret' })
+        await waitFor(['Scene 1'], [])
+        expect(communicator.isConnected).toBe(true)
+    })
 
-            server.scenes = [
-                { name: "Cam 1" },
-                { name: "Cam 2" },
-                { name: "Picture In Picture", sources: [
-                    {
-                        name: "Cam 1",
-                        type: "scene",
-                        render: true
-                    },
-                    {
-                        name: "Cam 2",
-                        type: "scene",
-                        render: true
-                    },
-                    {
-                        name: "Cam 3",
-                        type: "scene",
-                        render: false
-                    }
-                ] },
-            ]
-            server.currentScene = "Cam 1"
+    test('a wrong password does not connect', async () => {
+        await fakeObs.stop()
+        fakeObs = new FakeObs({ password: 'secret' })
+        await fakeObs.start()
+        const error = jest.spyOn(console, 'error').mockImplementation(() => {})
+        await connect({ password: 'wrong' })
+        await waitUntil(() => error.mock.calls.some(call => String(call[1]).includes('4009')), 'authentication error')
+        expect(communicator.isConnected).toBe(false)
+        error.mockRestore()
+    })
 
-            try {
-                obs.connect()
-                await waitUntil(() => obs.isConnected())
-                expect(communicator.programs).toEqual(["Cam 1"])
+    test('it reconnects when OBS comes back', async () => {
+        const error = jest.spyOn(console, 'error').mockImplementation(() => {})
+        await connect()
+        await waitFor(['Scene 1'], [])
+        fakeObs.dropClients()
+        await waitUntil(() => !communicator.isConnected, 'disconnect')
+        fakeObs.cut('Scene 2')
+        await waitUntil(() => communicator.isConnected, 'reconnect')
+        await waitFor(['Scene 2'], [])
+        error.mockRestore()
+    })
 
-                server.cut("Cam 2")
-                await waitUntil(() => sameChannels(communicator.programs, ["Cam 2"]))
-                expect(communicator.programs).toEqual(["Cam 2"])
-
-                server.cut("Picture In Picture")
-                await waitUntil(() => sameChannels(communicator.programs, ["Picture In Picture", "Cam 1", "Cam 2"]))
-                expect(communicator.programs).toEqual(["Picture In Picture", "Cam 1", "Cam 2"])
-            } finally {
-                await obs.disconnect()
-            }
-        })
-        test('it handles transitions', async () => {
-            const server = global.obsServer
-            const [obs, communicator] = createObsCommunicator(server.serverIp, server.serverPort)
-
-            server.scenes = [
-                { name: "Cam 1" },
-                { name: "Cam 2" },
-            ]
-            server.currentScene = "Cam 1"
-
-            try {
-                obs.connect()
-                await waitUntil(() => obs.isConnected())
-                expect(communicator.programs).toEqual(["Cam 1"])
-
-                server.transitionBegin("Cam 2")
-                await waitUntil(() => sameChannels(communicator.programs, ["Cam 1", "Cam 2"]))
-                expect(communicator.programs).toEqual(["Cam 1", "Cam 2"])
-
-                
-                server.transitionEnd("Cam 2")
-                await waitUntil(() => sameChannels(communicator.programs, ["Cam 2"]))
-                expect(communicator.programs).toEqual(["Cam 2"])
-            } finally {
-                await obs.disconnect()
-            }
-        })
-        test('it does not crash when a transition is aborted', async () => {
-            const server = global.obsServer
-            const [obs, communicator] = createObsCommunicator(server.serverIp, server.serverPort)
-
-            server.scenes = [
-                { name: "Cam 1" },
-                { name: "Cam 2" },
-            ]
-            server.currentScene = "Cam 1"
-
-            try {
-                obs.connect()
-                await waitUntil(() => obs.isConnected())
-                expect(communicator.programs).toEqual(["Cam 1"])
-
-                server.transitionBegin("Cam 2")
-                await waitUntil(() => sameChannels(communicator.programs, ["Cam 1", "Cam 2"]))
-                server.transitionBegin("Cam 1")
-                await waitUntil(() => sameChannels(communicator.programs, ["Cam 1"]))
-                expect(communicator.programs).toEqual(["Cam 1"])
-            } finally {
-                await obs.disconnect()
-            }
-        })
-        test('it handles modifications in the scenes', async () => {
-            const server = global.obsServer
-            const [obs, communicator] = createObsCommunicator(server.serverIp, server.serverPort)
-
-            server.scenes = [
-                { name: "Scene 1" },
-                { name: "Scene 2" },
-            ]
-            server.currentScene = "Scene 1"
-
-            try {
-                obs.connect()
-                await waitUntil(() => obs.isConnected())
-                expect(communicator.channels[0].name).toEqual("Scene 1")
-                expect(communicator.channels[1].name).toEqual("Scene 2")
-
-                server.changeScenes([
-                    { name: "Scene 1" },
-                    { name: "Scene 2" },
-                    { name: "Scene 3" },
-                ])
-                await waitUntil(() => communicator.channels.length !== 2)
-                
-                expect(communicator.channels[0].name).toEqual("Scene 1")
-                expect(communicator.channels[1].name).toEqual("Scene 2")
-                expect(communicator.channels[2].name).toEqual("Scene 3")
-            } finally {
-                await obs.disconnect()
-            }
-        })
-        test('it handles changing the scene collection', async () => {
-            const server = global.obsServer
-            const [obs, communicator] = createObsCommunicator(server.serverIp, server.serverPort)
-
-            server.scenes = [
-                { name: "Collection 1 / Scene 1" },
-                { name: "Collection 1 / Scene 2" },
-            ]
-            server.currentScene = "Collection 1 / Scene 1"
-
-            try {
-                obs.connect()
-                await waitUntil(() => obs.isConnected())
-                expect(communicator.channels[0].name).toEqual("Collection 1 / Scene 1")
-                expect(communicator.channels[1].name).toEqual("Collection 1 / Scene 2")
-
-                server.changeSceneCollection([
-                    { name: "Collection 2 / Scene 1" },
-                    { name: "Collection 2 / Scene 2" },
-                    { name: "Collection 2 / Scene 3" },
-                ], "Collection 2 / Scene 3")
-                await waitUntil(() => communicator.channels.length !== 2)
-                
-                expect(communicator.channels[0].name).toEqual("Collection 2 / Scene 1")
-                expect(communicator.channels[1].name).toEqual("Collection 2 / Scene 2")
-                expect(communicator.channels[2].name).toEqual("Collection 2 / Scene 3")
-            } finally {
-                await obs.disconnect()
-            }
-        })
-        test('it correctly switches preview when changing in and out of studio mode', async () => {
-            const server = global.obsServer
-            const [obs, communicator] = createObsCommunicator(server.serverIp, server.serverPort)
-
-            server.scenes = [
-                { name: "Scene 1" },
-                { name: "Scene 2" },
-            ]
-            server.currentScene = "Scene 1"
-
-            try {
-                obs.connect()
-                await waitUntil(() => obs.isConnected())
-                expect(communicator.programs).toEqual(["Scene 1"])
-                expect(communicator.previews).toEqual([])
-
-                server.enterStudioMode("Scene 2")
-                await waitUntil(() => communicator.previews !== null)
-                expect(communicator.previews).toEqual(["Scene 2"])
-
-                server.exitStudioMode()
-                await waitUntil(() => sameChannels(communicator.previews, []))
-                expect(communicator.previews).toEqual([])
-            } finally {
-                await obs.disconnect()
-            }
+    describe('live mode', () => {
+        test('"stream" only shows a program status when streaming', async () => {
+            await connect({ liveMode: 'stream' })
+            await waitFor([], ['Scene 1'])
+            fakeObs.setStreaming(true)
+            await waitFor(['Scene 1'], [])
+            fakeObs.setRecording('start')
+            fakeObs.setStreaming(false)
+            await waitFor([], ['Scene 1'])
         })
 
-        describe("liveMode", () => {
-            test('"stream" only shows a program status when streaming', async () => {
-                const server = global.obsServer
-                const [obs, communicator, configuration] = createObsCommunicator(server.serverIp, server.serverPort)
-                configuration.setLiveMode("stream")
-    
-                server.scenes = [
-                    { name: "Scene 1" },
-                    { name: "Scene 2" },
-                ]
-                server.currentScene = "Scene 1"
-                server.previewScene = "Scene 2"
-    
-                try {
-                    obs.connect()
-                    await waitUntil(() => obs.isConnected())
-                    expect(obs.isConnected()).toEqual(true)
-                    expect(communicator.isConnected).toBe(true)
-                    expect(communicator.programs).toEqual([])
-                    expect(communicator.previews).toEqual(["Scene 1"])
-
-                    server.startStream()
-                    await waitUntil(() => sameChannels(communicator.programs, ["Scene 1"]))
-                    expect(communicator.isConnected).toBe(true)
-                    expect(communicator.programs).toEqual(["Scene 1"])
-                    expect(communicator.previews).toEqual(["Scene 2"])
-
-                    server.stopStream()
-                    await waitUntil(() => sameChannels(communicator.programs, []))
-                    expect(communicator.isConnected).toBe(true)
-                    expect(communicator.programs).toEqual([])
-                    expect(communicator.previews).toEqual(["Scene 1"])
-                } finally {
-                    await obs.disconnect()
-                }
-            })
-            test('"record" only shows a program status when recording', async () => {
-                const server = global.obsServer
-                const [obs, communicator, configuration] = createObsCommunicator(server.serverIp, server.serverPort)
-                configuration.setLiveMode("record")
-    
-                server.scenes = [
-                    { name: "Scene 1" },
-                    { name: "Scene 2" },
-                ]
-                server.currentScene = "Scene 1"
-                server.previewScene = "Scene 2"
-    
-                try {
-                    obs.connect()
-                    await waitUntil(() => obs.isConnected())
-                    expect(obs.isConnected()).toEqual(true)
-                    expect(communicator.isConnected).toBe(true)
-                    expect(communicator.programs).toEqual([])
-                    expect(communicator.previews).toEqual(["Scene 1"])
-
-                    server.startRecording()
-                    await waitUntil(() => sameChannels(communicator.programs, ["Scene 1"]))
-                    expect(communicator.isConnected).toBe(true)
-                    expect(communicator.programs).toEqual(["Scene 1"])
-                    expect(communicator.previews).toEqual(["Scene 2"])
-
-                    server.pauseRecording()
-                    await waitUntil(() => sameChannels(communicator.programs, []))
-                    expect(communicator.isConnected).toBe(true)
-                    expect(communicator.programs).toEqual([])
-                    expect(communicator.previews).toEqual(["Scene 1"])
-
-                    server.unpauseRecording()
-                    await waitUntil(() => sameChannels(communicator.programs, ["Scene 1"]))
-                    expect(communicator.isConnected).toBe(true)
-                    expect(communicator.programs).toEqual(["Scene 1"])
-                    expect(communicator.previews).toEqual(["Scene 2"])
-
-                    server.stopRecording()
-                    await waitUntil(() => sameChannels(communicator.programs, []))
-                    expect(communicator.isConnected).toBe(true)
-                    expect(communicator.programs).toEqual([])
-                    expect(communicator.previews).toEqual(["Scene 1"])
-                } finally {
-                    await obs.disconnect()
-                }
-            })
-            test('"streamOrRecord" only shows a program status when streaming or recording', async () => {
-                const server = global.obsServer
-                const [obs, communicator, configuration] = createObsCommunicator(server.serverIp, server.serverPort)
-                configuration.setLiveMode("streamOrRecord")
-    
-                server.scenes = [
-                    { name: "Scene 1" },
-                    { name: "Scene 2" },
-                ]
-                server.currentScene = "Scene 1"
-                server.previewScene = "Scene 2"
-    
-                try {
-                    obs.connect()
-                    await waitUntil(() => obs.isConnected())
-                    expect(obs.isConnected()).toEqual(true)
-                    expect(communicator.isConnected).toBe(true)
-                    expect(communicator.programs).toEqual([])
-                    expect(communicator.previews).toEqual(["Scene 1"])
-
-                    server.startRecording()
-                    await waitUntil(() => sameChannels(communicator.programs, ["Scene 1"]))
-                    expect(communicator.isConnected).toBe(true)
-                    expect(communicator.programs).toEqual(["Scene 1"])
-                    expect(communicator.previews).toEqual(["Scene 2"])
-
-                    server.stopRecording()
-                    await waitUntil(() => sameChannels(communicator.programs, []))
-                    expect(communicator.isConnected).toBe(true)
-                    expect(communicator.programs).toEqual([])
-                    expect(communicator.previews).toEqual(["Scene 1"])
-
-                    server.startStream()
-                    await waitUntil(() => sameChannels(communicator.programs, ["Scene 1"]))
-                    expect(communicator.isConnected).toBe(true)
-                    expect(communicator.programs).toEqual(["Scene 1"])
-                    expect(communicator.previews).toEqual(["Scene 2"])
-
-                    server.stopStream()
-                    await waitUntil(() => sameChannels(communicator.programs, []))
-                    expect(communicator.isConnected).toBe(true)
-                    expect(communicator.programs).toEqual([])
-                    expect(communicator.previews).toEqual(["Scene 1"])
-                } finally {
-                    await obs.disconnect()
-                }
-            })
+        test('"record" only shows a program status when recording, not while paused', async () => {
+            await connect({ liveMode: 'record' })
+            await waitFor([], ['Scene 1'])
+            fakeObs.setRecording('start')
+            await waitFor(['Scene 1'], [])
+            fakeObs.setRecording('pause')
+            await waitFor([], ['Scene 1'])
+            fakeObs.setRecording('resume')
+            await waitFor(['Scene 1'], [])
+            fakeObs.setRecording('stop')
+            await waitFor([], ['Scene 1'])
         })
-        
+
+        test('"streamOrRecord" shows a program status when streaming or recording', async () => {
+            await connect({ liveMode: 'streamOrRecord' })
+            await waitFor([], ['Scene 1'])
+            fakeObs.setStreaming(true)
+            await waitFor(['Scene 1'], [])
+            fakeObs.setRecording('start')
+            fakeObs.setStreaming(false)
+            await waitFor(['Scene 1'], [])
+            fakeObs.setRecording('stop')
+            await waitFor([], ['Scene 1'])
+        })
+
+        test('the initial stream state is read on connect', async () => {
+            fakeObs.streaming = true
+            await connect({ liveMode: 'stream' })
+            await waitFor(['Scene 1'], [])
+        })
+    })
+})
+
+describe('resolveEmbeddedScenes', () => {
+    test('follows nesting and survives cycles', () => {
+        expect(ObsConnector.resolveEmbeddedScenes({ A: ['B'], B: ['C'], C: ['A'], D: [] })).toEqual({
+            A: ['B', 'C'], B: ['C', 'A'], C: ['A', 'B'], D: [],
+        })
     })
 })

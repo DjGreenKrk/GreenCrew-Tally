@@ -10,7 +10,6 @@ first. Each item is a separate change, taken on when it brings a real benefit, a
 
 | Item | Why | Notes |
 | --- | --- | --- |
-| **OBS WebSocket v5** (#3) | OBS 28+ only speaks protocol v5; the direct OBS connector still uses v4 (`obs-websocket-js` 4) | OBS via Companion works today. Needs a v5 test server/fixtures |
 | vMix: manual reconnect (#4) | After 10 minutes of retries the connector stays disconnected until the Hub restarts or the mixer is re-selected | A "Reconnect" button in the mixer settings |
 | Base NodeMCU flash from the Hub (#5) | Today a new ESP8266 needs `flash-nodemcu.cmd` once | Would need a bundled esptool-compatible flasher in the EXE |
 | Tray app (#6) | `npm run build:tray` (Electron 22 → 44) is not built or tested | Start Hub, open browser, Exit, no orphan process |
