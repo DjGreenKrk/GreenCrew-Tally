@@ -6,7 +6,7 @@
 * [FEATURE] OBS: connects to OBS Studio 28+ through its built-in WebSocket server (obs-websocket 5) with an optional password; obs-websocket 4 is no longer supported. Default port 4455; a saved old default 4444 moves to 4455, any other port is kept
 * [BUGFIX] OBS: during a transition the target scene is on air from its start (OBS 28+ reports the scene change only at the end)
 * [FEATURE] OBS: scenes nested more than one level deep are on air too; a hidden nested scene is not
-* [CHANGE] Companion module 0.7.0 (version only)
+* [BUGFIX] Companion module 0.7.0 (includes 0.6.2): a Program, Preview or AUX source that is not a camera (graphics, media, multiview) means "no camera on that bus" instead of stopping the heartbeat, which turned every tally UNKNOWN
 * [DEV] `hub/scripts/atem-simulator.cjs` and `hub/scripts/obs-simulator.cjs`: a fake ATEM switcher and a fake OBS for testing without hardware; `hub/scripts/check-live-atem.cjs` and `hub/scripts/check-live-obs.cjs` check a real ATEM and OBS
 
 # GC Tally 0.6.1

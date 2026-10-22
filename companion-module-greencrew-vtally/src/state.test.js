@@ -49,12 +49,30 @@ test('Program + Preview map to one consistent tally snapshot', () => {
     })
 })
 
-test('Unknown Program or Preview never becomes a false OFF snapshot', () => {
+test('An unavailable Program is an error, not a false OFF snapshot', () => {
     const mapping = ['Scena 1', 'Scena 2', 'Scena 3']
-    assert.throws(() => snapshotFromSources('unmapped scene', 'Scena 2', mapping), /Unmapped Program source/)
-    assert.throws(() => snapshotFromSources('Scena 1', 'unmapped preview', mapping), /Unmapped Preview source/)
     assert.throws(() => snapshotFromSources('', 'Scena 2', mapping), /Program source is empty/)
     assert.throws(() => snapshotFromSources('Scena 1', 'Scena 2', ['Scena 1', 'Scena 1']), /Duplicate source mapping/)
+})
+
+test('A Program source that is not a camera means no camera on air, not an invalid snapshot', () => {
+    const mapping = ['Scena 1', 'Scena 2', 'Scena 3']
+    assert.deepEqual(snapshotFromSources('Grafika', 'Scena 2', mapping), { programs: [], previews: ['2'], auxes: [] })
+})
+
+test('A Preview source that is not a camera means no camera in Preview, not an invalid snapshot', () => {
+    const mapping = ['Scena 1', 'Scena 2', 'Scena 3']
+    assert.deepEqual(snapshotFromSources('Scena 1', '12', mapping), { programs: ['1'], previews: [], auxes: [] })
+})
+
+test('An AUX source that is not a camera means no camera on AUX, not an invalid snapshot', () => {
+    const mapping = ['Scena 1', 'Scena 2', 'Scena 3']
+    for (const aux of ['10010', '20', '$(']) {
+        assert.deepEqual(snapshotFromSources('Scena 1', 'Scena 2', mapping, aux), {
+            programs: ['1'], previews: ['2'], auxes: [],
+        })
+    }
+    assert.deepEqual(snapshotFromSources('Scena 1', 'Scena 2', mapping, 'Scena 3').auxes, ['3'])
 })
 
 test('configured cameras limit IDs and reject invalid counts', () => {
@@ -78,7 +96,7 @@ test('generic source matching supports non-OBS source values and variable camera
     assert.deepEqual(snapshotFromSources('Input HD', 'Camera C', ['Camera A', 'Camera B', 'Camera C', 'Input HD']), {
         programs: ['4'], previews: ['3'], auxes: [],
     })
-    assert.throws(() => snapshotFromSources('9', '5', ['5', '7']), /Unmapped Program source/)
+    assert.deepEqual(snapshotFromSources('9', '5', ['5', '7']), { programs: [], previews: ['1'], auxes: [] })
 })
 
 test('AUX is an independent bus with priority Program > AUX > Preview', () => {
@@ -112,5 +130,5 @@ test('snapshot and sources support optional AUX', () => {
     const map = ['A', 'B', 'C']
     assert.deepEqual(snapshotFromSources('A', 'B', map, 'C'), { programs: ['1'], previews: ['2'], auxes: ['3'] })
     assert.deepEqual(snapshotFromSources('A', '', map, ''), { programs: ['1'], previews: [], auxes: [] })
-    assert.throws(() => snapshotFromSources('A', 'B', map, 'Z'), /Unmapped AUX source/)
+    assert.deepEqual(snapshotFromSources('A', 'B', map, 'Z'), { programs: ['1'], previews: ['2'], auxes: [] })
 })

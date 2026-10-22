@@ -7,7 +7,15 @@ configured Web/UDP tally clients.
 
 ## Version 0.7.0
 
-Renamed to GreenCrew Tally (0.6.0); the token field points to the Hub page that generates the LAN token (0.6.1); released with GC Tally 0.7.0 without module changes (0.7.0).
+Released with GC Tally 0.7.0; no module changes since 0.6.2.
+
+## Version 0.6.2
+
+A Program, Preview or AUX source that is not mapped to a camera (graphics, media, multiview) now means "no camera on that bus" instead of stopping the heartbeat, which made the Hub turn every tally UNKNOWN. An empty Program value is still an error.
+
+## Version 0.6.1
+
+Renamed to GreenCrew Tally (0.6.0); the token field points to the Hub page that generates the LAN token (0.6.1).
 
 ## Version 0.5.0
 
