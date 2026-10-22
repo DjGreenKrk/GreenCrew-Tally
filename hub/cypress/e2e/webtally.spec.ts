@@ -45,7 +45,7 @@ describe('Web Tally Creation', () => {
     cy.getTestId(`tally-${name}`).contains(name)
     cy.getTestId(`tally-${name}`).should('have.attr', 'data-color', 'unpatched').then(() => {
       cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).select("1") // by value; option text is "<id> <name>"
-      cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).should('have.value', "1")
+      cy.get(`*[data-testid=tally-${name}] *[data-testid=channel-selector] select`).invoke('val').should('deep.equal', ["1"]) // multi-select
     })
   })
   it('can create a patched web tally', () => {
