@@ -1,6 +1,7 @@
 import AtemConnector from '../mixer/atem/AtemConnector'
 import VmixConnector from '../mixer/vmix/VmixConnector'
 import MockConnector from '../mixer/mock/MockConnector'
+import ManualConnector from '../mixer/manual/ManualConnector'
 import NullConnector from '../mixer/null/NullConnector'
 import ObsConnector from '../mixer/obs/ObsConnector'
 import RolandV8HDConnector from '../mixer/rolandV8HD/RolandV8HDConnector'
@@ -105,6 +106,9 @@ export class MixerDriver {
             } else if(newMixerId === CompanionConnector.ID) {
                 MixerClass = CompanionConnector
                 this.getCurrentMixerSettings = this.configuration.getCompanionConfiguration.bind(this.configuration)
+            } else if(newMixerId === ManualConnector.ID) {
+                MixerClass = ManualConnector
+                this.getCurrentMixerSettings = this.configuration.getManualConfiguration.bind(this.configuration)
             } else if(newMixerId === TestConnector.ID) {
                 MixerClass = TestConnector
                 this.getCurrentMixerSettings = this.configuration.getTestConfiguration.bind(this.configuration)
@@ -144,6 +148,7 @@ export class MixerDriver {
             TestConnector.ID,
             NullConnector.ID,
             CompanionConnector.ID,
+            ManualConnector.ID,
             // --- order of the first items is important as they act as defaults ---
             AtemConnector.ID,
             ObsConnector.ID,

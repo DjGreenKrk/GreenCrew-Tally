@@ -1,3 +1,8 @@
+# Unreleased
+
+* [FEATURE] Manual control without a vision mixer (#21, stage 1 of #19): choose **Manual (phone control)** in Configuration, name the channels, and set each one to Off / Preview / AUX / Program on the new **Control** page, e.g. from a phone in the same network. Flash calls attention on the patched tallies; All off clears every channel. The states stay when the channel names change.
+* [CHANGE] The menu bar fits on a phone screen
+
 # GC Tally 0.7.0
 
 * [FEATURE] ATEM: inputs on the aux outputs light the tallies in the AUX state; an aux showing a M/E output counts every input visible in it
