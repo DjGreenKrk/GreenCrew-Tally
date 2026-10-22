@@ -97,7 +97,8 @@ describe('Tally Settings', () => {
     cy.getTestId("tally-settings-oc").should('have.attr', 'data-value', 'default')
     cy.getTestId("tally-settings-sc").should('have.attr', 'data-value', 'default')
     cy.getTestId("tally-settings-sp").should('have.attr', 'data-value', 'true')
-    cy.getTestId("tally-settings-oi").should('have.attr', 'data-value', 'true')
+    // idle indicator is off by default (since GC Tally 0.6.0)
+    cy.getTestId("tally-settings-oi").should('have.attr', 'data-value', 'false')
     validateSliderValue("*[data-testid=tally-settings-ob]", 100)
     validateSliderValue("*[data-testid=tally-settings-sb]", 100).then(() => {
       // and when we change values
@@ -134,7 +135,7 @@ describe('Tally Settings', () => {
       cy.getTestId("tally-settings-sp").should('have.attr', 'data-value', 'false')
 
       cy.getTestId("tally-settings-oi-toggle").should('have.attr', 'data-selected', 'false')
-      cy.getTestId("tally-settings-oi").should('have.attr', 'data-value', 'false')
+      cy.getTestId("tally-settings-oi").should('have.attr', 'data-value', 'true')
     })
   })
 
@@ -147,7 +148,7 @@ describe('Tally Settings', () => {
     initialConfig.setOperatorColorScheme("yellow-pink")
     initialConfig.setStageColorScheme("default")
     initialConfig.setStageShowsPreview(false)
-    initialConfig.setOperatorShowsIdle(false)
+    initialConfig.setOperatorShowsIdle(true)
     
     cy.getTestId(`tally-${name}`).contains(name).then(() => {
       socket.emit('tally.settings', name, "udp", initialConfig.toJson())
@@ -188,7 +189,7 @@ describe('Tally Settings', () => {
       cy.getTestId("tally-settings-oc").should('have.attr', 'data-value', 'default')
       cy.getTestId("tally-settings-sc").should('have.attr', 'data-value', 'default')
       cy.getTestId("tally-settings-sp").should('have.attr', 'data-value', 'true')
-      cy.getTestId("tally-settings-oi").should('have.attr', 'data-value', 'true')
+      cy.getTestId("tally-settings-oi").should('have.attr', 'data-value', 'false')
 
     }).then(() => {
       // when we save
@@ -212,7 +213,7 @@ describe('Tally Settings', () => {
       cy.getTestId("tally-settings-sp-toggle").should('have.attr', 'data-selected', 'true')
       cy.getTestId("tally-settings-sp").should('have.attr', 'data-value', 'true')
       cy.getTestId("tally-settings-oi-toggle").should('have.attr', 'data-selected', 'true')
-      cy.getTestId("tally-settings-oi").should('have.attr', 'data-value', 'true')
+      cy.getTestId("tally-settings-oi").should('have.attr', 'data-value', 'false')
     })
   })
 
@@ -307,7 +308,7 @@ describe('Tally Settings', () => {
     cy.getTestId("tally-settings-sp-toggle").should('have.attr', 'data-selected', 'true')
     cy.getTestId("tally-settings-sp").should('have.attr', 'data-value', 'true')
     cy.getTestId("tally-settings-oi-toggle").should('have.attr', 'data-selected', 'true')
-    cy.getTestId("tally-settings-oi").should('have.attr', 'data-value', 'true')
+    cy.getTestId("tally-settings-oi").should('have.attr', 'data-value', 'false')
     cy.getTestId("tally-settings-ob-toggle").should('have.attr', 'data-selected', 'true')
     validateSliderValue("*[data-testid=tally-settings-ob]", 100)
     cy.getTestId("tally-settings-sb-toggle").should('have.attr', 'data-selected', 'true')
@@ -317,14 +318,14 @@ describe('Tally Settings', () => {
       defaultConfig.setOperatorColorScheme("yellow-pink")
       defaultConfig.setStageColorScheme("yellow-pink")
       defaultConfig.setStageShowsPreview(false)
-      defaultConfig.setOperatorShowsIdle(false)
+      defaultConfig.setOperatorShowsIdle(true)
       socket.emit('config.change.tallyconfig', defaultConfig.toJson())
       validateSliderValue("*[data-testid=tally-settings-ob]", 70)
       validateSliderValue("*[data-testid=tally-settings-sb]", 66)
       cy.getTestId("tally-settings-oc").should('have.attr', 'data-value', 'yellow-pink')
       cy.getTestId("tally-settings-sc").should('have.attr', 'data-value', 'yellow-pink')
       cy.getTestId("tally-settings-sp").should('have.attr', 'data-value', 'false')
-      cy.getTestId("tally-settings-oi").should('have.attr', 'data-value', 'false')
+      cy.getTestId("tally-settings-oi").should('have.attr', 'data-value', 'true')
     })
   })
 
@@ -443,11 +444,18 @@ describe('Tally Settings', () => {
       })
     })
 
+    it("operator idle is off by default", () => {
+      cy.task("mixerProgPrev", {programs: [], previews: []})
+      cy.task('tallyLastCommand', name).then((lastCommand) => {
+        expect(lastCommand).to.eq("O000/000/000 S000/000/000")
+      })
+    })
+
     it("operator idle", () => {
       cy.getTestId("tally-settings-oi-toggle")
         .should('have.attr', 'data-selected', 'true')
         .click()
-      cy.getTestId("tally-settings-oi").click()
+      cy.getTestId("tally-settings-oi").should('have.attr', 'data-value', 'false').click()
       cy.getTestId(`tally-settings-submit`).click()
 
       cy.task('tallyLastCommand', name).then((lastCommand) => {
@@ -455,7 +463,7 @@ describe('Tally Settings', () => {
       }).then(() => {
         cy.task("mixerProgPrev", {programs: [], previews: []})
         cy.task('tallyLastCommand', name).then((lastCommand) => {
-          expect(lastCommand).to.eq("O000/000/000 S000/000/000")
+          expect(lastCommand).to.eq("O000/001/000 S000/000/000")
         })
       })
     })

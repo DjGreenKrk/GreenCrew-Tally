@@ -29,7 +29,8 @@ describe('Check Default Tally Configuration', () => {
       cy.getTestId("tally-defaults-oc").should('have.attr', 'data-value', 'yellow-pink')
       cy.getTestId("tally-defaults-sc").should('have.attr', 'data-value', 'yellow-pink')
       cy.getTestId("tally-defaults-sp").should('have.attr', 'data-value', 'false')
-      cy.getTestId("tally-defaults-oi").should('have.attr', 'data-value', 'false')
+      // idle indicator is off by default, so the click above turned it on
+      cy.getTestId("tally-defaults-oi").should('have.attr', 'data-value', 'true')
     })
   })
 
@@ -49,7 +50,8 @@ describe('Check Default Tally Configuration', () => {
     cy.getTestId("tally-defaults-oc").should('have.attr', 'data-value', 'default')
     cy.getTestId("tally-defaults-sc").should('have.attr', 'data-value', 'default')
     cy.getTestId("tally-defaults-sp").should('have.attr', 'data-value', 'true')
-    cy.getTestId("tally-defaults-oi").should('have.attr', 'data-value', 'true')
+    // idle indicator is off by default (since GC Tally 0.6.0)
+    cy.getTestId("tally-defaults-oi").should('have.attr', 'data-value', 'false')
     validateSliderValue("*[data-testid=tally-defaults-ob]", 100)
     validateSliderValue("*[data-testid=tally-defaults-sb]", 100).then(() => {
       // change settings from server
@@ -58,7 +60,7 @@ describe('Check Default Tally Configuration', () => {
       config.setOperatorColorScheme("yellow-pink")
       config.setStageColorScheme("default")
       config.setStageShowsPreview(false)
-      config.setOperatorShowsIdle(false)
+      config.setOperatorShowsIdle(true)
       socket.emit('config.change.tallyconfig', config.toJson())
 
       cy.getTestId("tally-defaults-oc").should('have.attr', 'data-value', 'yellow-pink')
@@ -78,13 +80,13 @@ describe('Check Default Tally Configuration', () => {
           config.setOperatorColorScheme("yellow-pink")
           config.setStageColorScheme("yellow-pink")
           config.setStageShowsPreview(false)
-          config.setOperatorShowsIdle(false)
+          config.setOperatorShowsIdle(true)
           socket.emit('config.change.tallyconfig', config.toJson())
 
           cy.getTestId("tally-defaults-oc").should('have.attr', 'data-value', 'yellow-pink')
           cy.getTestId("tally-defaults-sc").should('have.attr', 'data-value', 'yellow-pink')
           cy.getTestId("tally-defaults-sp").should('have.attr', 'data-value', 'false')
-          cy.getTestId("tally-defaults-oi").should('have.attr', 'data-value', 'false')
+          cy.getTestId("tally-defaults-oi").should('have.attr', 'data-value', 'true')
           validateSliderValue("*[data-testid=tally-defaults-ob]", 75)
           validateSliderValue("*[data-testid=tally-defaults-sb]", 75)
         })
