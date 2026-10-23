@@ -1,6 +1,6 @@
 {
   "name": "gc-tally",
-  "version": "0.8.0",
+  "version": "1.0.0-rc.1",
   "private": true,
   "main": "tray-main.js",
   "dependencies": {
