@@ -6,11 +6,10 @@ import Layout from '../components/layout/Layout'
 import Tally from '../domain/Tally'
 import useTallies from '../hooks/useTallies'
 import TallyComponent from '../components/Tally'
-import { Box, Button, ButtonGroup, Tooltip, Typography } from '@mui/material'
+import { Box, Button, ButtonGroup, Tooltip } from '@mui/material'
 import DesktopWindowsIcon from '@mui/icons-material/DesktopWindows'
 import WifiIcon from '@mui/icons-material/Wifi'
 import ServerIcon from '@mui/icons-material/Dns';
-import { Alert, AlertTitle } from '@mui/material'
 import TallyCreate from '../components/TallyCreate'
 import { useTranslation } from '../i18n'
 
@@ -26,9 +25,6 @@ const useStyles = makeStyles()(theme => {
     },
     buttonIcon: {
       marginRight: theme.spacing(1)
-    },
-    alert: {
-      marginBottom: theme.spacing(2)
     },
   }
 })
@@ -91,13 +87,6 @@ const IndexPage = () => {
           </Tooltip>
         </ButtonGroup>
       </div>
-      { isHubConnected ? "" : (
-        <Alert severity="error" className={classes.alert}>
-          <AlertTitle>{t('index.alert.title')}</AlertTitle>
-          <Typography sx={{ mb: 2 }}>{t('index.alert.outdated')}</Typography>
-          <Typography>{t('index.alert.reconnect')}</Typography>
-        </Alert>
-      )}
       <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-start", alignItems: "stretch", alignContent: "flex-start" }}><>
         {tallies ? tallies.map(tally => <TallyComponent tally={tally} key={tally.name} />) : "" /* @TODO: loading */}
         <TallyCreate />

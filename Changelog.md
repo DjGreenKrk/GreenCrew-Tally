@@ -1,5 +1,6 @@
 # Unreleased
 
+* [FEATURE] Phones get a bottom navigation bar (Tallies, Control, Configuration, Flash); a "no connection to the Hub" banner now shows on every page (#34)
 * [CHANGE] GreenCrew look for the Hub: black background, GreenCrew green for main actions and the current page, bundled Roboto font (works offline, Polish letters), smaller headings, rounded corners; tally state colours are unchanged (#33)
 * [CHANGE] The Hub UI runs on React 19, React Router 7 and MUI 9 (was React 17, Router 5, Material-UI 4); the look and the URLs are unchanged (#8)
 * [FEATURE] The Hub UI is bilingual: Polish by default, English with the PL | EN switch in the menu bar or on the About screen; the choice is remembered per browser (#37)
