@@ -19,7 +19,7 @@ function CompanionSettings() {
     )
 }
 
-CompanionSettings.defaultProps = {
+CompanionSettings.mixerMeta = {
     id: MIXER_IDS.companion,
     label: 'Companion (HTTP)',
 }

@@ -5,12 +5,7 @@ import { useAtemConfiguration } from '../../../hooks/useConfiguration'
 import { socket } from '../../../hooks/useSocket'
 import { useTranslation } from '../../../i18n'
 
-type AtemSettingsProps = {
-    id: "atem", // @TODO: use the constant. But for now it makes the frontend build crash with ("Module not found: Can't resolve 'child_process'" - and no stack trace). WTF?
-    label: string,
-}
-
-function AtemSettings(props: AtemSettingsProps) {
+function AtemSettings() {
     const { t } = useTranslation()
     const configuration = useAtemConfiguration()
     const [ip, setIp] = useState<string|null>(null)
@@ -23,14 +18,12 @@ function AtemSettings(props: AtemSettingsProps) {
     const handleSave = () => {
         if (configuration === undefined) {
             console.error("Not saving, because there is an invalid value in the form.")
-        } else if (props.id !== "atem") {
-            console.warn(`Changing id prop of AtemSettings is not supported. But got ${props.id}.`)
         } else {
             const config = configuration.clone()
             config.setIp(ip)
             config.setPort(port)
 
-            socket.emit('config.change.atem', config.toJson(), props.id)
+            socket.emit('config.change.atem', config.toJson(), "atem")
         }
     }
 
@@ -52,7 +45,7 @@ function AtemSettings(props: AtemSettingsProps) {
     )
 }
 
-AtemSettings.defaultProps = {
+AtemSettings.mixerMeta = {
     id: "atem",
     label: "ATEM by Blackmagic Design",
 }

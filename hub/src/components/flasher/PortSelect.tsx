@@ -1,5 +1,6 @@
 import React from 'react'
-import { FormControl, InputLabel, makeStyles, Select } from '@material-ui/core'
+import { makeStyles } from "tss-react/mui"
+import { FormControl, InputLabel, Select } from '@mui/material'
 import { SerialPortChoice } from '../../flasher/TallyDevice'
 import { TranslateFunction, tStored, useTranslation } from '../../i18n'
 
@@ -22,7 +23,7 @@ export const needsPortChoice = (ports: SerialPortChoice[], selectedPath?: string
   (ports.filter(port => port.supported).length !== 1 && ports.length > 0)
   || (selectedPath !== undefined && ports.some(port => port.path === selectedPath && !port.supported))
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
   root: {
     marginBottom: theme.spacing(2),
     minWidth: 240,
@@ -37,7 +38,7 @@ type Props = {
 }
 
 function PortSelect({ ports, value, disabled, onChange }: Props) {
-  const classes = useStyles()
+  const { classes } = useStyles()
   const { t } = useTranslation()
   // Recognised ESP adapters first, then the rest in the order Windows lists them.
   const sorted = [...ports.filter(port => port.supported), ...ports.filter(port => !port.supported)]

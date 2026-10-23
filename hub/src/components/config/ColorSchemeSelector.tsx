@@ -1,12 +1,13 @@
-import { makeStyles, FormHelperText, Tooltip } from '@material-ui/core'
+import { FormHelperText, Tooltip } from '@mui/material'
+import { makeStyles } from "tss-react/mui"
 import React, { useState } from 'react'
 import ColorSchemes, { ColorSchemeId } from '../../tally/ColorScheme'
 import ChipLikeButton from '../ChipLikeButton'
 import { TranslationKey, useTranslation } from '../../i18n'
 
-const useStyle = makeStyles(theme => ({
+const useStyle = makeStyles<void, 'previewContainer'>()((theme, _params, classes) => ({
   root: {
-    "&:hover $previewContainer": {
+    [`&:hover .${classes.previewContainer}`]: {
       opacity: 1
     }
   },
@@ -58,7 +59,7 @@ type ColorSchemeSelectorProps = {
 }
 
 function ColorSchemeSelector({value, onChange, disabled, testId}: ColorSchemeSelectorProps) {
-  const classes = useStyle()
+  const { classes } = useStyle()
   const { t } = useTranslation()
   const schemes = ColorSchemes.getAll()
   const [focusTracker, setFocusTracker] = useState(new Map(schemes.map(scheme => [scheme.id, false])))

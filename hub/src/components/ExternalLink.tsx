@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from "@material-ui/core"
+import { Link } from "@mui/material"
 
 function ExternalLink(props: React.ComponentProps<typeof Link>) {
     const myProps = {...props, ...{

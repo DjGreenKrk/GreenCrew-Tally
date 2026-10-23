@@ -1,11 +1,12 @@
 import React from 'react'
-import { Button, makeStyles } from '@material-ui/core'
+import { makeStyles } from "tss-react/mui"
+import { Button, } from '@mui/material'
 import TallyDevice from '../../flasher/TallyDevice'
-import { Alert, AlertTitle } from '@material-ui/lab'
+import { Alert, AlertTitle } from '@mui/material'
 import ExternalLink from '../ExternalLink'
 import { useTranslation } from '../../i18n'
 
-const useStyles = makeStyles(theme => {
+const useStyles = makeStyles()(theme => {
   return {
     warning: {
       marginBottom: theme.spacing(2),
@@ -25,7 +26,7 @@ type Props = {
 }
 
 function Help({tallyDevice, onReload}: Props) {
-  const classes = useStyles()
+  const { classes } = useStyles()
   const { t } = useTranslation()
   
   if (tallyDevice.path === undefined) {

@@ -1,15 +1,13 @@
-import { createMuiTheme, ThemeProvider } from '@material-ui/core'
+import { createTheme, ThemeProvider } from '@mui/material'
 import React from 'react';
-// Adds the @material-ui/lab components (MuiAlert) to the theme typings.
-import type {} from '@material-ui/lab/themeAugmentation'
 // import App from 'next/app'
 
 const colorGreen = "#00bc8c"
-const myTheme = createMuiTheme({
+const myTheme = createTheme({
   // copying the colors of https://bootswatch.com/4/darkly/_variables.scss
   
   palette: {
-    type: "dark",
+    mode: "dark",
     background: {
       paper: "#303030",
       default: "#222",
@@ -83,33 +81,22 @@ const myTheme = createMuiTheme({
       fontWeight: 500,
     },
   },
-  props: {
-    MuiAlert: {
-      variant: "filled",
-    },
-    MuiInput: {
-      color: "secondary",
-    },
-    MuiInputLabel: {
-      color: "secondary",
-    },
-    MuiLink: {
-      color: "secondary",
-    },
-    MuiNativeSelect: {
-      color: "secondary",
-      variant: "filled",
-    },
+  components: {
+    MuiAlert: { defaultProps: { variant: "filled" } },
+    MuiInput: { defaultProps: { color: "secondary" } },
+    MuiInputLabel: { defaultProps: { color: "secondary" } },
+    MuiLink: { defaultProps: { color: "secondary" } },
+    MuiNativeSelect: { defaultProps: { color: "secondary", variant: "filled" } },
     MuiSelect: {
       // native components have better support on mobile
-      native: true,
-      color: "secondary",
-      variant: "filled",
+      defaultProps: { native: true, color: "secondary", variant: "filled" },
     },
-    MuiTextField: {
-      color: "secondary",
-      variant: "filled",
-    }
+    MuiTextField: { defaultProps: { color: "secondary", variant: "filled" } },
+    // MUI 4 defaults, kept until the GreenCrew theme (#33): buttons without a
+    // colour use the text colour, and the app bar keeps the primary colour in
+    // dark mode
+    MuiButton: { defaultProps: { color: "inherit" } },
+    MuiAppBar: { defaultProps: { enableColorOnDark: true } },
   },
 
 })

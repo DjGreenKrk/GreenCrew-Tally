@@ -1,9 +1,10 @@
 import React from 'react'
-import { Button, Dialog, DialogActions, DialogContent, DialogProps, DialogTitle, IconButton, makeStyles, Typography, useMediaQuery, useTheme } from '@material-ui/core'
-import CloseIcon from '@material-ui/icons/Close'
+import { makeStyles } from "tss-react/mui"
+import { Button, Dialog, DialogActions, DialogContent, DialogProps, DialogTitle, IconButton, Typography, useMediaQuery, useTheme } from '@mui/material'
+import CloseIcon from '@mui/icons-material/Close'
 import { useTranslation } from '../../i18n'
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
   title: {
     borderBottom: "1px solid " + theme.palette.background.default,
     display: "flex",
@@ -35,8 +36,8 @@ function FormDialog(props: FormDialogProps) {
   const {label, onSubmit, onClose, isLoading} = props
   const testId = props["data-testid"]
   const theme = useTheme()
-  const fullScreen = useMediaQuery(theme.breakpoints.down('xs'))
-  const classes = useStyles()
+  const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
+  const { classes } = useStyles()
   const { t } = useTranslation()
 
   return (
@@ -45,7 +46,7 @@ function FormDialog(props: FormDialogProps) {
         e.preventDefault()
         onSubmit?.()
       }}>
-        <DialogTitle className={classes.title} disableTypography={true}>
+        <DialogTitle className={classes.title}>
           <Typography variant="h1">{label}</Typography>
           <IconButton aria-label={t('dialog.close')} onClick={onClose}>
             <CloseIcon />
@@ -55,7 +56,7 @@ function FormDialog(props: FormDialogProps) {
           {props.children}
         </DialogContent>
         <DialogActions className={classes.actions}>
-          <Button onClick={onClose} color="default" data-testid={`${testId}-close`}>{t('common.cancel')}</Button>
+          <Button onClick={onClose} color="inherit" data-testid={`${testId}-close`}>{t('common.cancel')}</Button>
           <Button disabled={isLoading} color="primary" variant="contained" data-testid={`${testId}-submit`} type="submit">{t('common.save')}</Button>
         </DialogActions>
       </form>

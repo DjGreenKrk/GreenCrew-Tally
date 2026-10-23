@@ -1,9 +1,10 @@
-import { makeStyles, Select } from "@material-ui/core";
+import { Select } from "@mui/material";
+import { makeStyles } from "tss-react/mui"
 import React from "react";
 import Channel from '../domain/Channel'
 import { useTranslation } from '../i18n'
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
     root: {
         display: "block",
         overflow: "hidden",
@@ -22,7 +23,7 @@ type ChannelSelectorProps = {
 
 const ChannelSelector = ({channels, value = [], onChange} : ChannelSelectorProps) => {
     channels = channels || []
-    const classes = useStyles()
+    const { classes } = useStyles()
     const { t } = useTranslation()
     const values = typeof value === "string" ? [value] : value
 

@@ -1,12 +1,13 @@
 import React from 'react'
-import { Box, Divider, List, ListItem, ListItemText, makeStyles, Paper, Typography } from '@material-ui/core'
+import { makeStyles } from "tss-react/mui"
+import { Box, Divider, List, ListItem, ListItemText, Paper, Typography } from '@mui/material'
 import Layout from '../components/layout/Layout'
 import ExternalLink from '../components/ExternalLink'
 import { buildInfo } from '../buildInfo'
 import { useTranslation } from '../i18n'
 import LanguageSwitch from '../components/layout/LanguageSwitch'
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
   paper: {
     maxWidth: 640,
     margin: '0 auto',
@@ -39,7 +40,7 @@ const noun = [
 ]
 
 const AboutPage = () => {
-  const classes = useStyles()
+  const { classes } = useStyles()
   const { t, language } = useTranslation()
   const buildDate = buildInfo.builtAt ? new Date(buildInfo.builtAt).toLocaleString(language) : t('common.developmentBuild')
 

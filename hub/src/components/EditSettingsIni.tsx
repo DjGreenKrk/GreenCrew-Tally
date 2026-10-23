@@ -1,9 +1,10 @@
-import { Button, FormControlLabel, makeStyles, Switch, TextField } from '@material-ui/core'
+import { Button, FormControlLabel, Switch, TextField } from '@mui/material'
+import { makeStyles } from "tss-react/mui"
 import React, { useEffect, useState } from 'react'
 import TallySettingsIni from '../flasher/TallySettingsIni'
 import { useTranslation } from '../i18n'
 
-const useStyles = makeStyles((theme) => {
+const useStyles = makeStyles()((theme) => {
   return {
     root: {},
     textarea: {
@@ -42,7 +43,7 @@ const EditSettingsIni = ({settingsIni, onSave, disabled}: EditTallySettingsProps
     setIni(settingsIni)
     setStringContent(settingsIni?.toString())
   }, [settingsIni])
-  const classes = useStyles()
+  const { classes } = useStyles()
   const { t } = useTranslation()
 
   return (<div className={classes.root}>

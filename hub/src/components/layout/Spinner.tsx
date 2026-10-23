@@ -1,7 +1,8 @@
-import { CircularProgress, makeStyles } from '@material-ui/core'
+import { CircularProgress, } from '@mui/material'
+import { makeStyles } from "tss-react/mui"
 import React from 'react'
 
-const useStyles = makeStyles(() => ({
+const useStyles = makeStyles()(() => ({
   root: {
     display: "block",
     margin: "0 auto",
@@ -9,7 +10,7 @@ const useStyles = makeStyles(() => ({
 }))
 
 function Spinner() {
-  const classes = useStyles()
+  const { classes } = useStyles()
   return (
       <CircularProgress classes={{root: classes.root}} color="inherit" />
   )

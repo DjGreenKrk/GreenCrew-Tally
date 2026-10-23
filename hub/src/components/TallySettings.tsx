@@ -1,4 +1,5 @@
-import { makeStyles, FormControlLabel, Checkbox } from '@material-ui/core';
+import { FormControlLabel, Checkbox } from '@mui/material';
+import { makeStyles } from "tss-react/mui"
 import React, { useEffect, useState } from 'react'
 import Tally from '../domain/Tally';
 import { useDefaultTallyConfiguration } from '../hooks/useConfiguration';
@@ -12,7 +13,7 @@ import Spinner from './layout/Spinner';
 import TallySettingsField from './TallySettingsField';
 import { useTranslation } from '../i18n';
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
   input: {
     margin: theme.spacing(0, 0, 2, 0),
   },
@@ -93,7 +94,7 @@ function TallySettings({ tally, open, onClose }: TallySettingsProps) {
   }, [settings])
 
   const isLoading = !defaultSettings || !tally
-  const classes = useStyles()
+  const { classes } = useStyles()
 
   const handleSave = () => {
     if (!tally) { return }

@@ -1,9 +1,10 @@
 import React from 'react'
+import { makeStyles } from "tss-react/mui"
 import Layout from '../components/layout/Layout'
 import MiniPage from '../components/layout/MiniPage'
 import useTallyLog from '../hooks/useTallyLog'
 import LogType from '../domain/Log'
-import { makeStyles } from '@material-ui/core'
+import { } from '@mui/material'
 import { useParams } from "react-router-dom"
 import useTallies from '../hooks/useTallies'
 import { useTranslation } from '../i18n'
@@ -11,10 +12,10 @@ import { useTranslation } from '../i18n'
 type LogProps = {
   log: LogType
   idx: number
-  classes: ReturnType<typeof useStyles>
+  classes: ReturnType<typeof useStyles>['classes']
 }
 
-const useStyles = makeStyles(theme => {
+const useStyles = makeStyles()(theme => {
   return {
     logLine: {
       fontFamily: "monospace", // @TODO: should be part of the theme
@@ -55,11 +56,11 @@ const Log = ({log, idx, classes}: LogProps) => {
 }
 
 const TallyLogPage = () => {
-  const { tallyId } = useParams<{tallyId: string}>()
+  const { tallyId } = useParams<{tallyId: string}>() as { tallyId: string }
   const logs = useTallyLog(tallyId)
   const tallies = useTallies()
   const tally = tallies?.find(tally => tally.getId() === tallyId)
-  const classes = useStyles()
+  const { classes } = useStyles()
   const { t } = useTranslation()
 
   return (

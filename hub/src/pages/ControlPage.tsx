@@ -1,5 +1,6 @@
 import React from 'react'
-import { Button, makeStyles, Paper, Typography } from '@material-ui/core'
+import { makeStyles } from "tss-react/mui"
+import { Button, Paper, Typography } from '@mui/material'
 import Layout from '../components/layout/Layout'
 import useChannels from '../hooks/useChannels'
 import useProgramPreview from '../hooks/useProgramPreview'
@@ -20,7 +21,7 @@ const stateColors: Record<ManualChannelState, string> = {
 }
 const buttonStates: ManualChannelState[] = ['off', 'preview', 'aux', 'program']
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
     toolbar: {
         display: 'flex',
         justifyContent: 'space-between',
@@ -63,7 +64,7 @@ export function channelState(channelId: string, programs: ChannelList, previews:
 }
 
 function ControlPage() {
-    const classes = useStyles()
+    const { classes } = useStyles()
     const { t } = useTranslation()
     const stateLabels: Record<ManualChannelState, string> = {
         off: t('control.state.off'),
@@ -87,7 +88,7 @@ function ControlPage() {
         return (
             <Layout testId="control">
                 <Typography variant="h5" gutterBottom>{t('control.title')}</Typography>
-                <Typography paragraph data-testid="control-inactive">
+                <Typography sx={{ mb: 2 }} data-testid="control-inactive">
                     {t('control.inactive')}
                 </Typography>
                 <Button variant="contained" color="primary" disabled={!manualConfiguration} data-testid="control-activate"

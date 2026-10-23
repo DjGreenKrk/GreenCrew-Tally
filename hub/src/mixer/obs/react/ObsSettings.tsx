@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { TextField } from '@material-ui/core'
+import { TextField } from '@mui/material'
 import MixerSettingsWrapper from '../../../components/config/MixerSettingsWrapper'
 import ValidatingInput from '../../../components/config/ValidatingInput'
 import ExternalLink from '../../../components/ExternalLink'
@@ -10,12 +10,7 @@ import { MIXER_IDS } from '../../ids'
 import ObsLiveModeSelect from './ObsLiveModeSelect'
 import { useTranslation } from '../../../i18n'
 
-type ObsSettingsProps = {
-    id: typeof MIXER_IDS.obs,
-    label: string,
-}
-
-function ObsSettings(props: ObsSettingsProps) {
+function ObsSettings() {
     const { t } = useTranslation()
     const configuration = useObsConfiguration()
     const [ip, setIp] = useState<string|null>(null)
@@ -39,8 +34,6 @@ function ObsSettings(props: ObsSettingsProps) {
     const handleSave = () => {
         if (configuration === undefined) {
             console.error("Not saving, because there is an invalid value in the form.")
-        } else if (props.id !== MIXER_IDS.obs) {
-            console.warn(`Changing id prop of ObsSettings is not supported. But got ${props.id}.`)
         } else {
             const config = configuration.clone()
             config.setIp(ip)
@@ -48,7 +41,7 @@ function ObsSettings(props: ObsSettingsProps) {
             config.setPassword(password)
             config.setLiveMode(liveMode)
 
-            socket.emit('config.change.obs', config.toJson(), props.id)
+            socket.emit('config.change.obs', config.toJson(), MIXER_IDS.obs)
         }
     }
 
@@ -64,14 +57,14 @@ function ObsSettings(props: ObsSettingsProps) {
             { configuration && (<>
                 <ValidatingInput label={t('obs.ip')} testId="obs-ip" object={configuration} propertyName="ip" onValid={(newIp) => { setIp(newIp); setIpValid(true) }} onInvalid={() => setIpValid(false)} />
                 <ValidatingInput label={t('obs.port')} testId="obs-port" object={configuration} propertyName="port" onValid={(newPort) => { setPort(newPort); setPortValid(true) }} onInvalid={() => setPortValid(false)} />
-                <TextField label={t('obs.password')} type="password" autoComplete="off" value={password} onChange={e => setPassword(e.target.value)} inputProps={{ 'data-testid': 'obs-password' }} style={{ margin: "0 16px 16px 0" }} helperText={t('obs.passwordHelp')} />
+                <TextField label={t('obs.password')} type="password" autoComplete="off" value={password} onChange={e => setPassword(e.target.value)} slotProps={{ htmlInput: { 'data-testid': 'obs-password' } }} style={{ margin: "0 16px 16px 0" }} helperText={t('obs.passwordHelp')} />
                 <ObsLiveModeSelect label={t('obs.liveMode')} testId="obs-liveMode" value={liveMode} onChange={setLiveMode} />
             </>)}
         </MixerSettingsWrapper>
     )
 }
 
-ObsSettings.defaultProps = {
+ObsSettings.mixerMeta = {
     id: MIXER_IDS.obs,
     label: "OBS Studio",
 }

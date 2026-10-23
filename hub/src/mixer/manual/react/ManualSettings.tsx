@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Button, FormControlLabel, Switch, TextField } from '@material-ui/core'
+import { Button, FormControlLabel, Switch, TextField } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import MixerSettingsWrapper from '../../../components/config/MixerSettingsWrapper'
 import { useManualConfiguration } from '../../../hooks/useConfiguration'
@@ -8,14 +8,9 @@ import { MIXER_IDS } from '../../ids'
 import { MAX_MANUAL_CHANNELS } from '../ManualConfiguration'
 import { useTranslation } from '../../../i18n'
 
-type ManualSettingsProps = {
-    id: typeof MIXER_IDS.manual,
-    label: string,
-}
-
 const parseNames = (text: string) => text.split('\n').map(line => line.trim()).filter(line => line !== '')
 
-function ManualSettings(props: ManualSettingsProps) {
+function ManualSettings() {
     const { t } = useTranslation()
     const configuration = useManualConfiguration()
     const [names, setNames] = useState('')
@@ -34,13 +29,11 @@ function ManualSettings(props: ManualSettingsProps) {
     const handleSave = () => {
         if (configuration === undefined) {
             console.error("Not saving, because the configuration is not loaded yet.")
-        } else if (props.id !== MIXER_IDS.manual) {
-            console.warn(`Changing id prop of ManualSettings is not supported. But got ${props.id}.`)
         } else {
             const config = configuration.clone()
             config.setChannelNames(parseNames(names))
             config.setExclusiveProgram(exclusiveProgram)
-            socket.emit('config.change.manual', config.toJson(), props.id)
+            socket.emit('config.change.manual', config.toJson(), MIXER_IDS.manual)
         }
     }
 
@@ -62,17 +55,17 @@ function ManualSettings(props: ManualSettingsProps) {
                 onChange={e => setNames(e.target.value)}
                 error={!isValid}
                 helperText={isValid ? t('manual.channelCount', { count }) : t('manual.channelRange', { max: MAX_MANUAL_CHANNELS })}
-                inputProps={{ 'data-testid': 'manual-channel-names' }}
+                slotProps={{ htmlInput: { 'data-testid': 'manual-channel-names' } }}
             />}
             {configuration && <FormControlLabel
-                control={<Switch checked={exclusiveProgram} onChange={e => setExclusiveProgram(e.target.checked)} color="primary" inputProps={{ 'data-testid': 'manual-exclusive' } as React.InputHTMLAttributes<HTMLInputElement>} />}
+                control={<Switch checked={exclusiveProgram} onChange={e => setExclusiveProgram(e.target.checked)} color="primary" slotProps={{ input: { 'data-testid': 'manual-exclusive' } as React.InputHTMLAttributes<HTMLInputElement> }} />}
                 label={t('manual.exclusive')}
             />}
         </MixerSettingsWrapper>
     )
 }
 
-ManualSettings.defaultProps = {
+ManualSettings.mixerMeta = {
     id: MIXER_IDS.manual,
     label: "Manual (phone control)",
 }

@@ -1,7 +1,7 @@
 import React from 'react'
 import MyTheme from './components/layout/MyTheme'
-import { CssBaseline } from '@material-ui/core'
-import { BrowserRouter as Router, Switch, Route } from 'react-router-dom'
+import { CssBaseline } from '@mui/material'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import IndexPage from './pages/IndexPage'
 import ConfigPage from './pages/ConfigPage'
 import TallyLogPage from './pages/TallyLogPage'
@@ -17,29 +17,15 @@ function App() {
     <Router>
       <MyTheme>
         <CssBaseline />
-        <Switch>
-          <Route exact path="/tally/:tallyId">
-            <WebTallyPage />
-          </Route>
-          <Route exact path="/tally/:tallyId/log">
-            <TallyLogPage />
-          </Route>
-          <Route exact path="/config">
-            <ConfigPage />
-          </Route>
-          <Route exact path="/control">
-            <ControlPage />
-          </Route>
-          <Route exact path="/about">
-            <AboutPage />
-          </Route>
-          <Route exact path="/flasher">
-            <FlasherPage />
-          </Route>
-          <Route path="/">
-            <IndexPage />
-          </Route>
-        </Switch>
+        <Routes>
+          <Route path="/tally/:tallyId" element={<WebTallyPage />} />
+          <Route path="/tally/:tallyId/log" element={<TallyLogPage />} />
+          <Route path="/config" element={<ConfigPage />} />
+          <Route path="/control" element={<ControlPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/flasher" element={<FlasherPage />} />
+          <Route path="*" element={<IndexPage />} />
+        </Routes>
       </MyTheme>
     </Router>
     </I18nProvider>

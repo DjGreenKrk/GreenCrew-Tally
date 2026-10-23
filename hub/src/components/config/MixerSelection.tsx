@@ -1,11 +1,12 @@
-import { makeStyles, NativeSelect, Typography } from '@material-ui/core'
+import { NativeSelect, Typography } from '@mui/material'
+import { makeStyles } from "tss-react/mui"
 import React, { useState } from 'react'
 import { useAllowedMixersConfiguration, useMixerNameConfiguration } from '../../hooks/useConfiguration'
 import Spinner from '../layout/Spinner'
 import MiniPage from '../layout/MiniPage'
 import { TranslationKey, useTranslation } from '../../i18n'
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
     text: {
         color: theme.palette.grey[600]
     },
@@ -25,8 +26,18 @@ function MixerOption({id, label}: MixerOptionProps) {
     )
 }
 
+// Mixer settings components expose their id and label as a static `mixerMeta` field
+// (React 19 no longer supports defaultProps on function components).
+type MixerMeta = { id: string, label: string }
+type MixerSettingsElement = React.ReactElement & { type: { mixerMeta?: MixerMeta } }
+
+function metaOf(child: React.ReactElement): MixerMeta | undefined {
+    return (child?.type as MixerSettingsElement["type"])?.mixerMeta
+}
+
 function isValidChild(child: React.ReactElement) {
-    return child?.props.id && child?.props.label
+    const meta = metaOf(child)
+    return !!(meta?.id && meta?.label)
 }
 
 type MixerSelectionProps = {
@@ -39,7 +50,7 @@ function MixerSelection({children}: MixerSelectionProps) {
     
     const [oldMixerName, setOldMixerName] = useState(mixerName)
     const [mixerId, setMixerId] = useState(mixerName)
-    const classes = useStyles()
+    const { classes } = useStyles()
     const { t } = useTranslation()
 
     const isLoading = mixerName === undefined || allowedMixers === undefined
@@ -53,21 +64,21 @@ function MixerSelection({children}: MixerSelectionProps) {
             throw new Error(`Expected all nodes of MixerSelection to be ReactNodes implementing SettingProps, but got ${child?.constructor?.name || typeof child}`)
         }
 
-        return allowedMixers?.includes(child.props.id)
+        return allowedMixers?.includes(metaOf(child).id)
     })
 
     const currentMixer = availableChildren?.reduce((cur, child) => {
-        return child.props.id === mixerId ? child : cur
+        return metaOf(child).id === mixerId ? child : cur
     }, null)
 
     return (
         <MiniPage title={t('mixer.title')}>
-            <Typography paragraph className={classes.text}>{t('mixer.select')}</Typography>
+            <Typography sx={{ mb: 2 }} className={classes.text}>{t('mixer.select')}</Typography>
             {isLoading ? <Spinner /> : (<>
                 <div className={classes.select}>
                     <NativeSelect data-testid="mixer-select" value={mixerId} onChange={e => setMixerId(e.target.value)}>
                         {availableChildren?.map(child => {
-                            return (<MixerOption key={child.props.id} id={child.props.id} label={t(`mixer.label.${child.props.id}` as TranslationKey)} />)
+                            return (<MixerOption key={metaOf(child).id} id={metaOf(child).id} label={t(`mixer.label.${metaOf(child).id}` as TranslationKey)} />)
                         })}
                     </NativeSelect>
                 </div>

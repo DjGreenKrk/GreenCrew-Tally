@@ -1,7 +1,7 @@
 
 export const setSliderValue = (selector: string, value: number) => {
   // eslint-disable-next-line cypress/no-assigning-return-values
-  let chain = cy.get(`${selector} *[role=slider]`)
+  let chain = cy.get(`${selector} input[type=range]`)
     .trigger('keydown', { keyCode: 35, which: 35 }) // End
   let currentValue = 100
   while (value < currentValue) {
@@ -17,5 +17,5 @@ export const setSliderValue = (selector: string, value: number) => {
 }
 
 export const validateSliderValue = (selector: string, value: number) => {
-  return cy.get(`${selector} *[role=slider]`).should('have.attr', 'aria-valuenow', value.toString())
+  return cy.get(`${selector} input[type=range]`).should('have.attr', 'aria-valuenow', value.toString())
 }
