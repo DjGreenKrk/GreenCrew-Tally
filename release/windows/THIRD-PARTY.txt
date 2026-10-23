@@ -17,4 +17,4 @@ firmware\nodemcu-3.0-master_20200610-cfe68233-float.bin
 
 frontend\fonts\  - Roboto 5.3.0 (fontsource build), Copyright The Roboto Project Authors
     License: SIL Open Font License 1.1 (frontend\fonts\Roboto-LICENSE.txt)
-    https://github.com/googlefonts/roboto-3-classic
+    https://github.com/googlefonts/roboto-classic
