@@ -1,4 +1,6 @@
-# Unreleased
+# GC Tally 1.0.0-rc.1
+
+First release candidate of GC Tally 1.0: the first version that is fully GreenCrew Tally, with its own look, two languages and phone support. Companion module unchanged (0.8.0).
 
 * [CHANGE] Empty and loading states on the Tallies, Control and log pages say what to do next; removing a tally asks for confirmation; touch targets are at least 44 px (#36)
 * [FEATURE] Phones get a bottom navigation bar (Tallies, Control, Configuration, Flash); a "no connection to the Hub" banner now shows on every page (#34)
@@ -6,6 +8,8 @@
 * [CHANGE] The Hub UI runs on React 19, React Router 7 and MUI 9 (was React 17, Router 5, Material-UI 4); the look and the URLs are unchanged (#8)
 * [FEATURE] The Hub UI is bilingual: Polish by default, English with the PL | EN switch in the menu bar or on the About screen; the choice is remembered per browser (#37)
 * [FEATURE] About screen: click the logo in the menu bar for the version, author, GreenCrew, licence, repository and the credits to vTally and kuuminsh/wifi-tally (#35)
+* [BUGFIX] Switching away from the Roland V-8HD mixer on a computer without MIDI no longer stops the Hub
+* [DEV] The browser tests (Cypress 16) run in CI again; they found the Roland bug (#10)
 
 # GC Tally 0.8.0
 
