@@ -12,7 +12,7 @@ const useStyles = makeStyles<{ contentPadding?: string }>()((theme, props) => {
       display: "flex",
       justifyContent: "space-between",
       padding: theme.spacing(1, 2),
-      borderBottom: "1px solid " + theme.palette.background.default,
+      borderBottom: "1px solid " + theme.palette.divider,
     },
     content: {
       padding: theme.spacing(2, props.contentPadding || 2),
@@ -37,7 +37,7 @@ function MiniPage({ title, addHeaderContent, contentPadding, testId, children }:
     <Container className={classes.root} maxWidth="sm" data-testid={testId}>
       <Paper>
         <div className={classes.header}>
-          <Typography variant="h1">{title}</Typography>
+          <Typography variant="h4" component="h1">{title}</Typography>
           {addHeaderContent}
         </div>
         <div className={classes.content}>{children}</div>

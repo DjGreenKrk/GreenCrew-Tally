@@ -8,7 +8,7 @@ import { TranslationKey, useTranslation } from '../../i18n'
 
 const useStyles = makeStyles()(theme => ({
     text: {
-        color: theme.palette.grey[600]
+        color: theme.palette.grey[400]
     },
     select: {
         marginBottom: theme.spacing(2),

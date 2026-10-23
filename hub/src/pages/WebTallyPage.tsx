@@ -60,6 +60,8 @@ const useStyles = makeStyles()((theme) => {
   },
   name: {
     color: "inherit",
+    fontSize: "3rem",
+    fontWeight: 300,
   },
   fullscreenIcon: {
     color: "inherit",

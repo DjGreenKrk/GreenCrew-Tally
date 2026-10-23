@@ -6,7 +6,7 @@ import { useTranslation } from '../../i18n'
 
 const useStyles = makeStyles()(theme => ({
   title: {
-    borderBottom: "1px solid " + theme.palette.background.default,
+    borderBottom: "1px solid " + theme.palette.divider,
     display: "flex",
     justifyContent: "space-between",
     alignItems: "baseline",
@@ -16,7 +16,7 @@ const useStyles = makeStyles()(theme => ({
     overflow: "hidden", // the bubble on the slider glitches sometimes
   },
   actions: {
-    borderTop: "1px solid " + theme.palette.background.default,
+    borderTop: "1px solid " + theme.palette.divider,
     display: "flex",
     justifyContent: "space-between",
   },
@@ -47,7 +47,7 @@ function FormDialog(props: FormDialogProps) {
         onSubmit?.()
       }}>
         <DialogTitle className={classes.title}>
-          <Typography variant="h1">{label}</Typography>
+          <Typography variant="h4" component="h1">{label}</Typography>
           <IconButton aria-label={t('dialog.close')} onClick={onClose}>
             <CloseIcon />
           </IconButton>

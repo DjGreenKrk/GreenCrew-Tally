@@ -1,7 +1,7 @@
 import React from 'react'
 import { makeStyles } from "tss-react/mui"
 import { AppBar, Button, Container, Toolbar, Typography } from '@mui/material'
-import { Link as RouterLink } from 'react-router-dom'
+import { Link as RouterLink, useLocation } from 'react-router-dom'
 import { buildInfo } from '../../buildInfo'
 import useVmixProject from '../../hooks/useVmixProject'
 import { socket } from '../../hooks/useSocket'
@@ -16,7 +16,7 @@ const useStyles = makeStyles()(theme => {
     },
     navButton: {
       [theme.breakpoints.down('sm')]: {
-        minWidth: 0,
+        minWidth: 44,
         padding: theme.spacing(0.75, 1),
       },
     },
@@ -69,10 +69,13 @@ type LayoutProps = {
 
 const Layout = ({testId: cypressId, children}: LayoutProps) => {
   const { classes } = useStyles()
+  const { pathname } = useLocation()
   const { t, language } = useTranslation()
   const buildDate = buildInfo.builtAt ? new Date(buildInfo.builtAt).toLocaleString(language) : t('common.developmentBuild')
   const vmixProject = useVmixProject()
   const projectStatus = vmixProject.hasUnsavedChanges ? t('project.unsaved') : (vmixProject.hasSavedConfiguration ? t('project.saved') : t('project.notSaved'))
+
+  const isActive = (to: string) => (to === '/' ? pathname === '/' : pathname.startsWith(to)) ? 'primary' : 'inherit'
 
   return (<div data-testid={`page-${cypressId}`}>
     <AppBar position="static">
@@ -81,10 +84,10 @@ const Layout = ({testId: cypressId, children}: LayoutProps) => {
           <img width="40" height="40" className={classes.logo} src="/favicon.svg" alt="" />
           <Typography variant="h6" component="span" className={`${classes.productName} ${classes.hideOnPhone}`}>GC Tally</Typography>
         </RouterLink>
-        <Button className={classes.navButton} component={RouterLink} to="/">{t('nav.tallies')}</Button>
-        <Button className={classes.navButton} component={RouterLink} to="/control">{t('nav.control')}</Button>
-        <Button className={classes.navButton} component={RouterLink} to="/config">{t('nav.config')}</Button>
-        <Button className={classes.navButton} component={RouterLink} to="/flasher">{t('nav.flash')}</Button>
+        <Button className={classes.navButton} component={RouterLink} to="/" color={isActive('/')} aria-current={isActive('/') === 'primary' ? 'page' : undefined}>{t('nav.tallies')}</Button>
+        <Button className={classes.navButton} component={RouterLink} to="/control" color={isActive('/control')} aria-current={isActive('/control') === 'primary' ? 'page' : undefined}>{t('nav.control')}</Button>
+        <Button className={classes.navButton} component={RouterLink} to="/config" color={isActive('/config')} aria-current={isActive('/config') === 'primary' ? 'page' : undefined}>{t('nav.config')}</Button>
+        <Button className={classes.navButton} component={RouterLink} to="/flasher" color={isActive('/flasher')} aria-current={isActive('/flasher') === 'primary' ? 'page' : undefined}>{t('nav.flash')}</Button>
         {vmixProject.projectName && <Typography variant="caption" className={classes.projectInfo}>
           {t('project.info', { name: vmixProject.projectName, status: projectStatus })}
         </Typography>}

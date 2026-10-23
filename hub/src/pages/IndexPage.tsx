@@ -77,9 +77,9 @@ const IndexPage = () => {
   return (
     <Layout testId="index">
       <div className={classes.buttons}>
-        <ButtonGroup size="small" variant="contained">
-          <Button data-testid="toggle-disconnected" className={classes.button} color={showDisconnected ? "primary" : "inherit"} onClick={toggleDisconnected}>{t('index.showDisconnected')}</Button>
-          <Button data-testid="toggle-unpatched" className={classes.button} color={showUnpatched ? "primary" : "inherit"} onClick={toggleUnpatched}>{t('index.showUnpatched')}</Button>
+        <ButtonGroup size="small" variant="outlined" color="inherit">
+          <Button data-testid="toggle-disconnected" className={classes.button} variant={showDisconnected ? "contained" : "outlined"} color="inherit" onClick={toggleDisconnected}>{t('index.showDisconnected')}</Button>
+          <Button data-testid="toggle-unpatched" className={classes.button} variant={showUnpatched ? "contained" : "outlined"} color="inherit" onClick={toggleUnpatched}>{t('index.showUnpatched')}</Button>
           <Tooltip title={isHubConnected ? t('index.hubConnected') : t('index.hubDisconnected')}>
             <Button data-testid="hub-connected" className={classes.button} color="inherit" variant="outlined"><DesktopWindowsIcon className={classes.buttonIcon} /> {isHubConnected ? 1 : 0}</Button>
           </Tooltip>
