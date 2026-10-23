@@ -1,8 +1,9 @@
-import { darken, FormHelperText, makeStyles, Slider } from '@material-ui/core'
+import { darken, FormHelperText, Slider } from '@mui/material'
+import { makeStyles } from "tss-react/mui"
 import React, { useState } from 'react'
 import { useTranslation } from '../../i18n'
 
-const useStyle = makeStyles(theme => ({
+const useStyle = makeStyles()(theme => ({
   slider: {
     padding: theme.spacing(2, 0, 0, 0)
   },
@@ -35,7 +36,7 @@ function BrightnessSlider({value, testId, onChange, minValue, minMessage, disabl
   minValue = minValue || 0
   disabled = disabled || false
   const [isFocused, setFocused] = useState(false)
-  const classes = useStyle()
+  const { classes } = useStyle()
   const { t } = useTranslation()
 
   const handleChange = (e, value) => {

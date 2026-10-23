@@ -1,9 +1,10 @@
 import React from 'react'
+import { makeStyles } from "tss-react/mui"
 import Spinner from '../layout/Spinner'
-import { Button, makeStyles, Tooltip, Typography } from '@material-ui/core'
+import { Button, Tooltip, Typography } from '@mui/material'
 import { useTranslation } from '../../i18n'
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
     text: {
         color: theme.palette.grey[600]
     },
@@ -31,7 +32,7 @@ type MixerSettingsWrapperProps = {
 }
 
 function MixerSettingsWrapper({title, testId, description, canBeSaved, isLoading, children, onSave}: MixerSettingsWrapperProps ) {
-    const classes = useStyles()
+    const { classes } = useStyles()
 
     const { t } = useTranslation()
     const buttonLabel = t('common.save')
@@ -46,10 +47,10 @@ function MixerSettingsWrapper({title, testId, description, canBeSaved, isLoading
         return (<Spinner />)
     } else {
         return (<div data-testid={testId}>
-            { description ? (<Typography paragraph className={classes.text}>{description}</Typography>): ""}
+            { description ? (<Typography sx={{ mb: 2 }} className={classes.text}>{description}</Typography>): ""}
             <form onSubmit={handleSubmit}>
                 { children && (<>
-                    <Typography variant="h4" paragraph>{title}</Typography>
+                    <Typography variant="h4" sx={{ mb: 2 }}>{title}</Typography>
                     <div>{children}</div>
                 </>) }
                 <div className={classes.footer}>

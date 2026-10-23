@@ -1,10 +1,11 @@
-import { CircularProgress, fade, makeStyles, Step, StepLabel, Stepper } from '@material-ui/core'
+import { CircularProgress, alpha, Step, StepLabel, Stepper } from '@mui/material'
+import { makeStyles } from "tss-react/mui"
 import React from 'react'
-import CancelIcon from '@material-ui/icons/Cancel'
-import CheckCircleIcon from '@material-ui/icons/CheckCircle'
-import PauseCircleFilledRoundedIcon from '@material-ui/icons/PauseCircleFilledRounded'
+import CancelIcon from '@mui/icons-material/Cancel'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import PauseCircleFilledRoundedIcon from '@mui/icons-material/PauseCircleFilledRounded'
 
-const useStyles = makeStyles((theme) => {
+const useStyles = makeStyles()((theme) => {
   return {
     iconCompleted: {
       color: theme.palette.success.dark,
@@ -23,7 +24,7 @@ const useStyles = makeStyles((theme) => {
       "& .MuiStepConnector-line": {
         minHeight: theme.spacing(1.5),
         borderLeftWidth: theme.spacing(0.5),
-        borderColor: fade(theme.palette.common.white, 0.7),
+        borderColor: alpha(theme.palette.common.white, 0.7),
       },
     },
   }
@@ -64,7 +65,7 @@ type Props = {
 }
 
 function StepDisplay({steps} : Props) {
-  const classes = useStyles()
+  const { classes } = useStyles()
 
   // MUI expects a step index beyond the last entry when the workflow is complete.
   // Selecting index 0 again falsely marks initialization as the active step.
@@ -78,12 +79,12 @@ function StepDisplay({steps} : Props) {
       data-testid={`progress-step-${step.id}`}
       data-done={step.done ? "true" : "false"}
       ><StepLabel 
-        StepIconProps={{
+        slotProps={{ stepIcon: {
           icon: <TheStepIcon step={step} classDone={classes.iconCompleted} classError={classes.iconError} classCurrent={classes.iconCurrent} />,
           classes: {
             completed: classes.iconCompleted
           }
-        }}
+        } }}
         error={step.error}>{step.label}{step.max && (step.active || step.done) && ` (${step.current}/${step.max})`}</StepLabel>
     </Step>)}
   </Stepper>

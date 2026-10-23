@@ -1,21 +1,17 @@
-
+// MUI 5+ sliders keep a visually hidden native <input type=range>; keyboard
+// events triggered by Cypress do not move it. Set the value like the browser
+// does (the native setter clamps to min/max/step) and fire the events React
+// listens to.
 export const setSliderValue = (selector: string, value: number) => {
-  // eslint-disable-next-line cypress/no-assigning-return-values
-  let chain = cy.get(`${selector} *[role=slider]`)
-    .trigger('keydown', { keyCode: 35, which: 35 }) // End
-  let currentValue = 100
-  while (value < currentValue) {
-    if (currentValue - value >= 10) {
-      chain = chain.trigger('keydown', { keyCode: 34, which: 34 }) // PageDown
-      currentValue -= 10
-    } else {
-      chain = chain.trigger('keydown', { keyCode: 37, which: 37 }) // ArrowLeft
-      currentValue -= 1
-    }
-  }
-  return chain
+  return cy.get(`${selector} input[type=range]`).then($input => {
+    const input = $input[0] as HTMLInputElement
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+    setValue?.call(input, String(value))
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+  })
 }
 
 export const validateSliderValue = (selector: string, value: number) => {
-  return cy.get(`${selector} *[role=slider]`).should('have.attr', 'aria-valuenow', value.toString())
+  return cy.get(`${selector} input[type=range]`).should('have.attr', 'aria-valuenow', value.toString())
 }

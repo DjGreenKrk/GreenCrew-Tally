@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { Button, makeStyles, TextField, Typography } from '@material-ui/core'
-import { Alert } from '@material-ui/lab'
+import { makeStyles } from "tss-react/mui"
+import { Button, TextField, Typography } from '@mui/material'
+import { Alert } from '@mui/material'
 import { socket } from '../../../hooks/useSocket'
 import { CompanionLanState } from '../../../lib/CompanionLanState'
 import { useTranslation } from '../../../i18n'
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
     section: {
         marginTop: theme.spacing(2),
     },
@@ -29,7 +30,7 @@ type ViewProps = {
 }
 
 export function CompanionLanAccessView({ state, onGenerate, onDisable }: ViewProps) {
-    const classes = useStyles()
+    const { classes } = useStyles()
     const { t } = useTranslation()
     const [visible, setVisible] = useState(false)
     const [copied, setCopied] = useState(false)
@@ -43,16 +44,16 @@ export function CompanionLanAccessView({ state, onGenerate, onDisable }: ViewPro
 
     return (<div className={classes.section} data-testid="companion-lan">
         <Typography variant="h6">{t('companionLan.localTitle')}</Typography>
-        <Typography paragraph>
+        <Typography sx={{ mb: 2 }}>
             {t('companionLan.localBefore')}<strong>127.0.0.1</strong>{t('companionLan.port')}<strong>{state.httpPort}</strong>{t('companionLan.localAfter')}
         </Typography>
 
         <Typography variant="h6">{t('companionLan.remoteTitle')}</Typography>
-        <Typography paragraph>
+        <Typography sx={{ mb: 2 }}>
             {t('companionLan.remoteBefore')}<strong data-testid="companion-lan-ips">{hubIps}</strong>{t('companionLan.port')}<strong>{state.httpPort}</strong>{t('companionLan.remoteAfter')}
         </Typography>
 
-        {state.source === 'none' && <Typography paragraph data-testid="companion-lan-off">
+        {state.source === 'none' && <Typography sx={{ mb: 2 }} data-testid="companion-lan-off">
             {t('companionLan.off')}
         </Typography>}
 
@@ -68,13 +69,12 @@ export function CompanionLanAccessView({ state, onGenerate, onDisable }: ViewPro
                 className={classes.token}
                 label={t('companionLan.token')}
                 value={visible ? state.token : '•'.repeat(24)}
-                InputProps={{ readOnly: true }}
-                inputProps={{ 'data-testid': 'companion-lan-token' }}
+                slotProps={{ input: { readOnly: true }, htmlInput: { 'data-testid': 'companion-lan-token' } }}
                 variant="outlined"
                 size="small"
             />
         ) : (
-            <Typography paragraph data-testid="companion-lan-hidden">
+            <Typography sx={{ mb: 2 }} data-testid="companion-lan-hidden">
                 {t('companionLan.hidden')}
             </Typography>
         ))}
@@ -91,10 +91,10 @@ export function CompanionLanAccessView({ state, onGenerate, onDisable }: ViewPro
                 {state.source === 'hub' && <Button size="small" variant="outlined" data-testid="companion-lan-disable" onClick={onDisable}>{t('companionLan.disable')}</Button>}
             </>}
         </div>
-        {state.canManage && state.source === 'hub' && <Typography variant="caption" paragraph>
+        {state.canManage && state.source === 'hub' && <Typography variant="caption" sx={{ mb: 2 }}>
             {t('companionLan.replaceNote')}
         </Typography>}
-        {!state.canManage && state.source !== 'env' && <Typography variant="caption" paragraph>
+        {!state.canManage && state.source !== 'env' && <Typography variant="caption" sx={{ mb: 2 }}>
             {t('companionLan.localOnly')}
         </Typography>}
     </div>)

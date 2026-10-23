@@ -6,14 +6,9 @@ import { useVmixConfiguration } from '../../../hooks/useConfiguration'
 import { socket } from '../../../hooks/useSocket'
 import { useTranslation } from '../../../i18n'
 
-type VmixSettingsProps = {
-    id: "vmix", // @TODO use Vmix.ID
-    label: string,
-}
-
 const httpApiPort = "8088"
 
-function VmixSettings(props: VmixSettingsProps) {
+function VmixSettings() {
     const { t } = useTranslation()
     const configuration = useVmixConfiguration()
     const [ip, setIp] = useState<string|null>(null)
@@ -26,14 +21,12 @@ function VmixSettings(props: VmixSettingsProps) {
     const handleSave = () => {
         if (configuration === undefined) {
             console.error("Not saving, because there is an invalid value in the form.")
-        } else if (props.id !== "vmix") {
-            console.warn(`Changing id prop of VmixSettings is not supported. But got ${props.id}.`)
         } else {
             const config = configuration.clone()
             config.setIp(ip)
             config.setPort(port)
 
-            socket.emit('config.change.vmix', config.toJson(), props.id)
+            socket.emit('config.change.vmix', config.toJson(), "vmix")
         }
     }
 
@@ -62,7 +55,7 @@ function VmixSettings(props: VmixSettingsProps) {
     )
 }
 
-VmixSettings.defaultProps = {
+VmixSettings.mixerMeta = {
     id: "vmix",
     label: "vMix",
 }

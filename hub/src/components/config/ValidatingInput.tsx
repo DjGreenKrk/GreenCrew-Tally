@@ -1,4 +1,5 @@
-import { makeStyles, TextField } from '@material-ui/core'
+import { TextField } from '@mui/material'
+import { makeStyles } from "tss-react/mui"
 import React, { useEffect, useRef, useState } from 'react'
 import { Configuration } from '../../mixer/interfaces'
 import { useTranslation } from '../../i18n'
@@ -14,7 +15,7 @@ type ValidatingInputProps = {
     onInvalid?: () => void
 }
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles()(theme => ({
     input: {
         margin: theme.spacing(0, 2, 2, 0)
     }
@@ -38,7 +39,7 @@ function ValidatingInput({label, testId, object, propertyName, errorMessage, war
     const theObjectValue = rawObjectValue == null ? null : String(rawObjectValue)
     const [value, setValue] = useState<string|null>(theObjectValue)
     const [isValid, setIsValid] = useState(true)
-    const classes = useStyles()
+    const { classes } = useStyles()
     const { t } = useTranslation()
 
     // Notify the parent after commit, never schedule a timer from render.

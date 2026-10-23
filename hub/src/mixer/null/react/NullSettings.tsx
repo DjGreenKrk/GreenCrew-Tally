@@ -1,20 +1,13 @@
 import React from 'react'
 import MixerSettingsWrapper from '../../../components/config/MixerSettingsWrapper'
 import { socket } from '../../../hooks/useSocket'
-import type { SettingsProps } from '../../interfaces'
 import { MIXER_IDS } from '../../ids'
 import { useTranslation } from '../../../i18n'
 
-type NullSettingsProps = SettingsProps & {}
-
-function NullSettings(props: NullSettingsProps) {
+function NullSettings() {
     const { t } = useTranslation()
     const handleSave = () => {
-        if (props.id !== MIXER_IDS.null) {
-            console.warn(`Changing id prop of NullSettings is not supported. But got ${props.id}.`)
-        } else {
-            socket.emit('config.change.null', MIXER_IDS.null)
-        }
+        socket.emit('config.change.null', MIXER_IDS.null)
     }
 
     return (<MixerSettingsWrapper 
@@ -25,7 +18,7 @@ function NullSettings(props: NullSettingsProps) {
     ></MixerSettingsWrapper>)
 }
 
-NullSettings.defaultProps = {
+NullSettings.mixerMeta = {
     id: MIXER_IDS.null,
     label: "Off"
 }

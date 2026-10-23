@@ -1,5 +1,6 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, makeStyles, Paper, TextField, Tooltip, Typography } from '@material-ui/core'
-import { Alert } from '@material-ui/lab'
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Paper, TextField, Tooltip, Typography } from '@mui/material'
+import { makeStyles } from "tss-react/mui"
+import { Alert } from '@mui/material'
 import React, { useState } from 'react'
 import useChannels from '../hooks/useChannels'
 import { socket } from '../hooks/useSocket'
@@ -7,7 +8,7 @@ import useTallies from '../hooks/useTallies'
 import ChannelSelector from './ChannelSelector'
 import { useTranslation } from '../i18n'
 
-const useStyles = makeStyles(theme => {
+const useStyles = makeStyles()(theme => {
   return {
     root: {
       display: "flex",
@@ -76,7 +77,7 @@ function TallyCreatePopup({classes, open, onClose}: TallyCreatePopupProps) {
             {t('tallyCreate.warning')}
           </Alert>
         ) : "" }
-        <Typography paragraph>{t('tallyCreate.description')}</Typography>
+        <Typography sx={{ mb: 2 }}>{t('tallyCreate.description')}</Typography>
 
         <div className={classes.formWrapper}>
           <TextField
@@ -91,7 +92,7 @@ function TallyCreatePopup({classes, open, onClose}: TallyCreatePopupProps) {
         </div>
         
         <DialogActions>
-          <Button onClick={onClose} color="default" data-testid="tally-create-cancel">{t('common.cancel')}</Button>
+          <Button onClick={onClose} color="inherit" data-testid="tally-create-cancel">{t('common.cancel')}</Button>
           <Tooltip title={errorMessage}><div>
             <Button disabled={!!errorMessage} color="primary" variant="contained" data-testid="tally-create-ok" onClick={handleCreate}>{t('tallyCreate.submit')}</Button>
           </div></Tooltip>
@@ -102,7 +103,7 @@ function TallyCreatePopup({classes, open, onClose}: TallyCreatePopupProps) {
 }
 
 function TallyCreate() {
-  const classes = useStyles()
+  const { classes } = useStyles()
   const { t } = useTranslation()
   const [modalOpen, setModalOpen] = useState(false)
   

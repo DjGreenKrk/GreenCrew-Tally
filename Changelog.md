@@ -1,5 +1,6 @@
 # Unreleased
 
+* [CHANGE] The Hub UI runs on React 19, React Router 7 and MUI 9 (was React 17, Router 5, Material-UI 4); the look and the URLs are unchanged (#8)
 * [FEATURE] The Hub UI is bilingual: Polish by default, English with the PL | EN switch in the menu bar or on the About screen; the choice is remembered per browser (#37)
 * [FEATURE] About screen: click the logo in the menu bar for the version, author, GreenCrew, licence, repository and the credits to vTally and kuuminsh/wifi-tally (#35)
 

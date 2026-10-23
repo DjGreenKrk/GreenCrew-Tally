@@ -1,12 +1,12 @@
-import { IconButton, Tooltip, ListItemIcon, ListItemText, Menu, MenuItem,  } from '@material-ui/core';
+import { IconButton, Tooltip, ListItemIcon, ListItemText, Menu, MenuItem,  } from '@mui/material';
 import React, { useState } from 'react'
 import Tally from '../domain/Tally';
-import SubjectIcon from '@material-ui/icons/Subject'
-import DeleteIcon from '@material-ui/icons/Delete'
-import HighlightIcon from '@material-ui/icons/Highlight'
-import MoreIcon from '@material-ui/icons/MoreVert'
-import LinkIcon from '@material-ui/icons/Link'
-import TuneIcon from '@material-ui/icons/Tune'
+import SubjectIcon from '@mui/icons-material/Subject'
+import DeleteIcon from '@mui/icons-material/Delete'
+import HighlightIcon from '@mui/icons-material/Highlight'
+import MoreIcon from '@mui/icons-material/MoreVert'
+import LinkIcon from '@mui/icons-material/Link'
+import TuneIcon from '@mui/icons-material/Tune'
 import { socket } from '../hooks/useSocket'
 import { Link as RouterLink, LinkProps as RouterLinkProps } from 'react-router-dom'
 import TallySettings from './TallySettings';

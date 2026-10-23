@@ -1,4 +1,5 @@
-import { Button, Checkbox, FormControlLabel, makeStyles, Typography } from '@material-ui/core'
+import { Button, Checkbox, FormControlLabel, Typography } from '@mui/material'
+import { makeStyles } from "tss-react/mui"
 import React, { useEffect, useState } from 'react'
 import { useDefaultTallyConfiguration } from '../../hooks/useConfiguration'
 import { socket } from '../../hooks/useSocket'
@@ -10,7 +11,7 @@ import BrightnessSlider from './BrightnessSlider'
 import ColorSchemeSelector from './ColorSchemeSelector'
 import { useTranslation } from '../../i18n'
 
-const useStyle = makeStyles((theme) => ({
+const useStyle = makeStyles()((theme) => ({
   input: {
     margin: theme.spacing(0, 2, 2, 0),
     display: "block",
@@ -47,7 +48,7 @@ function TallySettings() {
     setOperatorShowsIdle(settings?.getOperatorShowsIdle())
   }, [settings])
 
-  const classes = useStyle()
+  const { classes } = useStyle()
   // Wait until the effect above copied the settings into the form: MUI sliders
   // that mount with an undefined value stay uncontrolled and ignore later values.
   const isLoading = !settings || operatorBrightness === undefined
@@ -68,7 +69,7 @@ function TallySettings() {
   return <MiniPage data-testid="tally-defaults" title={t('tallyDefaults.title')}>
     { isLoading ? <Spinner /> : (<form onSubmit={handleSubmit}>
       <div className={classes.input}>
-        <Typography paragraph variant="h6">{t('tallySettings.operatorBrightness')}</Typography>
+        <Typography sx={{ mb: 2 }} variant="h6">{t('tallySettings.operatorBrightness')}</Typography>
         <BrightnessSlider
           testId="tally-defaults-ob"
           minValue={DefaultTallyConfiguration.minOperatorLightBrightness}
@@ -78,7 +79,7 @@ function TallySettings() {
         />
       </div>
       <div className={classes.input}>
-        <Typography paragraph variant="h6">{t('tallySettings.operatorColors')}</Typography>
+        <Typography sx={{ mb: 2 }} variant="h6">{t('tallySettings.operatorColors')}</Typography>
         <ColorSchemeSelector 
           testId="tally-defaults-oc"
           value={operatorColorScheme}
@@ -86,7 +87,7 @@ function TallySettings() {
         />
       </div>
       <div className={classes.input}>
-        <Typography paragraph variant="h6">{t('tallySettings.operatorDisplay')}</Typography>
+        <Typography sx={{ mb: 2 }} variant="h6">{t('tallySettings.operatorDisplay')}</Typography>
         <FormControlLabel
           classes={{label: classes.checkboxLabel}}
           control={<Checkbox
@@ -101,7 +102,7 @@ function TallySettings() {
         />
       </div>
       <div className={classes.input}>
-        <Typography paragraph variant="h6">{t('tallySettings.stageBrightness')}</Typography>
+        <Typography sx={{ mb: 2 }} variant="h6">{t('tallySettings.stageBrightness')}</Typography>
         <BrightnessSlider 
           testId="tally-defaults-sb"
           value={stageBrightness} 
@@ -109,7 +110,7 @@ function TallySettings() {
         />
       </div>
       <div className={classes.input}>
-        <Typography paragraph variant="h6">{t('tallySettings.stageColors')}</Typography>
+        <Typography sx={{ mb: 2 }} variant="h6">{t('tallySettings.stageColors')}</Typography>
         <ColorSchemeSelector
           testId="tally-defaults-sc"
           value={stageColorScheme}
@@ -117,7 +118,7 @@ function TallySettings() {
         />
       </div>
       <div className={classes.input}>
-        <Typography paragraph variant="h6">{t('tallySettings.stageDisplay')}</Typography>
+        <Typography sx={{ mb: 2 }} variant="h6">{t('tallySettings.stageDisplay')}</Typography>
         <FormControlLabel
           classes={{label: classes.checkboxLabel}}
           control={<Checkbox

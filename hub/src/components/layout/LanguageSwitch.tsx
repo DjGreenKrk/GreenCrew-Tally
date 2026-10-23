@@ -1,8 +1,9 @@
 import React from 'react'
-import { Button, ButtonGroup, makeStyles } from '@material-ui/core'
+import { makeStyles } from "tss-react/mui"
+import { Button, ButtonGroup, } from '@mui/material'
 import { LANGUAGES, useTranslation } from '../../i18n'
 
-const useStyles = makeStyles(() => ({
+const useStyles = makeStyles()(() => ({
   button: {
     minWidth: 44,
     minHeight: 44,
@@ -11,7 +12,7 @@ const useStyles = makeStyles(() => ({
 }))
 
 const LanguageSwitch = () => {
-  const classes = useStyles()
+  const { classes } = useStyles()
   const { t, language, setLanguage } = useTranslation()
 
   return (
@@ -21,7 +22,7 @@ const LanguageSwitch = () => {
           key={code}
           className={classes.button}
           variant={language === code ? 'contained' : 'outlined'}
-          color={language === code ? 'primary' : 'default'}
+          color={language === code ? 'primary' : 'inherit'}
           aria-pressed={language === code}
           lang={code}
           data-testid={`language-${code}`}

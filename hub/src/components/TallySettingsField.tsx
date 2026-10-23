@@ -1,9 +1,10 @@
-import { makeStyles, Typography } from '@material-ui/core'
+import { Typography } from '@mui/material'
+import { makeStyles } from "tss-react/mui"
 import React from 'react'
 import ChipLikeButton from './ChipLikeButton'
 import { useTranslation } from '../i18n'
 
-const useStyle = makeStyles((theme) => ({
+const useStyle = makeStyles()((theme) => ({
   label: {
     color: theme.palette.common.white,
   },
@@ -23,12 +24,12 @@ type TallySettingsFieldProps = {
 }
 
 function TallySettingsField({label, testId, isDefault, children, className, onChange}:TallySettingsFieldProps) {
-  const classes = useStyle()
+  const { classes } = useStyle()
   const { t } = useTranslation()
 
   return <div className={className}>
     <div className={classes.labels}>
-      <Typography variant="h6" paragraph className={classes.label}>{label}</Typography>
+      <Typography variant="h6" sx={{ mb: 2 }} className={classes.label}>{label}</Typography>
       <ChipLikeButton data-testid={`${testId}-toggle`} size="small" selected={isDefault} onClick={() => onChange(!isDefault)}>{isDefault ? t('settings.default') : t('settings.custom')}</ChipLikeButton>
     </div>
     {children}

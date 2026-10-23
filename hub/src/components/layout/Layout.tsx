@@ -1,5 +1,6 @@
 import React from 'react'
-import { AppBar, Button, Container, makeStyles, Toolbar, Typography } from '@material-ui/core'
+import { makeStyles } from "tss-react/mui"
+import { AppBar, Button, Container, Toolbar, Typography } from '@mui/material'
 import { Link as RouterLink } from 'react-router-dom'
 import { buildInfo } from '../../buildInfo'
 import useVmixProject from '../../hooks/useVmixProject'
@@ -7,20 +8,20 @@ import { socket } from '../../hooks/useSocket'
 import { useTranslation } from '../../i18n'
 import LanguageSwitch from './LanguageSwitch'
 
-const useStyles = makeStyles(theme => {
+const useStyles = makeStyles()(theme => {
   return {
     // phones: the menu wraps instead of overflowing, the extras are left out
     toolbar: {
       flexWrap: 'wrap',
     },
     navButton: {
-      [theme.breakpoints.down('xs')]: {
+      [theme.breakpoints.down('sm')]: {
         minWidth: 0,
         padding: theme.spacing(0.75, 1),
       },
     },
     hideOnPhone: {
-      [theme.breakpoints.down('xs')]: {
+      [theme.breakpoints.down('sm')]: {
         display: 'none',
       },
     },
@@ -49,7 +50,7 @@ const useStyles = makeStyles(theme => {
     },
     language: {
       marginLeft: theme.spacing(2),
-      [theme.breakpoints.down('xs')]: {
+      [theme.breakpoints.down('sm')]: {
         marginLeft: 'auto',
       },
     },
@@ -67,7 +68,7 @@ type LayoutProps = {
 }
 
 const Layout = ({testId: cypressId, children}: LayoutProps) => {
-  const classes = useStyles()
+  const { classes } = useStyles()
   const { t, language } = useTranslation()
   const buildDate = buildInfo.builtAt ? new Date(buildInfo.builtAt).toLocaleString(language) : t('common.developmentBuild')
   const vmixProject = useVmixProject()

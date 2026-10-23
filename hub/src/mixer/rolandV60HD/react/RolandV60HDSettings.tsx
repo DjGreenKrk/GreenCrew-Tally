@@ -5,12 +5,7 @@ import { socket } from '../../../hooks/useSocket'
 import { useRolandV60HDConfiguration } from '../../../hooks/useConfiguration'
 import { useTranslation } from '../../../i18n'
 
-type RolandV60HDSettingsProps = {
-    id: "rolandV60HD",
-    label: string,
-}
-
-function RolandV60HDSettings(props: RolandV60HDSettingsProps) {
+function RolandV60HDSettings() {
     const { t } = useTranslation()
     const configuration = useRolandV60HDConfiguration()
     const [ip, setIp] = useState<string|null>(null)
@@ -25,15 +20,13 @@ function RolandV60HDSettings(props: RolandV60HDSettingsProps) {
     const handleSave = () => {
         if (configuration === undefined) {
             console.error("Not saving, because there is an invalid value in the form.")
-        } else if (props.id !== "rolandV60HD") {
-            console.warn(`Changing id prop of RolandV60HDSettings is not supported. But got ${props.id}.`)
         } else {
             const config = configuration.clone()
             config.setIp(ip)
             config.setPort(port)
             config.setRequestInterval(requestInterval)
 
-            socket.emit('config.change.rolandV60HD', config.toJson(), props.id)
+            socket.emit('config.change.rolandV60HD', config.toJson(), "rolandV60HD")
         }
     }
 
@@ -55,7 +48,7 @@ function RolandV60HDSettings(props: RolandV60HDSettingsProps) {
     )
 }
 
-RolandV60HDSettings.defaultProps = {
+RolandV60HDSettings.mixerMeta = {
     id: "rolandV60HD",
     label: "Roland V-60HD",
 }

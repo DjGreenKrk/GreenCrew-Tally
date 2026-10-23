@@ -12,6 +12,6 @@ import TallySettings from './TallySettings'
 
 test('the brightness sliders show the loaded tally defaults', () => {
     const { container } = render(<TallySettings />, { container: document.body.appendChild(document.createElement('div')) })
-    const values = [...container.querySelectorAll('[role=slider]')].map(slider => slider.getAttribute('aria-valuenow'))
+    const values = [...container.querySelectorAll('input[type=range]')].map(slider => slider.getAttribute('aria-valuenow'))
     expect(values).toEqual(['80', '40'])
 })

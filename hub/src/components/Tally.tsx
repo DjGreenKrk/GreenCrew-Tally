@@ -1,18 +1,19 @@
 import React from 'react'
+import { makeStyles } from "tss-react/mui"
 import ChannelSelector from '../components/ChannelSelector'
 import { Tally as TallyType } from '../domain/Tally'
 import useChannels from '../hooks/useChannels'
 import useProgramPreview from '../hooks/useProgramPreview'
 import { socket } from '../hooks/useSocket'
-import { Paper } from '@material-ui/core'
-import { makeStyles } from '@material-ui/core'
+import { Paper } from '@mui/material'
+import { } from '@mui/material'
 import TallyMenu from './TallyMenu'
 import { DefaultColorScheme } from '../tally/ColorScheme'
 import { useTranslation } from '../i18n'
 
 const AuxColor = DefaultColorScheme.aux.toCss()
 
-const useStyles = makeStyles(theme => {
+const useStyles = makeStyles()(theme => {
     return {
         tally: {
             border: "solid 1px " + theme.palette.grey[800],
@@ -91,7 +92,7 @@ type TallyProps = {
 function Tally({ tally, className }: TallyProps) {
     const channels = useChannels()
     const [programs, previews, auxes] = useProgramPreview()
-    const classes = useStyles()
+    const { classes } = useStyles()
     const { t } = useTranslation()
 
     const patchTally = function (tally, channel) {

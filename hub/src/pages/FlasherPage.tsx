@@ -1,5 +1,6 @@
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, makeStyles, Typography } from '@material-ui/core';
-import { Alert } from '@material-ui/lab';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Typography } from '@mui/material';
+import { makeStyles } from "tss-react/mui"
+import { Alert } from '@mui/material';
 import React, { useEffect, useState } from 'react'
 import EditSettingsIni from '../components/EditSettingsIni';
 import Layout from '../components/layout/Layout'
@@ -9,14 +10,14 @@ import TallySettingsIniProgress from '../components/flasher/TallySettingsProgres
 import { TallyProgramProgressType, TallySettingsIniProgressType } from '../flasher/NodeMcuConnector';
 import TallyDevice, { TallyDeviceObjectType } from '../flasher/TallyDevice';
 import TallySettingsIni from '../flasher/TallySettingsIni';
-import RefreshIcon from '@material-ui/icons/Refresh';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { socket } from '../hooks/useSocket';
 import Help from '../components/flasher/Help';
 import ProgramProgress from '../components/flasher/ProgramProgress';
 import PortSelect, { needsPortChoice } from '../components/flasher/PortSelect';
 import { useTranslation } from '../i18n';
 
-const useStyles = makeStyles(theme => {
+const useStyles = makeStyles()(theme => {
   return {
     warning: {
       marginBottom: theme.spacing(2),
@@ -64,7 +65,7 @@ const FlasherPage = () => {
   const tallyDevice = useTallyDevice(increment, requestedPath)
   const isLoading = tallyDevice === undefined
 
-  const classes = useStyles()
+  const { classes } = useStyles()
   const { t } = useTranslation()
 
   const handleReload = () => {
@@ -109,8 +110,6 @@ const FlasherPage = () => {
     <Layout testId="flasher">
       <Dialog
         data-testid="progress"
-        disableBackdropClick={isUploading}
-        disableEscapeKeyDown={isUploading}
         open={uploadingOpen}
       >
         <DialogTitle>{t('flasher.upload')}</DialogTitle>
@@ -123,7 +122,7 @@ const FlasherPage = () => {
         </DialogActions>
       </Dialog>
       <MiniPage title={t('flasher.title')} addHeaderContent={<IconButton aria-label={t('flasher.reload')} disabled={isLoading || isUploading} onClick={handleReload}><RefreshIcon /></IconButton>}>
-        <Typography paragraph>
+        <Typography sx={{ mb: 2 }}>
           {t('flasher.description')}
         </Typography>
         { tallyDevice === undefined ? (

@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react'
-import { withRouter } from "react-router"
+import { makeStyles } from "tss-react/mui"
+import { keyframes } from "tss-react"
 import { socket } from '../hooks/useSocket'
 import { WebTally, WebTallyObjectType } from '../domain/Tally'
-import { CircularProgress, darken, fade, IconButton, makeStyles, Typography, useTheme } from '@material-ui/core'
+import { CircularProgress, darken, alpha, IconButton, Typography, useTheme } from '@mui/material'
 import { useParams } from "react-router-dom"
-import FullscreenIcon from '@material-ui/icons/Fullscreen'
-import FullscreenExitIcon from '@material-ui/icons/FullscreenExit'
+import FullscreenIcon from '@mui/icons-material/Fullscreen'
+import FullscreenExitIcon from '@mui/icons-material/FullscreenExit'
 import { FullScreen, useFullScreenHandle } from "react-full-screen"
-import TuneIcon from '@material-ui/icons/Tune'
+import TuneIcon from '@mui/icons-material/Tune'
 import NoSleepJs from 'nosleep.js'
 import { StateCommand } from '../tally/CommandCreator'
 import PageNotFound from './PageNotFound'
@@ -17,7 +18,22 @@ import ColorSchemes from '../tally/ColorScheme'
 import { useTranslation } from '../i18n'
 
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles()((theme) => {
+  const highlightFrames = keyframes({
+    from: {
+      backgroundColor: '#fff',
+      color: alpha(theme.palette.getContrastText('#fff'), 0.7)
+    },
+    "50%": {
+      backgroundColor: '#000',
+      color: alpha(theme.palette.getContrastText('#000'), 0.7)
+    },
+    to: {
+      backgroundColor: '#fff',
+      color: alpha(theme.palette.getContrastText('#fff'), 0.7)
+    },
+    })
+  return {
   root: {
     width: "100vw",
     height: "100vh",
@@ -28,29 +44,15 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(2),
 
     backgroundColor: theme.palette.grey[800],
-    color: fade(theme.palette.getContrastText(theme.palette.grey[800]), 0.7)
-  },
-  '@keyframes highlight': {
-    from: {
-      backgroundColor: '#fff',
-      color: fade(theme.palette.getContrastText('#fff'), 0.7)
-    },
-    "50%": {
-      backgroundColor: '#000',
-      color: fade(theme.palette.getContrastText('#000'), 0.7)
-    },
-    to: {
-      backgroundColor: '#fff',
-      color: fade(theme.palette.getContrastText('#fff'), 0.7)
-    },
+    color: alpha(theme.palette.getContrastText(theme.palette.grey[800]), 0.7)
   },
   highlight: {
-    animationName: '$highlight',
+    animationName: highlightFrames,
     animationDuration: '0.25s',
     animationTimingFunction: 'step-start',
     animationIterationCount: 'infinite',
     backgroundColor: '#000',
-    color: fade(theme.palette.getContrastText('#000'), 0.7)
+    color: alpha(theme.palette.getContrastText('#000'), 0.7)
   },
   spinner: {
     width: "30vw",
@@ -71,7 +73,8 @@ const useStyles = makeStyles((theme) => ({
     top: theme.spacing(2),
     right: theme.spacing(2),
   }
-}))
+  }
+})
 
 function useWebTally(tallyName: string) {
   const [tally, setTally] = useState<WebTally>()
@@ -130,13 +133,13 @@ function useWebTally(tallyName: string) {
 }
 
 function WebTallyPage() {
-  const { tallyId } = useParams<{tallyId: string}>()
+  const { tallyId } = useParams<{tallyId: string}>() as { tallyId: string }
   const tallyName = tallyId.replace(/^web-/, "")
   const { tally, command, isValid } = useWebTally(tallyName)
   const defaultTallyConfiguration = useDefaultTallyConfiguration()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const isLoading = !tally || !command
-  const classes = useStyles()
+  const { classes } = useStyles()
   const theme = useTheme()
   const { t } = useTranslation()
   const handle = useFullScreenHandle()
@@ -231,4 +234,4 @@ function WebTallyPage() {
   </FullScreen>
 }
 
-export default withRouter(WebTallyPage)
+export default WebTallyPage

@@ -1,9 +1,10 @@
-import { FormHelperText, makeStyles, TextField } from '@material-ui/core'
+import { FormHelperText, TextField } from '@mui/material'
+import { makeStyles } from "tss-react/mui"
 import React from 'react'
 import ObsConfiguration, { ObsConfigurationLiveMode } from '../ObsConfiguration'
 import { TranslationKey, useTranslation } from '../../../i18n'
 
-const useStyles = makeStyles(theme => {
+const useStyles = makeStyles()(theme => {
   return {
     root: {
       marginBottom: theme.spacing(2)
@@ -38,7 +39,7 @@ const options = {
 }
 
 function ObsLiveModeSelect({label, testId, value, onChange}: ObsLiveModeSelectProps) {
-  const classes = useStyles()
+  const { classes } = useStyles()
   const { t } = useTranslation()
 
   const currentOption = options[value]

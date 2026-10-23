@@ -6,12 +6,7 @@ import { socket } from '../../../hooks/useSocket'
 import { MIXER_IDS } from '../../ids'
 import { useTranslation } from '../../../i18n'
 
-type MockSettingsProps = {
-    id: typeof MIXER_IDS.mock,
-    label: string,
-}
-
-function MockSettings(props: MockSettingsProps) {
+function MockSettings() {
     const { t } = useTranslation()
     const configuration = useMockConfiguration()
     const [tickTime, setTickTime] = useState<string|null>(null)
@@ -26,8 +21,6 @@ function MockSettings(props: MockSettingsProps) {
     const handleSave = () => {
         if (configuration === undefined) {
             console.error("Not saving, because there is an invalid value in the form.")
-        } else if (props.id !== MIXER_IDS.mock) {
-            console.warn(`Changing id prop of MockSettings is not supported. But got ${props.id}.`)
         } else {
             const config = configuration.clone()
             config.setTickTime(tickTime)
@@ -54,7 +47,7 @@ function MockSettings(props: MockSettingsProps) {
     )
 }
 
-MockSettings.defaultProps = {
+MockSettings.mixerMeta = {
     id: MIXER_IDS.mock,
     label: "Built-In Mock for testing",
 }

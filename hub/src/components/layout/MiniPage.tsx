@@ -1,8 +1,9 @@
-import { Container, makeStyles, Paper, Typography } from '@material-ui/core'
+import { Container, Paper, Typography } from '@mui/material'
+import { makeStyles } from "tss-react/mui"
 import React from 'react'
 
 
-const useStyles = makeStyles(theme => {
+const useStyles = makeStyles<{ contentPadding?: string }>()((theme, props) => {
   return {
     root: {
       marginBottom: theme.spacing(2),
@@ -13,9 +14,9 @@ const useStyles = makeStyles(theme => {
       padding: theme.spacing(1, 2),
       borderBottom: "1px solid " + theme.palette.background.default,
     },
-    content: (props: { contentPadding?: string }) => ({
+    content: {
       padding: theme.spacing(2, props.contentPadding || 2),
-    })
+    }
   }
 })
 
@@ -28,7 +29,7 @@ type MiniPageProps = {
 }
 
 function MiniPage({ title, addHeaderContent, contentPadding, testId, children }: MiniPageProps) {
-  const classes = useStyles({
+  const { classes } = useStyles({
     contentPadding
   })
 
