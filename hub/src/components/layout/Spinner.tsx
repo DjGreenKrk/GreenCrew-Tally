@@ -9,10 +9,15 @@ const useStyles = makeStyles()(() => ({
   }
 }))
 
-function Spinner() {
+type SpinnerProps = {
+  label?: string
+  testId?: string
+}
+
+function Spinner({ label, testId }: SpinnerProps) {
   const { classes } = useStyles()
   return (
-      <CircularProgress classes={{root: classes.root}} color="inherit" />
+      <CircularProgress classes={{root: classes.root}} color="inherit" aria-label={label} data-testid={testId} />
   )
 }
 

@@ -11,7 +11,8 @@ jest.mock('../hooks/useConfiguration', () => ({
     useMixerNameConfiguration: () => mockMixer,
     useManualConfiguration: () => mockManual,
 }))
-jest.mock('../hooks/useChannels', () => () => [{ id: '1', name: 'Actor' }, { id: '2', name: 'Singer' }])
+let mockChannels: { id: string, name: string }[] | undefined = [{ id: '1', name: 'Actor' }, { id: '2', name: 'Singer' }]
+jest.mock('../hooks/useChannels', () => () => mockChannels)
 jest.mock('../hooks/useProgramPreview', () => () => [['1'], ['2'], []])
 jest.mock('../hooks/useTallies', () => () => [{ name: 'Tally01', type: 'udp', channelIds: ['1'] }])
 jest.mock('../components/layout/Layout', () => ({ children }) => <div>{children}</div>)
@@ -20,7 +21,7 @@ import ControlPage, { channelState } from './ControlPage'
 
 const renderPage = () => render(<MemoryRouter><ControlPage /></MemoryRouter>, { container: document.body.appendChild(document.createElement('div')) })
 
-beforeEach(() => { mockEmit.mockClear(); mockMixer = 'manual' })
+beforeEach(() => { mockEmit.mockClear(); mockMixer = 'manual'; mockChannels = [{ id: '1', name: 'Actor' }, { id: '2', name: 'Singer' }] })
 
 test('shows each channel with its state and patched tallies', () => {
     const { getByTestId, getByText } = renderPage()
@@ -53,3 +54,16 @@ test('program beats aux beats preview', () => {
     expect(channelState('1', null, null, [])).toBe('off')
 })
 
+
+test('shows what to do next when there are no channels', () => {
+    mockChannels = []
+    const { getByTestId } = renderPage()
+    expect(getByTestId('control-empty').textContent).toContain('No channels')
+})
+
+test('shows a loading indicator until the channels arrive', () => {
+    mockChannels = undefined
+    const { getByTestId, queryByTestId } = renderPage()
+    expect(getByTestId('control-loading')).toBeTruthy()
+    expect(queryByTestId('control-empty')).toBeNull()
+})

@@ -5,8 +5,9 @@ import React from 'react'
 const useStyles = makeStyles()(theme => ({
   root: {
     padding: theme.spacing(0, 2),
-    height: theme.spacing(4),
-    borderRadius: theme.spacing(2),
+    minWidth: 44,
+    height: 44, // touch target (design system section 19)
+    borderRadius: 22,
     textTransform: "none",
     fontWeight: "normal",
     whiteSpace: "nowrap",

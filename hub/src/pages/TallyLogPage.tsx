@@ -4,7 +4,8 @@ import Layout from '../components/layout/Layout'
 import MiniPage from '../components/layout/MiniPage'
 import useTallyLog from '../hooks/useTallyLog'
 import LogType from '../domain/Log'
-import { } from '@mui/material'
+import { Typography } from '@mui/material'
+import Spinner from '../components/layout/Spinner'
 import { useParams } from "react-router-dom"
 import useTallies from '../hooks/useTallies'
 import { useTranslation } from '../i18n'
@@ -65,8 +66,12 @@ const TallyLogPage = () => {
 
   return (
     <Layout testId="tally-log">
-      <MiniPage title={t('log.title', { name: tally?.name })} contentPadding="0">
-        {logs ? logs.map((log, idx) => <Log log={log} idx={idx} classes={classes} />) : "" /* @TODO: loading */ }
+      <MiniPage title={t('log.title', { name: tally?.name ?? tallyId })} contentPadding="0">
+        {logs === undefined ? (
+          <Spinner label={t('log.loading')} testId="log-loading" />
+        ) : logs.length === 0 ? (
+          <Typography color="text.secondary" sx={{ px: 2 }} data-testid="log-empty">{t('log.empty')}</Typography>
+        ) : logs.map((log, idx) => <Log log={log} idx={idx} classes={classes} />)}
       </MiniPage>
     </Layout>
   )

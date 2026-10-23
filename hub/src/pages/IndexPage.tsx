@@ -6,7 +6,8 @@ import Layout from '../components/layout/Layout'
 import Tally from '../domain/Tally'
 import useTallies from '../hooks/useTallies'
 import TallyComponent from '../components/Tally'
-import { Box, Button, ButtonGroup, Tooltip } from '@mui/material'
+import { Box, Button, ButtonGroup, Tooltip, Typography } from '@mui/material'
+import Spinner from '../components/layout/Spinner'
 import DesktopWindowsIcon from '@mui/icons-material/DesktopWindows'
 import WifiIcon from '@mui/icons-material/Wifi'
 import ServerIcon from '@mui/icons-material/Dns';
@@ -87,8 +88,15 @@ const IndexPage = () => {
           </Tooltip>
         </ButtonGroup>
       </div>
+      {rawTallies === null || rawTallies === undefined ? (
+        <Box sx={{ my: 3 }} data-testid="tallies-loading"><Spinner label={t('index.loading')} /></Box>
+      ) : rawTallies.length === 0 ? (
+        <Typography color="text.secondary" sx={{ mb: 2, maxWidth: "40em" }} data-testid="tallies-empty">{t('index.empty')}</Typography>
+      ) : tallies && tallies.length === 0 ? (
+        <Typography color="text.secondary" sx={{ mb: 2, maxWidth: "40em" }} data-testid="tallies-filtered-empty">{t('index.filteredEmpty')}</Typography>
+      ) : null}
       <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-start", alignItems: "stretch", alignContent: "flex-start" }}><>
-        {tallies ? tallies.map(tally => <TallyComponent tally={tally} key={tally.name} />) : "" /* @TODO: loading */}
+        {tallies ? tallies.map(tally => <TallyComponent tally={tally} key={tally.name} />) : null}
         <TallyCreate />
       </></Box>
     </Layout>

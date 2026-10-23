@@ -113,6 +113,8 @@ const myTheme = createTheme({
       defaultProps: { color: "inherit" },
       styleOverrides: { root: { borderRadius: 10, minHeight: 44 } },
     },
+    // touch targets of at least 44x44 px (design system section 19)
+    MuiIconButton: { styleOverrides: { root: { minWidth: 44, minHeight: 44 } } },
     MuiChip: { styleOverrides: { root: { borderRadius: 8 } } },
     MuiPaper: { styleOverrides: { root: { backgroundImage: "none" } } },
     MuiDialog: { styleOverrides: { paper: { borderRadius: 16 } } },
