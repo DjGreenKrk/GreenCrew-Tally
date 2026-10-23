@@ -14,3 +14,7 @@ firmware\nodemcu-3.0-master_20200610-cfe68233-float.bin
     encoder, file, gpio, net, node, pwm2, struct, tmr, uart, wifi, ws2812.
     Taken unchanged from the vTally 0.5.2 release:
     https://github.com/wifi-tally/wifi-tally/releases/tag/0.5.2
+
+frontend\fonts\  - Roboto 5.3.0 (fontsource build), Copyright The Roboto Project Authors
+    License: SIL Open Font License 1.1 (frontend\fonts\Roboto-LICENSE.txt)
+    https://github.com/googlefonts/roboto-3-classic

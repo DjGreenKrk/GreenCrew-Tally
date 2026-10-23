@@ -9,6 +9,7 @@ import { Paper } from '@mui/material'
 import { } from '@mui/material'
 import TallyMenu from './TallyMenu'
 import { DefaultColorScheme } from '../tally/ColorScheme'
+import { TallyStateColors } from '../tally/stateColors'
 import { useTranslation } from '../i18n'
 
 const AuxColor = DefaultColorScheme.aux.toCss()
@@ -23,26 +24,26 @@ const useStyles = makeStyles()(theme => {
             overflow: "hidden",
         },
         borderInPreview: {
-            borderColor: theme.palette.success.main,
+            borderColor: TallyStateColors.preview,
         },
         borderInAux: {
             borderColor: AuxColor,
         },
         borderInProgram: {
-            borderColor: theme.palette.error.main,
+            borderColor: TallyStateColors.program,
         },
         borderUnpatched: {
             borderColor: theme.palette.grey[500],
         },
         bgInPreview: {
-            backgroundColor: theme.palette.success.main,
+            backgroundColor: TallyStateColors.preview,
         },
         bgInAux: {
             backgroundColor: AuxColor,
             color: theme.palette.getContrastText(AuxColor),
         },
         bgInProgram: {
-            backgroundColor: theme.palette.error.main,
+            backgroundColor: TallyStateColors.program,
         },
         bgUnpatched: {
             backgroundColor: theme.palette.grey[500],

@@ -6,7 +6,7 @@ import { useTranslation } from '../../i18n'
 
 const useStyles = makeStyles()(theme => ({
     text: {
-        color: theme.palette.grey[600]
+        color: theme.palette.grey[400]
     },
     // disabled buttons have to be wrapped to show a tooltip
     // @see https://github.com/mui-org/material-ui/issues/8416
