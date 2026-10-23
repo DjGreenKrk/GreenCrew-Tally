@@ -105,7 +105,7 @@ jobs:
             if ($isolated -and (Test-Path $isolated)) {
               foreach ($attempt in 1..10) {
                 try { Remove-Item -LiteralPath $isolated -Recurse -Force -ErrorAction Stop; break }
-                catch { if ($attempt -eq 10) { Write-Warning "Could not remove $isolated: $_" } else { Start-Sleep -Seconds 1 } }
+                catch { if ($attempt -eq 10) { Write-Warning "Could not remove ${isolated}: $_" } else { Start-Sleep -Seconds 1 } }
               }
             }
           }
