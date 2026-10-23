@@ -1,6 +1,7 @@
 import React from 'react'
 import { makeStyles } from "tss-react/mui"
 import { Button, Paper, Typography } from '@mui/material'
+import Spinner from '../components/layout/Spinner'
 import Layout from '../components/layout/Layout'
 import useChannels from '../hooks/useChannels'
 import useProgramPreview from '../hooks/useProgramPreview'
@@ -49,6 +50,10 @@ const useStyles = makeStyles()(theme => ({
         gridTemplateColumns: 'repeat(4, 1fr)',
         gap: theme.spacing(1),
     },
+    flashButton: {
+        minWidth: 44,
+        minHeight: 44,
+    },
     stateButton: {
         minHeight: 56,
         fontSize: '1rem',
@@ -84,6 +89,15 @@ function ControlPage() {
             .forEach(tally => socket.emit('tally.highlight', tally.name, tally.type))
     }
 
+    if (mixerName === undefined) {
+        return (
+            <Layout testId="control">
+                <Typography variant="h5" gutterBottom>{t('control.title')}</Typography>
+                <Spinner label={t('control.loading')} testId="control-loading" />
+            </Layout>
+        )
+    }
+
     if (!isManual) {
         return (
             <Layout testId="control">
@@ -106,6 +120,10 @@ function ControlPage() {
                 <Button variant="outlined" onClick={() => socket.emit('manual.allOff')} data-testid="control-all-off">{t('control.allOff')}</Button>
             </div>
 
+            {channels === undefined && <Spinner label={t('control.loading')} testId="control-loading" />}
+            {channels && channels.length === 0 && (
+                <Typography color="text.secondary" data-testid="control-empty">{t('control.empty')}</Typography>
+            )}
             {channels?.map(channel => {
                 const state = channelState(channel.id, programs, previews, auxes)
                 const patched = tallies?.filter(tally => tally.channelIds.includes(channel.id)).map(tally => tally.name) || []
@@ -113,7 +131,7 @@ function ControlPage() {
                     <Paper key={channel.id} className={classes.channel} style={{ borderLeftColor: stateColors[state] }} data-testid={`control-channel-${channel.id}`} data-state={state}>
                         <div className={classes.header}>
                             <Typography variant="h6">{channel.name || channel.id}</Typography>
-                            <Button size="small" onClick={() => flash(channel.id)} disabled={patched.length === 0}>{t('control.flash')}</Button>
+                            <Button size="small" className={classes.flashButton} onClick={() => flash(channel.id)} disabled={patched.length === 0}>{t('control.flash')}</Button>
                         </div>
                         {patched.length > 0 && <Typography variant="body2" className={classes.tallies} gutterBottom>{patched.join(', ')}</Typography>}
                         <div className={classes.buttons}>

@@ -19,6 +19,7 @@ class TallyLogTracker extends EventEmitter{
             this.logs.forEach((logs, tallyName) => {
                 this.emit(`log.${tallyName}`, logs)
             })
+            this.emit('loaded', this.logs)
         })
         socket.on('tally.log', ({tallyId, log}) => {
             if (!this.logs) {

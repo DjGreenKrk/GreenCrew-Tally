@@ -1,4 +1,4 @@
-import { IconButton, Tooltip, ListItemIcon, ListItemText, Menu, MenuItem,  } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, Tooltip, ListItemIcon, ListItemText, Menu, MenuItem } from '@mui/material';
 import React, { useState } from 'react'
 import Tally from '../domain/Tally';
 import SubjectIcon from '@mui/icons-material/Subject'
@@ -46,6 +46,7 @@ function TallyMenu({ tally, className }: TallyMenuProps) {
   const { t } = useTranslation()
   const [anchorEl, setAnchorEl] = useState(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [removeOpen, setRemoveOpen] = useState(false)
   const allowHighlight = tally.isActive()
   const allowRemove = !tally.isConnected()
 
@@ -65,8 +66,13 @@ function TallyMenu({ tally, className }: TallyMenuProps) {
     e.preventDefault()
     if (!allowRemove) { return }
 
-    socket.emit('tally.remove', tally.name, tally.type)
     handleClose()
+    setRemoveOpen(true)
+  }
+
+  const handleConfirmRemove = () => {
+    setRemoveOpen(false)
+    socket.emit('tally.remove', tally.name, tally.type)
   }
 
   const handleClose = () => {
@@ -74,7 +80,7 @@ function TallyMenu({ tally, className }: TallyMenuProps) {
   }
 
   return (<div data-testid={`tally-${tally.name}-menu`} className={className}>
-    <IconButton size="small" title={t('tallyMenu.title', { name: tally.name })} aria-controls="menu" aria-haspopup="true" onClick={handleMenuClick}>
+    <IconButton title={t('tallyMenu.title', { name: tally.name })} aria-controls="menu" aria-haspopup="true" onClick={handleMenuClick}>
       <MoreIcon />
     </IconButton>
     <Menu
@@ -106,12 +112,22 @@ function TallyMenu({ tally, className }: TallyMenuProps) {
         </MenuItem>
       </div></Tooltip>
       <Tooltip data-testid={`tally-${tally.name}-remove`} title={!allowRemove ? t('tallyMenu.cannotRemove') : ""}><div>
-        <MenuItem disabled={!allowRemove} onClick={handleRemoveTally}>
-          <ListItemIcon><DeleteIcon fontSize="small" /></ListItemIcon>
+        <MenuItem disabled={!allowRemove} onClick={handleRemoveTally} sx={{ color: "error.main" }}>
+          <ListItemIcon sx={{ color: "inherit" }}><DeleteIcon fontSize="small" /></ListItemIcon>
           <ListItemText>{t('tallyMenu.remove')}</ListItemText>
         </MenuItem>
       </div></Tooltip>
     </Menu>
+    <Dialog data-testid={`tally-${tally.name}-remove-dialog`} maxWidth="xs" open={removeOpen} onClose={() => setRemoveOpen(false)}>
+      <DialogTitle>{t('tallyMenu.removeTitle', { name: tally.name })}</DialogTitle>
+      <DialogContent>
+        <DialogContentText>{t('tallyMenu.removeText', { name: tally.name })}</DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button data-testid="tally-remove-cancel" onClick={() => setRemoveOpen(false)}>{t('common.cancel')}</Button>
+        <Button data-testid="tally-remove-confirm" color="error" variant="contained" onClick={handleConfirmRemove}>{t('tallyMenu.remove')}</Button>
+      </DialogActions>
+    </Dialog>
   </div>)
 }
 

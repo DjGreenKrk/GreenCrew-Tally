@@ -1,5 +1,6 @@
 # Unreleased
 
+* [CHANGE] Empty and loading states on the Tallies, Control and log pages say what to do next; removing a tally asks for confirmation; touch targets are at least 44 px (#36)
 * [FEATURE] Phones get a bottom navigation bar (Tallies, Control, Configuration, Flash); a "no connection to the Hub" banner now shows on every page (#34)
 * [CHANGE] GreenCrew look for the Hub: black background, GreenCrew green for main actions and the current page, bundled Roboto font (works offline, Polish letters), smaller headings, rounded corners; tally state colours are unchanged (#33)
 * [CHANGE] The Hub UI runs on React 19, React Router 7 and MUI 9 (was React 17, Router 5, Material-UI 4); the look and the URLs are unchanged (#8)
