@@ -98,9 +98,16 @@ jobs:
             if ($logs -match 'Firmware unavailable') { throw 'Firmware files could not be found from the EXE' }
           } finally {
             if ($process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force }
+            # the EXE file stays locked for a moment after the process is killed
+            if ($process) { $process.WaitForExit(15000) | Out-Null }
             Get-Content $stdout -ErrorAction SilentlyContinue
             Get-Content $stderr -ErrorAction SilentlyContinue
-            if ($isolated -and (Test-Path $isolated)) { Remove-Item -LiteralPath $isolated -Recurse -Force }
+            if ($isolated -and (Test-Path $isolated)) {
+              foreach ($attempt in 1..10) {
+                try { Remove-Item -LiteralPath $isolated -Recurse -Force -ErrorAction Stop; break }
+                catch { if ($attempt -eq 10) { Write-Warning "Could not remove $isolated: $_" } else { Start-Sleep -Seconds 1 } }
+              }
+            }
           }
       - uses: actions/upload-artifact@v4
         if: success()
