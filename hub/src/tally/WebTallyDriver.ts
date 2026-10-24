@@ -2,7 +2,7 @@ import { WebTally } from '../domain/Tally'
 import { AppConfiguration } from '../lib/AppConfiguration'
 import { ServerSideSocket } from '../lib/SocketEvents'
 import TallyContainer from './TallyContainer'
-import socketIo from 'socket.io'
+import { Socket } from 'socket.io'
 import CommandCreator from './CommandCreator'
 import Log, { Severity } from '../domain/Log'
 
@@ -28,7 +28,7 @@ class WebTallyDriver {
       const command = CommandCreator.getState(tally, lastPrograms, lastPreviews, lastAuxes)
       const sockets = this.sockets.get(name) || []
       sockets.forEach(socket => {
-        if ((socket as socketIo.Socket).connected) {
+        if ((socket as Socket).connected) {
           socket.emit('webTally.state', {
             tally: tally.toJson(),
             command: command,
@@ -38,7 +38,7 @@ class WebTallyDriver {
     }
 
     private updateTallyConnections(tally: WebTally) {
-      const connections = (this.sockets.get(tally.name) || []).map((socket: socketIo.Socket) => {
+      const connections = (this.sockets.get(tally.name) || []).map((socket: Socket) => {
         const address = socket.handshake.address
         return {address: address}
       })
@@ -63,7 +63,7 @@ class WebTallyDriver {
         if (tally) {
           this.updateTallyConnections(tally)
 
-          let logLine = `A browser disconnected from ${(socket as socketIo.Socket).handshake.address}. `
+          let logLine = `A browser disconnected from ${(socket as Socket).handshake.address}. `
           if (tally.connectedClients.length === 0) {
             logLine += "The Tally is disconnected."
           } else if(tally.connectedClients.length === 1) {
@@ -90,7 +90,7 @@ class WebTallyDriver {
         this.sockets.set(tallyName, [ ...sockets, socket ])
         this.updateTallyConnections(tally)
         this.container.addLog(tallyName, 'web', new Log(new Date(), Severity.STATUS,
-         `A new browser connected from ${(socket as socketIo.Socket).handshake.address}.`
+         `A new browser connected from ${(socket as Socket).handshake.address}.`
         ))
       } else {
         console.error(`can not subscribe to unknown web tally "${tallyName}"`)

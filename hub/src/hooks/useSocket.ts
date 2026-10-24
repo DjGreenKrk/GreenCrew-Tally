@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import io from 'socket.io-client'
+import { io } from 'socket.io-client'
 import { EventEmitter } from '../lib/DisconnectedClientSideSocket'
 import { ClientSideSocket, ServerSentEvents } from '../lib/SocketEvents'
 import DisconnectedClientSideSocket from '../lib/DisconnectedClientSideSocket'
@@ -21,14 +21,9 @@ if (typeof window !== 'undefined') {
   // on client only
   socket.on("connect", onConnection)
   socket.on("connect_error", onDisconnection)
-  socket.on("connect_timeout", onDisconnection)
-  // Socket.IO emits "disconnect", never "disconnected". Successful
-  // reconnect must set Hub state back to connected, not disconnected.
+  // Socket.IO 4 emits "connect" again after every successful reconnect;
+  // the reconnect_* events only exist on the Manager (socket.io).
   socket.on("disconnect", onDisconnection)
-  socket.on("reconnect", onConnection)
-  socket.on("reconnecting", onDisconnection)
-  socket.on("reconnect_error", onDisconnection)
-  socket.on("reconnect_failed", onDisconnection)
 }
 
 /** @deprecated */

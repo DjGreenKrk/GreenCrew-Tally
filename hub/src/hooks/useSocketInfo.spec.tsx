@@ -14,7 +14,7 @@ test('disconnect and reconnection update UI connection state', () => {
   expect(screen.getByTestId('socket-status')).toHaveTextContent('connected')
   act(() => { fake.emitServerEvent('disconnect') })
   expect(screen.getByTestId('socket-status')).toHaveTextContent('disconnected')
-  act(() => { fake.emitServerEvent('reconnect') })
+  act(() => { fake.emitServerEvent('connect') })
   expect(screen.getByTestId('socket-status')).toHaveTextContent('connected')
   view.unmount()
 })

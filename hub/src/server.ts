@@ -9,7 +9,7 @@ import express from 'express'
 import path from 'path'
 import { createProxyMiddleware } from 'http-proxy-middleware'
 import { Server } from 'http'
-import socketIo from 'socket.io'
+import { Server as SocketIoServer, Socket } from 'socket.io'
 
 import { SocketAwareEvent } from './lib/SocketAwareEvent'
 import ServerEventEmitter from './lib/ServerEventEmitter'
@@ -51,7 +51,7 @@ if (argv['with-test'] !== undefined) {
 }
 const app = express()
 const server = new Server(app)
-const io = socketIo(server)
+const io = new SocketIoServer(server)
 
 const myEmitter = new ServerEventEmitter()
 myEmitter.setMaxListeners(99)
@@ -96,7 +96,7 @@ myEmitter.on('program.changed', ({programs, previews, auxes}) => {
 
 // socket.io server
 io.on('connection', (socket: ServerSideSocket) => {
-  (socket as socketIo.Socket).setMaxListeners(99)
+  (socket as Socket).setMaxListeners(99)
   const mixerEvents = [
     // @TODO: use event objects instead of repeating the same structure again and again
     new SocketAwareEvent(myEmitter, 'mixer.connected', socket, (socket) => {
@@ -330,7 +330,7 @@ io.on('connection', (socket: ServerSideSocket) => {
     }
   })
   // The LAN token is shown and changed only from a browser on the Hub computer.
-  const isHubComputer = isLoopbackAddress((socket as socketIo.Socket).handshake.address)
+  const isHubComputer = isLoopbackAddress((socket as Socket).handshake.address)
   const sendCompanionLanState = () => socket.emit('companion.lan.state', companionLanState(
     process.env.VTALLY_COMPANION_TOKEN, myConfiguration.getCompanionLanToken(),
     isHubComputer, myConfiguration.getHttpPort(), hubLanAddresses()))
@@ -423,17 +423,19 @@ if (myConfiguration.isDev()) {
     target: `http://localhost:${proxyPort}`, 
     changeOrigin: true, 
     ws: true,
-    onError: (err: Error & { code?: string }, req, res) => {
-      if (typeof res.writeHead === "function") {
-        res.writeHead(500, {
-          'Content-Type': 'text/plain',
-        });
-        if (err && err.code === "ECONNREFUSED") {
-          res.end(`Could not connect to server on http://localhost:${proxyPort}. Is the react dev server running?\nTo fix it run:\n    npm run start:frontend`)
-        } else {
-          res.end("The proxy reported an error: \n" + err.toString())
+    on: {
+      error: (err: Error & { code?: string }, req, res) => {
+        if ('writeHead' in res) {
+          res.writeHead(500, {
+            'Content-Type': 'text/plain',
+          });
+          if (err && err.code === "ECONNREFUSED") {
+            res.end(`Could not connect to server on http://localhost:${proxyPort}. Is the react dev server running?\nTo fix it run:\n    npm run start:frontend`)
+          } else {
+            res.end("The proxy reported an error: \n" + err.toString())
+          }
         }
-      }
+      },
     },
   }))
 } else {
@@ -445,7 +447,7 @@ if (myConfiguration.isDev()) {
   app.use('/', express.static(frontendDir))
 
   // fetch all route to allow deep-links into the application
-  app.get('*', function(req, res) {
+  app.get('/{*path}', function(req, res) {
     res.sendFile(path.join(frontendDir, 'index.html'))
   })
 }
