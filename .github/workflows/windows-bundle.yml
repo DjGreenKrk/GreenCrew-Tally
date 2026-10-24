@@ -136,11 +136,14 @@ jobs:
           Assert-NoHub
 
           # 2. busy port: the Hub refuses to start, the tray reports it and exits
-          $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, 3000)
+          # Create() listens on IPv4 and IPv6, like the Hub, so its listen fails
+          $listener = [System.Net.Sockets.TcpListener]::Create(3000)
           $listener.Start()
           try {
             $code = Run-Tray 'busy'
             if ($code -eq 0) { throw 'tray exited with 0 although port 3000 was busy' }
+            $log = Get-Content (Join-Path $env:RUNNER_TEMP 'tray-busy-out.log'), (Join-Path $env:RUNNER_TEMP 'tray-busy-err.log') -Raw -ErrorAction SilentlyContinue
+            if ("$log" -notmatch 'already in use') { throw 'tray did not report the busy port' }
           } finally { $listener.Stop() }
           Assert-NoHub
       - uses: actions/upload-artifact@v4
