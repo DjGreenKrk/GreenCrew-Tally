@@ -58,8 +58,8 @@
     "babel-jest": "30.5.2",
     "cross-env": "^7.0.3",
     "cypress": "^16.2.0",
-    "electron": "^22.3.27",
-    "electron-builder": "^24.13.3",
+    "electron": "^44.9.3",
+    "electron-builder": "^26.18.0",
     "eslint": "10.13.0",
     "eslint-plugin-cypress": "7.0.0",
     "eslint-plugin-react-hooks": "7.1.1",
@@ -98,8 +98,12 @@
     "appId": "pl.greencrew.gctally",
     "productName": "GC Tally",
     "npmRebuild": false,
+    "directories": {
+      "output": "dist-tray"
+    },
     "files": [
-      "tray-main.js"
+      "tray-main.js",
+      "!node_modules{,/**/*}"
     ],
     "extraResources": [
       {

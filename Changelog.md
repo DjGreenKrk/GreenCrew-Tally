@@ -2,6 +2,7 @@
 
 * [DEV] The Hub server runs on Express 5 and Socket.IO 4 (was Express 4, Socket.IO 2); the dev proxy uses http-proxy-middleware 3. Nothing changes for users; the browser and the Hub must come from the same version, which the release ZIP always guarantees (#9)
 * [DEV] xml2js 0.6 (vMix); the Hub reads its start flags with the parser built into Node instead of yargs; the unused forever-monitor dependency is removed (#12)
+* [DEV] The tray app (not shipped yet) is built and self-tested in CI on Electron 44: it opens the browser once the Hub answers, stops the Hub on Exit, shows the reason when the Hub cannot start (e.g. busy port) or stops, allows one copy only and speaks Polish or English (#6)
 
 # GC Tally 1.0.0-rc.1
 
