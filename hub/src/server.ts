@@ -1,5 +1,5 @@
 // set NODE_ENV from argument to enable portability to windows
-import yargs from 'yargs'
+import { parseArgs } from 'util'
 
 import TallyContainer from './tally/TallyContainer'
 import UdpTallyDriver from './tally/UdpTallyDriver'
@@ -34,7 +34,14 @@ import registerCompanionApi, { isLoopbackAddress } from './mixer/companion/Compa
 import { companionLanState, effectiveCompanionToken, generateCompanionToken, hubLanAddresses } from './mixer/companion/CompanionLanAccess'
 import { describeListenError, exitWithStartupError } from './lib/startupFailure'
 
-const argv = yargs.argv
+const { values: argv } = parseArgs({
+  options: {
+    env: { type: 'string' },
+    'with-test': { type: 'boolean' },
+  },
+  // ignore unknown flags instead of refusing to start
+  strict: false,
+})
 if (argv.env !== undefined) {
   // @TODO: setting the env is not nice, but the easiest way to be cross-platform compatible
   // @see https://github.com/wifi-tally/wifi-tally/issues/18

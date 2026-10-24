@@ -9,7 +9,7 @@ const {builtinModules}=require('node:module')
 const root=path.resolve(__dirname,'../src')
 const entry=path.join(root,'index.tsx')
 const checked=new Set()
-const forbidden=new Set([...builtinModules.map(x=>x.replace(/^node:/,'')),'obs-websocket-js','nodemcu-tool','midi','socket.io','forever-monitor'])
+const forbidden=new Set([...builtinModules.map(x=>x.replace(/^node:/,'')),'obs-websocket-js','nodemcu-tool','midi','socket.io'])
 const issues=[]
 const resolve=(p,from)=>{
  const rootPath=path.resolve(path.dirname(from),p)

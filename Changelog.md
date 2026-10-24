@@ -1,6 +1,7 @@
 # Unreleased
 
 * [DEV] The Hub server runs on Express 5 and Socket.IO 4 (was Express 4, Socket.IO 2); the dev proxy uses http-proxy-middleware 3. Nothing changes for users; the browser and the Hub must come from the same version, which the release ZIP always guarantees (#9)
+* [DEV] xml2js 0.6 (vMix); the Hub reads its start flags with the parser built into Node instead of yargs; the unused forever-monitor dependency is removed (#12)
 
 # GC Tally 1.0.0-rc.1
 
