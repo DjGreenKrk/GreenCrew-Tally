@@ -121,7 +121,7 @@ jobs:
             $err = Join-Path $env:RUNNER_TEMP "tray-$name-err.log"
             $p = Start-Process -FilePath $tray.FullName -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
             if (-not $p.WaitForExit(60000)) { Stop-Process -Id $p.Id -Force; throw "tray ($name) did not exit within 60 s" }
-            Get-Content $out, $err -ErrorAction SilentlyContinue
+            Get-Content $out, $err -ErrorAction SilentlyContinue | Out-Host
             return $p.ExitCode
           }
           function Assert-NoHub {
