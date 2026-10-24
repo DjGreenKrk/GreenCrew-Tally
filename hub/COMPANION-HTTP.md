@@ -7,19 +7,23 @@ ESP8266/NodeMCU tally clients need no protocol changes.
 ## Setup
 
 1. Run GC Tally Hub and open `http://localhost:3000` (or configured port).
-2. Under **Video Mixer**, select **Companion (HTTP)** and click **Save**.
+2. Under **Video Mixer**, select **Companion (HTTP)**. The **channel list**
+   has one name per line (8 by default, up to 32); line 1 is camera 1, line 2
+   camera 2 and so on. Click **Save**.
 3. Patch camera tallies to channels 1, 2 and 3.
 4. Send HTTP snapshots from Companion, PowerShell, or another authorized process. For remote LAN access, generate a token on the Hub computer under **Configuration → Companion (HTTP)** and supply `Authorization: Bearer <token>`.
 
 ### API
 
 - `GET http://127.0.0.1:3000/api/companion/tally` returns
-  `{"active":true,"programs":["1"],"previews":["2"]}`.
+  `{"active":true,"channelCount":8,"programs":["1"],"previews":["2"]}`
+  (`channelCount` is the number of channels in the list).
 - `POST http://127.0.0.1:3000/api/companion/tally` with
   `Content-Type: application/json` sets the **whole state**:
   `{"programs":["1"],"previews":["2"]}`.
 - Send `{"programs":[],"previews":[]}` to clear both states (blackout).
-- Always include **both arrays**. Camera IDs 1–8 are accepted, as strings
+- Always include **both arrays**. Camera IDs from 1 to the number of
+  configured channels (8 by default, up to 32) are accepted, as strings
   or numbers. Multiple camera IDs are supported per array; Program has
   priority over Preview in GC Tally.
 - Optional third array `"auxes":["3"]` marks cameras routed to an AUX output.

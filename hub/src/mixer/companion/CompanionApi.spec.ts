@@ -36,6 +36,23 @@ describe('full Program/Preview state', () => {
     })
 })
 
+describe('configured number of channels', () => {
+    test('accepts every configured channel id', () => {
+        expect(parseCompanionState({ programs: [12], previews: ['9', '10'], auxes: ['11'] }, 12))
+            .toEqual({ programs: ['12'], previews: ['9', '10'], auxes: ['11'] })
+    })
+    test('rejects ids above the configured count and ids with a leading zero', () => {
+        expect(parseCompanionState({ programs: ['13'], previews: [] }, 12)).toBeNull()
+        expect(parseCompanionState({ programs: ['4'], previews: [] }, 3)).toBeNull()
+        expect(parseCompanionState({ programs: ['01'], previews: [] }, 12)).toBeNull()
+        expect(parseCompanionState({ programs: ['0'], previews: [] }, 12)).toBeNull()
+    })
+    test('8 channels without a configured count, as before', () => {
+        expect(parseCompanionState({ programs: ['8'], previews: [] })).not.toBeNull()
+        expect(parseCompanionState({ programs: ['9'], previews: [] })).toBeNull()
+    })
+})
+
 describe('Companion HTTP LAN token authentication', () => {
     const token = '0e7bc3db623cf1473584d46e46b951f2'
 

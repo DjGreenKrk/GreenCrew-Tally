@@ -1,5 +1,6 @@
 import { AtemConfigurationSaveType } from "../mixer/atem/AtemConfiguration";
 import { CompanionLanState } from "./CompanionLanState";
+import { CompanionConfigurationSaveType } from "../mixer/companion/CompanionConfiguration";
 import { MockConfigurationSaveType } from "../mixer/mock/MockConfiguration";
 import { ManualConfigurationSaveType } from "../mixer/manual/ManualConfiguration";
 import { ManualChannelState } from "../mixer/manual/ManualState";
@@ -34,6 +35,7 @@ export interface ServerSentEvents {
     'config.state.atem': (atemConfiguration: AtemConfigurationSaveType) => void
     'config.state.mock': (mockConfiguration: MockConfigurationSaveType) => void
     'config.state.manual': (manualConfiguration: ManualConfigurationSaveType) => void
+    'config.state.companion': (companionConfiguration: CompanionConfigurationSaveType) => void
     'config.state.obs': (obsConfiguration: ObsConfigurationSaveType) => void
     'config.state.rolandV8HD': (rolandV8HDConfiguration: RolandV8HDConfigurationSaveType) => void
     'config.state.rolandV60HD': (rolandV60HDConfiguration: RolandV60HDConfigurationSaveType) => void
@@ -75,7 +77,7 @@ export interface ClientSentEvents {
     'config.change.atem': (atemConfiguration: AtemConfigurationSaveType, newMixer?: "atem") => void
     'config.change.mock': (mockConfiguration: MockConfigurationSaveType, newMixer?: "mock") => void
     'config.change.null': (newMixer?: "null") => void
-    'config.change.companion': (newMixer?: "companion") => void
+    'config.change.companion': (companionConfiguration: CompanionConfigurationSaveType, newMixer?: "companion") => void
     'config.change.manual': (manualConfiguration: ManualConfigurationSaveType, newMixer?: "manual") => void
     'manual.set': (channelId: string, state: ManualChannelState) => void
     'manual.allOff': () => void

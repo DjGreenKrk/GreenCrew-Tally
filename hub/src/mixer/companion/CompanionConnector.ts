@@ -1,6 +1,7 @@
 import { MixerCommunicator } from '../../lib/MixerCommunicator'
 import { Connector } from '../interfaces'
 import CompanionConfiguration from './CompanionConfiguration'
+import { channelNamesById } from '../channelNames'
 
 // Uses the existing Program/Preview events and the Hub's UDP/Web tally clients.
 // A selected mixer is not proof that Companion is still sending live snapshots.
@@ -13,16 +14,31 @@ class CompanionConnector implements Connector {
     private lastSnapshotTime: number | null = null
     private watchdog: ReturnType<typeof setInterval> | null = null
 
-    constructor(_config: CompanionConfiguration, private communicator: MixerCommunicator) {}
+    constructor(private configuration: CompanionConfiguration, private communicator: MixerCommunicator) {}
 
     connect(): void {
         this.active = true
         this.receiving = false
         this.lastSnapshotTime = null
-        this.communicator.notifyChannelNames(8)
+        this.applyChannels()
         this.communicator.notifyProgramPreviewChanged(null, null)
         this.communicator.notifyMixerIsDisconnected()
         this.watchdog = setInterval(() => this.checkTimeout(), 250)
+    }
+
+    // renaming or adding channels must not make the tallies show UNKNOWN
+    updateSettings(configuration: CompanionConfiguration): void {
+        this.configuration = configuration
+        this.applyChannels()
+    }
+
+    private applyChannels() {
+        const names = this.configuration.getChannelNames()
+        this.communicator.notifyChannelNames(names.length, channelNamesById(names))
+    }
+
+    getChannelCount(): number {
+        return this.configuration.getChannelNames().length
     }
 
     disconnect(): void {
