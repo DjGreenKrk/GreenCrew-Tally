@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { cameraMode, aux, toggleAux, clearAux, program, preview, cameraOff, take, blackout, snapshot, csvChannels, snapshotFromSources, configuredCameraIds, validateConfiguredState } from './state.js'
+import { cameraMode, aux, toggleAux, clearAux, program, preview, cameraOff, take, blackout, snapshot, csvChannels, snapshotFromSources, configuredCameraIds, validateConfiguredState, MAX_CAMERAS } from './state.js'
 
 test('full camera lifecycle without ESP hardware', () => {
     let state = blackout()
@@ -33,10 +33,10 @@ test('Program wins over Preview for a camera on both buses', () => {
 test('snapshot supports multiple cameras and rejects invalid IDs', () => {
     assert.deepEqual(snapshot('1, 3', '2'), { programs: ['1', '3'], previews: ['2'], auxes: [] })
     assert.deepEqual(snapshot('', ''), { programs: [], previews: [], auxes: [] })
-    for (const data of ['0', '9', '01', '1,1', '1,', 'foo', '2.5']) {
+    for (const data of ['0', '33', '01', '1,1', '1,', 'foo', '2.5']) {
         assert.throws(() => csvChannels(data))
     }
-    assert.throws(() => program(blackout(), 9))
+    assert.throws(() => program(blackout(), 33))
 })
 
 test('Program + Preview map to one consistent tally snapshot', () => {
@@ -79,7 +79,11 @@ test('configured cameras limit IDs and reject invalid counts', () => {
     assert.deepEqual(configuredCameraIds(1), ['1'])
     assert.deepEqual(configuredCameraIds(3), ['1', '2', '3'])
     assert.deepEqual(configuredCameraIds(8), ['1', '2', '3', '4', '5', '6', '7', '8'])
-    for (const invalid of [0, 9, 2.5, -1, 'not-a-number']) {
+    assert.equal(MAX_CAMERAS, 32)
+    assert.deepEqual(configuredCameraIds(32), Array.from({ length: 32 }, (_, i) => String(i + 1)))
+    assert.deepEqual(csvChannels('12,1,32'), ['12', '1', '32'])
+    assert.throws(() => csvChannels('33'), /1\.\.32/)
+    for (const invalid of [0, 33, 2.5, -1, 'not-a-number']) {
         assert.throws(() => configuredCameraIds(invalid))
     }
     assert.deepEqual(validateConfiguredState({ programs: ['3'], previews: ['2'], auxes: [] }, 3), {

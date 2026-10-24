@@ -1,4 +1,5 @@
 import ManualConfiguration from '../mixer/manual/ManualConfiguration'
+import CompanionConfiguration from '../mixer/companion/CompanionConfiguration'
 import { EventEmitter } from "events";
 import Channel from "../domain/Channel";
 import Log from "../domain/Log";
@@ -23,6 +24,7 @@ export interface EventHandlersDataMap {
     'config.changed.atem': (atemConfiguration: AtemConfiguration) => void
     'config.changed.mock': (mockConfiguration: MockConfiguration) => void
     'config.changed.manual': (manualConfiguration: ManualConfiguration) => void
+    'config.changed.companion': (companionConfiguration: CompanionConfiguration) => void
     'config.changed.null': (nullConfiguration: NullConfiguration) => void
     'config.changed.obs': (obsConfiguration: ObsConfiguration) => void
     'config.changed.rolandV8HD': (rolandV8HDConfiguration: RolandV8HDConfiguration) => void

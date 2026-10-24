@@ -22,6 +22,7 @@ import RolandV8HDConfiguration from './mixer/rolandV8HD/RolandV8HDConfiguration'
 import RolandV60HDConfiguration from './mixer/rolandV60HD/RolandV60HDConfiguration'
 import MockConfiguration from './mixer/mock/MockConfiguration'
 import ManualConfiguration from './mixer/manual/ManualConfiguration'
+import CompanionConfiguration from './mixer/companion/CompanionConfiguration'
 import ManualConnector from './mixer/manual/ManualConnector'
 import { isManualChannelState } from './mixer/manual/ManualState'
 import TestConnector from './mixer/test/TestConnector'
@@ -161,6 +162,9 @@ io.on('connection', (socket: ServerSideSocket) => {
     new SocketAwareEvent(myEmitter, 'config.changed.manual', socket, (socket, manualConfiguration) => {
       socket.emit('config.state.manual', manualConfiguration.toJson())
     }),
+    new SocketAwareEvent(myEmitter, 'config.changed.companion', socket, (socket, companionConfiguration) => {
+      socket.emit('config.state.companion', companionConfiguration.toJson())
+    }),
     new SocketAwareEvent(myEmitter, 'config.changed.obs', socket, (socket, obsConfiguration) => {
       socket.emit('config.state.obs', obsConfiguration.toJson())
     }),
@@ -181,6 +185,7 @@ io.on('connection', (socket: ServerSideSocket) => {
     socket.emit('config.state.mixer', {mixerName: myConfiguration.getMixerSelection() || "", allowedMixers: MixerDriver.getAllowedMixers(myConfiguration.isDev(), myConfiguration.isTest())})
     socket.emit('config.state.mock', myConfiguration.getMockConfiguration().toJson())
     socket.emit('config.state.manual', myConfiguration.getManualConfiguration().toJson())
+    socket.emit('config.state.companion', myConfiguration.getCompanionConfiguration().toJson())
     socket.emit('config.state.obs', myConfiguration.getObsConfiguration().toJson())
     socket.emit('config.state.rolandV8HD', myConfiguration.getRolandV8HDConfiguration().toJson())
     socket.emit('config.state.rolandV60HD', myConfiguration.getRolandV60HDConfiguration().toJson())
@@ -331,7 +336,11 @@ io.on('connection', (socket: ServerSideSocket) => {
     const mixer = myMixerDriver.currentMixerInstance
     if (mixer instanceof ManualConnector) mixer.allOff()
   })
-  socket.on('config.change.companion', newMixerName => {
+  socket.on('config.change.companion', (newCompanionConfiguration, newMixerName) => {
+    const companion = new CompanionConfiguration()
+    companion.fromJson(newCompanionConfiguration)
+    myConfiguration.setCompanionConfiguration(companion)
+
     if (newMixerName) {
       myConfiguration.setMixerSelection(newMixerName)
     }

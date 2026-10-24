@@ -1,4 +1,5 @@
-import ManualConfiguration, { MAX_MANUAL_CHANNELS } from './ManualConfiguration'
+import ManualConfiguration from './ManualConfiguration'
+import { MAX_CHANNELS } from '../channelNames'
 
 test('has 8 channels by default', () => {
     expect(new ManualConfiguration().getChannelNames()).toHaveLength(8)
@@ -17,7 +18,7 @@ test('an empty name falls back to the channel number', () => {
 
 test('rejects no channels and too many channels', () => {
     expect(() => new ManualConfiguration().setChannelNames([])).toThrow()
-    expect(() => new ManualConfiguration().setChannelNames(Array(MAX_MANUAL_CHANNELS + 1).fill('x'))).toThrow()
+    expect(() => new ManualConfiguration().setChannelNames(Array(MAX_CHANNELS + 1).fill('x'))).toThrow()
 })
 
 test('keeps the defaults for invalid saved data', () => {

@@ -7,6 +7,7 @@ import RolandV8HDConfiguration from '../mixer/rolandV8HD/RolandV8HDConfiguration
 import RolandV60HDConfiguration from '../mixer/rolandV60HD/RolandV60HDConfiguration';
 import MockConfiguration from '../mixer/mock/MockConfiguration';
 import ManualConfiguration from '../mixer/manual/ManualConfiguration';
+import CompanionConfiguration from '../mixer/companion/CompanionConfiguration';
 import AtemConfiguration from '../mixer/atem/AtemConfiguration';
 import { DefaultTallyConfiguration } from '../tally/TallyConfiguration';
 
@@ -98,6 +99,21 @@ export function useManualConfiguration() {
   }, [])
 
   return manualConfiguration
+}
+
+export function useCompanionConfiguration() {
+  const [companionConfiguration, setCompanionConfiguration] = useState<CompanionConfiguration|undefined>(configTracker.companionConfiguration)
+
+  useEffect(() => {
+    const onChange = (newConf: CompanionConfiguration) => setCompanionConfiguration(newConf)
+    configTracker.on("companion", onChange)
+    setCompanionConfiguration(configTracker.companionConfiguration)
+    return () => {
+      configTracker.off("companion", onChange)
+    }
+  }, [])
+
+  return companionConfiguration
 }
 
 export function useObsConfiguration() {
