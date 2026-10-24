@@ -1,4 +1,6 @@
-# Unreleased
+# GC Tally 1.0.0-rc.2
+
+Second release candidate of GC Tally 1.0: a configurable Companion channel list (up to 32), Companion module 0.9.0 and newer server libraries. The tray app is not shipped yet.
 
 * [FEATURE] Companion (HTTP) has its own channel list in Configuration: one name per line, 8 by default, up to 32 (was always 8). Companion may send every listed channel; changing the list does not blink the lights. Tallies patched to a removed channel keep the patch (#24)
 * [CHANGE] Companion module 0.9.0: up to 32 cameras (was 8); the Hub needs as many channels in its Companion channel list (#24)
