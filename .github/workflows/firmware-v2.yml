@@ -1,0 +1,81 @@
+name: Firmware v2
+
+# firmware-v2 (C++ for ESP8266): unit tests of the tally logic, the D1 Mini
+# build with its size, and the tally logic against a real running Hub.
+# A green run is not a hardware test (#26).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'firmware-v2/**'
+      - 'hub/**'
+      - '.github/workflows/firmware-v2.yml'
+  pull_request:
+    paths:
+      - 'firmware-v2/**'
+      - 'hub/**'
+      - '.github/workflows/firmware-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  firmware:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: firmware-v2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: platformio-${{ hashFiles('firmware-v2/platformio.ini') }}
+      - name: Install PlatformIO
+        run: pip install platformio==6.2.0
+      - name: Unit tests of the tally logic
+        run: pio test -e native
+      - name: Build for the D1 Mini
+        run: pio run -e d1_mini
+      - name: Firmware size
+        run: |
+          pio run -e d1_mini -t size | tee size.txt
+          {
+            echo '### Firmware v2 size (D1 Mini, 4 MB flash, 1 MB LittleFS)'
+            echo '```'
+            grep -E 'RAM:|Flash:' size.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gc-tally-firmware-v2-d1-mini
+          path: |
+            firmware-v2/.pio/build/d1_mini/firmware.bin
+            firmware-v2/.pio/build/d1_mini/firmware.elf
+          if-no-files-found: error
+
+  hub-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: hub/package-lock.json
+      - name: Build the Hub
+        working-directory: hub
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:backend
+      - name: Build the tally logic for Linux
+        run: make -C firmware-v2/sim
+      - name: Firmware v2 logic against the running Hub
+        working-directory: hub
+        run: node scripts/check-firmware-v2-sim.cjs

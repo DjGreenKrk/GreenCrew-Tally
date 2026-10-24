@@ -28,11 +28,22 @@ export type TallyObjectType = {
 export interface UdpTallyObjectType extends TallyObjectType {
     address?: string
     port?: number
+    device?: TallyDevice
     state: ConnectionState
 }
 
 export interface WebTallyObjectType extends TallyObjectType {
     connectedClients: ClientAddress[]
+}
+
+// Sent by firmware v2 after the name: 'gc/1 id=a1b2c3 fw=2.0.0 hw=esp8266 caps=ws2812,pwm'.
+// The NodeMCU firmware sends only the name; older Hubs ignore the rest.
+export type TallyDevice = {
+  protocol: number
+  id?: string
+  firmware?: string
+  hardware?: string
+  capabilities: string[]
 }
 
 export type TallyType = "udp" | "web"
@@ -145,6 +156,8 @@ export class UdpTally extends Tally {
     address?: string
     port?: number
     state: ConnectionState
+    // what the tally said about itself; known only while it reports, never saved
+    device?: TallyDevice
     readonly type = "udp"
 
     constructor(name: string, channelIds: string|string[] = [], address?: string, port?: number, state: ConnectionState = ConnectionState.DISCONNECTED) {
@@ -173,6 +186,7 @@ export class UdpTally extends Tally {
             address: this.address,
             port: this.port,
             state: this.state,
+            device: this.device,
         }
     }
     static fromJson(valueObject: UdpTallyObjectType) {
@@ -183,6 +197,7 @@ export class UdpTally extends Tally {
             valueObject.port,
             valueObject.state
         )
+        tally.device = valueObject.device
         tally.configuration.fromJson(valueObject)
         return tally
     }
