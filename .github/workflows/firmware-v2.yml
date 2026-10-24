@@ -41,14 +41,15 @@ jobs:
       - name: Unit tests of the tally logic
         run: pio test -e native
       - name: Build for the D1 Mini
-        run: pio run -e d1_mini
+        run: |
+          set -o pipefail
+          pio run -e d1_mini | tee build.txt
       - name: Firmware size
         run: |
-          pio run -e d1_mini -t size | tee size.txt
           {
             echo '### Firmware v2 size (D1 Mini, 4 MB flash, 1 MB LittleFS)'
             echo '```'
-            grep -E 'RAM:|Flash:' size.txt
+            grep -E 'RAM:|Flash:' build.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
