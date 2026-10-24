@@ -5,6 +5,10 @@ Communication with the Hub uses HTTP on localhost or an authenticated LAN IP;
 no direct OBS, ATEM, or vMix dependency is required. Hub forwards tally state to the
 configured Web/UDP tally clients.
 
+## Version 0.9.0
+
+Supports up to 32 cameras (was 8). Existing configurations keep working. The Hub must have that many channels configured (a Hub with the channel list setting, GC Tally 1.0 or newer).
+
 ## Version 0.8.0
 
 Released with GC Tally 0.8.0; no module changes since 0.6.2.
@@ -38,7 +42,7 @@ Create/edit the **GreenCrew Tally** connection in Companion:
 - **Hub IP address or hostname**: `127.0.0.1` for the same computer, or the LAN IP of a remote Hub.
 - **Hub HTTP port**: normally `3000`.
 - **Hub access token**: leave empty for localhost, provide the Hub's token for LAN operation.
-- **Number of cameras**: integer from **1 to 8**, default **3**.
+- **Number of cameras**: integer from **1 to 32**, default **3**. The Hub must have at least that many channels configured (Hub: Configuration → Companion (HTTP), channel list; a Hub with the channel list setting, GC Tally 1.0 or newer).
 
 Changing the number of cameras immediately rebuilds all action dropdowns,
 the source-mapping fields, feedback choices, module camera variables, and

@@ -232,6 +232,12 @@ export class AppConfiguration extends Configuration {
         return this.companionConfiguration.clone()
     }
 
+    setCompanionConfiguration(companionConfiguration: CompanionConfiguration) {
+        this.companionConfiguration = companionConfiguration.clone()
+        this.emitter.emit("config.changed", this)
+        this.emitter.emit("config.changed.companion", this.companionConfiguration)
+    }
+
     getCompanionLanToken() {
         return this.companionLanToken
     }

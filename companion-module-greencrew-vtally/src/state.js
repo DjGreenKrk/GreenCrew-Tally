@@ -1,9 +1,10 @@
 // Pure tally state helpers; deliberately independent of Companion itself.
-export const CAMERA_IDS = ['1', '2', '3', '4', '5', '6', '7', '8']
+export const MAX_CAMERAS = 32
+export const CAMERA_IDS = Array.from({ length: MAX_CAMERAS }, (_, i) => String(i + 1))
 
 export function configuredCameraIds(count) {
     const n = Number(count)
-    if (!Number.isInteger(n) || n < 1 || n > CAMERA_IDS.length) throw new Error('Camera count must be 1..8')
+    if (!Number.isInteger(n) || n < 1 || n > MAX_CAMERAS) throw new Error(`Camera count must be 1..${MAX_CAMERAS}`)
     return CAMERA_IDS.slice(0, n)
 }
 
@@ -18,7 +19,7 @@ export function csvChannels(value) {
     if (text === '') return []
     const parts = text.split(',').map(v => v.trim())
     if (parts.some(v => !CAMERA_IDS.includes(v)) || new Set(parts).size !== parts.length) {
-        throw new Error('Camera list must contain unique IDs 1..8, separated by commas')
+        throw new Error(`Camera list must contain unique IDs 1..${MAX_CAMERAS}, separated by commas`)
     }
     return parts
 }

@@ -6,7 +6,7 @@ Connects Bitfocus Companion to a **local or remote GC Tally Hub**. Remote LAN co
 
 1. Start the updated GC Tally Hub and choose **Companion (HTTP)** as the mixer source.
 2. Load this module through Companion's **Developer Modules Path**, or import a built module package.
-3. Add the **GreenCrew Tally** connection in Companion. Set the Hub host/IP, port (default **3000**), camera count (1–8), and optional LAN access token.
+3. Add the **GreenCrew Tally** connection in Companion. Set the Hub host/IP, port (default **3000**), camera count (1–32), and optional LAN access token.
 4. Drag the ready-made Program/Preview camera presets onto buttons, or add individual actions.
 
 The default local endpoint is `http://127.0.0.1:<port>/api/companion/tally`. A remote Hub requires an access token: on the Hub computer open **Configuration → Companion (HTTP)**, click **Allow LAN access (generate token)** and copy the token into this module (a `VTALLY_COMPANION_TOKEN` environment variable on the Hub still works and takes precedence). LAN transport is plain HTTP: use only a trusted, isolated network or secure tunnel. See the module README for setup.
@@ -23,7 +23,7 @@ For source-driven operation (OBS/ATEM/vMix), trigger **Sync Program + Preview fr
 - **Clear one camera** — removes it from Program, Preview and AUX.
 - **TAKE** — swaps the Program/Preview lists.
 - **Clear all** — blanks every tally.
-- **Set full snapshot** — lists of camera IDs 1–8, separated by commas (Program, Preview and optional AUX). Allows multiple cameras per list.
+- **Set full snapshot** — lists of camera IDs 1–32, separated by commas (Program, Preview and optional AUX). Allows multiple cameras per list.
 - **Sync Program + Preview from Companion variables** — atomically maps upstream Program/Preview (and optional AUX) source values to configured camera IDs.
 
 ## Feedback & variables

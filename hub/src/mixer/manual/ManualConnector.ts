@@ -2,6 +2,7 @@ import { MixerCommunicator } from '../../lib/MixerCommunicator'
 import { Connector } from '../interfaces'
 import ManualConfiguration from './ManualConfiguration'
 import { ManualChannelState } from './ManualState'
+import { channelNamesById } from '../channelNames'
 
 // Kept outside the connector: changing the channel names restarts the mixer,
 // and the lights on stage must not change because of that.
@@ -31,7 +32,7 @@ class ManualConnector implements Connector {
 
     private applyChannels() {
         const names = this.configuration.getChannelNames()
-        this.communicator.notifyChannelNames(names.length, Object.fromEntries(names.map((name, i) => [i + 1, name])))
+        this.communicator.notifyChannelNames(names.length, channelNamesById(names))
         // channels that no longer exist must not light a tally later
         for (const id of Array.from(channelStates.keys())) {
             if (Number(id) > names.length) channelStates.delete(id)

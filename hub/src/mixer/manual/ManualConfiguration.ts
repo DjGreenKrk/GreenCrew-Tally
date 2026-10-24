@@ -1,11 +1,10 @@
 import { Configuration } from '../interfaces'
+import { cleanChannelNames, defaultChannelNames } from '../channelNames'
 
 export type ManualConfigurationSaveType = {
     channelNames: string[]
     exclusiveProgram?: boolean
 }
-
-export const MAX_MANUAL_CHANNELS = 32
 
 // Channels the operator switches by hand, e.g. from a phone (no vision mixer).
 class ManualConfiguration extends Configuration {
@@ -15,7 +14,7 @@ class ManualConfiguration extends Configuration {
 
     constructor() {
         super()
-        this.channelNames = ManualConfiguration.defaultChannelNames
+        this.channelNames = defaultChannelNames()
         this.exclusiveProgram = false
     }
 
@@ -45,18 +44,10 @@ class ManualConfiguration extends Configuration {
 
     setChannelNames(names: unknown[] | null) {
         if (names === null) {
-            this.channelNames = ManualConfiguration.defaultChannelNames
+            this.channelNames = defaultChannelNames()
             return this
         }
-        const cleaned = names.map(name => typeof name === 'string' ? name.trim() : '')
-        if (cleaned.length === 0) {
-            throw new Error('At least one channel is needed')
-        }
-        if (cleaned.length > MAX_MANUAL_CHANNELS) {
-            throw new Error(`At most ${MAX_MANUAL_CHANNELS} channels are possible`)
-        }
-        // an empty name falls back to the channel number
-        this.channelNames = cleaned.map((name, i) => name || `Channel ${i + 1}`)
+        this.channelNames = cleanChannelNames(names)
         return this
     }
     getChannelNames() {
@@ -70,8 +61,6 @@ class ManualConfiguration extends Configuration {
     isExclusiveProgram() {
         return this.exclusiveProgram
     }
-
-    private static readonly defaultChannelNames = Array.from({ length: 8 }, (_, i) => `Channel ${i + 1}`)
 }
 
 export default ManualConfiguration

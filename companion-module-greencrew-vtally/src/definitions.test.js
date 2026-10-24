@@ -20,7 +20,7 @@ function fakeModule(count) {
 }
 
 test('changing camera count controls feedbacks, variables and presets', () => {
-    for (const count of [1, 3, 5, 8]) {
+    for (const count of [1, 3, 5, 8, 16, 32]) {
         const module = fakeModule(count)
         defineVariables(module)
         defineFeedbacks(module)

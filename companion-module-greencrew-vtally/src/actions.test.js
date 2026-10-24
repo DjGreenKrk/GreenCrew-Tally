@@ -22,7 +22,7 @@ function fakeModule(count = 3) {
 }
 
 test('configured count controls all single-camera action choices', () => {
-    for (const count of [1, 3, 8]) {
+    for (const count of [1, 3, 8, 16, 32]) {
         const module = fakeModule(count)
         defineActions(module)
         for (const action of ['program', 'preview', 'aux', 'toggle_aux', 'off']) {

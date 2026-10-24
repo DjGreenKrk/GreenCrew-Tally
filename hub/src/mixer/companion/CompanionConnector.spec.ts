@@ -74,3 +74,22 @@ test('missing HTTP heartbeats cause blackout, disconnect and recovery on next sn
         jest.useRealTimers()
     }
 })
+
+test('changing the channel list keeps the state and the connection', () => {
+    const emitter = new EventEmitter()
+    const configuration = new AppConfiguration(emitter)
+    const communicator = new MixerCommunicator(configuration, emitter)
+    const connector = new CompanionConnector(new CompanionConfiguration(), communicator)
+    connector.connect()
+    connector.setState(['1'], ['2'])
+
+    const names = Array.from({ length: 12 }, (_, i) => `Cam ${i + 1}`)
+    connector.updateSettings(new CompanionConfiguration().setChannelNames(names))
+    expect(connector.getChannelCount()).toBe(12)
+    expect(configuration.getChannels().map(c => c.name)).toEqual(names)
+    expect(connector.isConnected()).toBe(true)
+    expect(communicator.getCurrentPrograms()).toEqual(['1'])
+    connector.setState(['12'], [])
+    expect(communicator.getCurrentPrograms()).toEqual(['12'])
+    connector.disconnect()
+})

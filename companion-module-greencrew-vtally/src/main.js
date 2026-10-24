@@ -1,6 +1,6 @@
 import { InstanceBase, InstanceStatus } from '@companion-module/base'
 import { hubUrl } from './hub-address.js'
-import { blackout, configuredCameraIds, validateConfiguredState } from './state.js'
+import { MAX_CAMERAS, blackout, configuredCameraIds, validateConfiguredState } from './state.js'
 import { defineActions } from './actions.js'
 import { defineFeedbacks, defineVariables, updateIndicators } from './feedbacks.js'
 import { definePresets } from './presets.js'
@@ -50,7 +50,7 @@ export default class GreenCrewVTally extends InstanceBase {
             host: String(config?.host ?? '127.0.0.1').trim(),
             port: config?.port ?? 3000,
             token: String(config?.token ?? '').trim(),
-            cameraCount: Number.isInteger(cameraCount) && cameraCount >= 1 && cameraCount <= 8 ? cameraCount : 3,
+            cameraCount: Number.isInteger(cameraCount) && cameraCount >= 1 && cameraCount <= MAX_CAMERAS ? cameraCount : 3,
         }
     }
 
@@ -78,7 +78,7 @@ export default class GreenCrewVTally extends InstanceBase {
             },
             {
                 type: 'number', id: 'cameraCount', label: 'Number of cameras',
-                width: 6, min: 1, max: 8, step: 1, default: 3,
+                width: 6, min: 1, max: MAX_CAMERAS, step: 1, default: 3,
             },
             {
                 type: 'textinput', id: 'token', label: 'Hub access token (LAN only; Hub → Configuration → Companion (HTTP) on the Hub computer)',
