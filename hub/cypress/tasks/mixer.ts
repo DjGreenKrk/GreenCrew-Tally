@@ -1,4 +1,4 @@
-import io from 'socket.io-client'
+import { io } from 'socket.io-client'
 import { ClientSideSocket } from '../../src/lib/SocketEvents'
 import { ChannelList } from '../../src/lib/MixerCommunicator'
 import TestConfiguration from '../../src/mixer/test/TestConfiguration'

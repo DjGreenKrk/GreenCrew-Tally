@@ -1,5 +1,5 @@
 import MockUdpTally from '../MockUdpTally'
-import io from 'socket.io-client'
+import { io } from 'socket.io-client'
 import { ClientSideSocket } from '../../src/lib/SocketEvents'
 
 const tallies = function(config: Cypress.PluginConfigOptions) {

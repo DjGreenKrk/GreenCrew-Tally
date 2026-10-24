@@ -1,3 +1,7 @@
+# Unreleased
+
+* [DEV] The Hub server runs on Express 5 and Socket.IO 4 (was Express 4, Socket.IO 2); the dev proxy uses http-proxy-middleware 3. Nothing changes for users; the browser and the Hub must come from the same version, which the release ZIP always guarantees (#9)
+
 # GC Tally 1.0.0-rc.1
 
 First release candidate of GC Tally 1.0: the first version that is fully GreenCrew Tally, with its own look, two languages and phone support. Companion module unchanged (0.8.0).

@@ -132,12 +132,6 @@ export interface ClientSideSocket {
     on(event: "disconnect", listener: () => void) : void // @TODO: shouldn't this be defined in the parent?
     on(event: "connect", listener: () => void) : void // @TODO: shouldn't this be defined in the parent?
     on(event: "connect_error", listener: () => void) : void // @TODO: shouldn't this be defined in the parent?
-    on(event: "connect_timeout", listener: () => void) : void // @TODO: shouldn't this be defined in the parent?
-    on(event: "disconnected", listener: () => void) : void // @TODO: shouldn't this be defined in the parent?
-    on(event: "reconnect", listener: () => void) : void // @TODO: shouldn't this be defined in the parent?
-    on(event: "reconnecting", listener: () => void) : void // @TODO: shouldn't this be defined in the parent?
-    on(event: "reconnect_error", listener: () => void) : void // @TODO: shouldn't this be defined in the parent?
-    on(event: "reconnect_failed", listener: () => void) : void // @TODO: shouldn't this be defined in the parent?
 
     off<EventName extends keyof ServerSentEvents>(
         event: EventName,
@@ -147,6 +141,5 @@ export interface ClientSideSocket {
     // Socket.IO lifecycle listeners must also be removable, especially when
     // Web Tally pages unmount or reconnect. These are transport events, not
     // application ServerSentEvents.
-    off(event: "connect" | "disconnect" | "connect_error" | "connect_timeout" | "disconnected" |
-        "reconnect" | "reconnecting" | "reconnect_error" | "reconnect_failed", listener: () => void): void
+    off(event: "connect" | "disconnect" | "connect_error", listener: () => void): void
 }
