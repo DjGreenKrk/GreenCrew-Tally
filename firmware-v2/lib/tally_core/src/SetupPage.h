@@ -42,6 +42,7 @@ struct SetupPageModel {
     const char* name = "";
     const char* hubIp = "";
     const char* hubPort = "7411";
+    const char* hubId = "";
 
     const ScannedNetwork* networks = nullptr;
     size_t networkCount = 0;

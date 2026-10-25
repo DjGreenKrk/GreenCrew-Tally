@@ -2,6 +2,7 @@ name: Firmware v2
 
 # firmware-v2 (C++ for ESP8266): unit tests of the tally logic, the D1 Mini
 # build with its size, and the tally logic against a real running Hub.
+# Also checks the mDNS announcement v2 tallies look for (#28).
 # A green run is not a hardware test (#26).
 on:
   push:
@@ -80,3 +81,6 @@ jobs:
       - name: Firmware v2 logic against the running Hub
         working-directory: hub
         run: node scripts/check-firmware-v2-sim.cjs
+      - name: Hub announces itself over mDNS for v2 tallies (#28)
+        working-directory: hub
+        run: node scripts/check-hub-mdns.cjs

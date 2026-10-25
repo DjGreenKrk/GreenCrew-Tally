@@ -15,6 +15,7 @@
 #include "SetupForm.h"
 #include "SetupPage.h"
 #include "StateMessage.h"
+#include "HubFinder.h"
 #include "TallyController.h"
 #include "WifiSupervisor.h"
 
@@ -580,6 +581,9 @@ void test_form_accepts_valid_input() {
     form.hubPort = "";   // default port
     form.hubIp = "hub.local";
     TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::none);
+    form.hubIp = "";  // look for the Hub
+    form.hubId = "1a2b3c4d";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::none);
     form.password = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";  // 64 hex digits
     TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::none);
 }
@@ -612,8 +616,6 @@ void test_form_rejects_invalid_input() {
     TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::nameInvalid);
 
     form = validForm();
-    form.hubIp = "";
-    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::hubIpMissing);
     form.hubIp = "192.168.1.20\nstation.ssid=x";
     TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::hubIpInvalid);
 
@@ -622,6 +624,12 @@ void test_form_rejects_invalid_input() {
     TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::hubPortInvalid);
     form.hubPort = "74x";
     TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::hubPortInvalid);
+
+    form = validForm();
+    form.hubId = "1A2B3C4D";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::hubIdInvalid);
+    form.hubId = "1a2b3c4";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::hubIdInvalid);
 }
 
 void test_ini_update_replaces_in_place_and_keeps_comments() {
@@ -662,6 +670,17 @@ void test_saved_form_reads_back_as_the_new_settings() {
     Settings kept("x");
     kept.parse(out);
     TEST_ASSERT_EQUAL_STRING("old-secret", kept.stationPassword());
+
+    SetupForm discover = validForm();
+    discover.hubIp = "";
+    discover.hubId = "1a2b3c4d";
+    TEST_ASSERT_TRUE(applySetupForm(original, discover, out, sizeof(out)));
+    Settings discovering("x");
+    discovering.parse(out);
+    TEST_ASSERT_TRUE(discovering.isValid());
+    TEST_ASSERT_FALSE(discovering.hasHubAddress());
+    TEST_ASSERT_EQUAL_STRING("1a2b3c4d", discovering.pinnedHubId());
+    TEST_ASSERT_EQUAL_size_t(0, discovering.warningCount());
 
     SetupForm open = keep;
     open.openNetwork = true;
@@ -856,6 +875,97 @@ void test_saved_page_names_the_network() {
     TEST_ASSERT_TRUE(sink.contains("connects to „Studio &amp; Co”."));
 }
 
+// --- Hub discovery --------------------------------------------------------------
+
+void test_settings_without_hub_ip_are_valid() {
+    Settings settings("x");
+    settings.parse("station.ssid=Studio\nhub.id=1a2b3c4d\n");
+    TEST_ASSERT_TRUE(settings.isValid());
+    TEST_ASSERT_FALSE(settings.hasHubAddress());
+    TEST_ASSERT_EQUAL_STRING("1a2b3c4d", settings.pinnedHubId());
+
+    Settings wrong("x");
+    wrong.parse("hub.id=CAM1\n");
+    TEST_ASSERT_EQUAL_STRING("", wrong.pinnedHubId());
+    TEST_ASSERT_EQUAL_size_t(1, wrong.warningCount());
+}
+
+void test_controller_says_it_looks_for_the_hub() {
+    Settings settings("x");
+    settings.parse("station.ssid=Studio\ntally.name=CAM1\n");
+    LedEngine leds;
+    FakePlatform platform;
+    TallyController controller(settings, "00a1b2c3", leds, platform);
+    controller.begin(0);
+    controller.wifiGotIp(10);
+    TEST_ASSERT_EQUAL_STRING("[INFO]  Looking for the hub (mDNS)", platform.console.back().c_str());
+}
+
+void test_hub_id_from_host_name() {
+    char id[9];
+    TEST_ASSERT_TRUE(hubIdFromHostName("gctally-hub-1a2b3c4d.local", id, sizeof(id)));
+    TEST_ASSERT_EQUAL_STRING("1a2b3c4d", id);
+    TEST_ASSERT_TRUE(hubIdFromHostName("gctally-hub-00ff00ff", id, sizeof(id)));
+    TEST_ASSERT_EQUAL_STRING("00ff00ff", id);
+    TEST_ASSERT_FALSE(hubIdFromHostName("gctally-hub-1a2b3c4d5.local", id, sizeof(id)));
+    TEST_ASSERT_FALSE(hubIdFromHostName("printer.local", id, sizeof(id)));
+    TEST_ASSERT_FALSE(hubIdFromHostName("gctally-hub-XYZ12345", id, sizeof(id)));
+    TEST_ASSERT_FALSE(hubIdFromHostName(nullptr, id, sizeof(id)));
+}
+
+void test_choose_hub() {
+    HubAnswer one[] = {{"gctally-hub-1a2b3c4d.local", 0x0a01a8c0, 7411}};
+    // the same Hub seen on two interfaces, and another Hub
+    HubAnswer two[] = {{"gctally-hub-1a2b3c4d.local", 0x0a01a8c0, 7411}, {"gctally-hub-1a2b3c4d.local", 0x0a01a8c0, 7411},
+                       {"gctally-hub-99999999.local", 0x0b01a8c0, 7411}};
+    size_t chosen = 99;
+
+    TEST_ASSERT_TRUE(chooseHub(one, 0, "", chosen) == HubSearch::none);
+    TEST_ASSERT_TRUE(chooseHub(one, 1, "", chosen) == HubSearch::found);
+    TEST_ASSERT_EQUAL_size_t(0, chosen);
+    TEST_ASSERT_TRUE(chooseHub(two, 2, "", chosen) == HubSearch::found);
+    TEST_ASSERT_TRUE(chooseHub(two, 3, "", chosen) == HubSearch::several);
+    TEST_ASSERT_TRUE(chooseHub(two, 3, "99999999", chosen) == HubSearch::found);
+    TEST_ASSERT_EQUAL_size_t(2, chosen);
+    TEST_ASSERT_TRUE(chooseHub(two, 3, "12345678", chosen) == HubSearch::pinnedMissing);
+    TEST_ASSERT_TRUE(chooseHub(one, 0, "12345678", chosen) == HubSearch::none);
+
+    HubAnswer other[] = {{"printer.local", 0x0c01a8c0, 631}, {"gctally-hub-1a2b3c4d.local", 0, 7411}};
+    TEST_ASSERT_TRUE(chooseHub(other, 2, "", chosen) == HubSearch::none);
+}
+
+void test_hub_finder_searches_after_ip_and_backs_off() {
+    HubFinder finder;
+    TEST_ASSERT_FALSE(finder.searchDue(0, false));  // no Wi-Fi
+    finder.wifiUp(100);
+    TEST_ASSERT_TRUE(finder.searchDue(100, false));
+    finder.searchDone(1100, HubSearch::none);
+    TEST_ASSERT_FALSE(finder.searchDue(4099, false));
+    TEST_ASSERT_TRUE(finder.searchDue(4100, false));
+    finder.searchDone(5100, HubSearch::several);
+    TEST_ASSERT_FALSE(finder.searchDue(11099, false));
+    TEST_ASSERT_TRUE(finder.searchDue(11100, false));
+    for (int i = 0; i < 5; i++) finder.searchDone(20000, HubSearch::none);
+    TEST_ASSERT_FALSE(finder.searchDue(49999, false));  // at most 30 s
+    TEST_ASSERT_TRUE(finder.searchDue(50000, false));
+    TEST_ASSERT_EQUAL_UINT8(7, finder.failures());
+}
+
+void test_hub_finder_searches_again_when_the_hub_is_silent() {
+    HubFinder finder;
+    finder.wifiUp(0);
+    finder.searchDone(1000, HubSearch::found);
+    TEST_ASSERT_TRUE(finder.hasHub());
+    TEST_ASSERT_FALSE(finder.searchDue(1000, false));  // give the Hub time to answer
+    TEST_ASSERT_FALSE(finder.searchDue(5000, true));    // it does
+    TEST_ASSERT_FALSE(finder.searchDue(60000, true));
+    TEST_ASSERT_FALSE(finder.searchDue(60001, false));  // and goes silent
+    TEST_ASSERT_FALSE(finder.searchDue(70000, false));
+    TEST_ASSERT_TRUE(finder.searchDue(70001, false));
+    finder.wifiDown();
+    TEST_ASSERT_FALSE(finder.searchDue(80000, false));
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_parses_a_static_program_message);
@@ -918,5 +1028,11 @@ int main() {
     RUN_TEST(test_setup_page_shows_settings_but_never_the_password);
     RUN_TEST(test_recovery_page_explains_itself);
     RUN_TEST(test_saved_page_names_the_network);
+    RUN_TEST(test_settings_without_hub_ip_are_valid);
+    RUN_TEST(test_controller_says_it_looks_for_the_hub);
+    RUN_TEST(test_hub_id_from_host_name);
+    RUN_TEST(test_choose_hub);
+    RUN_TEST(test_hub_finder_searches_after_ip_and_backs_off);
+    RUN_TEST(test_hub_finder_searches_again_when_the_hub_is_silent);
     return UNITY_END();
 }

@@ -15,6 +15,9 @@ enum class Ws2812Order : uint8_t {
     rgb,
 };
 
+// The id the Hub announces (8 lowercase hex digits)
+bool isHubId(const char* text);
+
 // The keys of tally-settings.ini, read the same way as tally/src/my-settings.lua.
 // One difference: a value may contain "=", so Wi-Fi passwords with "=" work.
 class Settings {
@@ -30,11 +33,16 @@ public:
     void parseLine(const char* line);
     void parse(const char* text);
 
-    bool isValid() const { return ssid[0] != '\0' && hubIp[0] != '\0'; }
+    // hub.ip may be empty: the tally then looks for the Hub over mDNS.
+    bool isValid() const { return ssid[0] != '\0'; }
 
     const char* stationSsid() const { return ssid; }
     const char* stationPassword() const { return password; }
     const char* hubAddress() const { return hubIp; }
+    bool hasHubAddress() const { return hubIp[0] != '\0'; }
+    // hub.id: only this Hub is used when the tally looks for one; empty: any
+    // single Hub on the network.
+    const char* pinnedHubId() const { return hubId; }
     uint16_t hubUdpPort() const { return hubPort; }
     const char* tallyName() const { return name; }
     // Password of the setup and recovery access point (setup.password),
@@ -66,6 +74,7 @@ private:
     char ssid[33] = "";
     char password[65] = "";
     char hubIp[64] = "";
+    char hubId[9] = "";
     uint16_t hubPort = 7411;
     char name[maxNameLength + 1] = "";
     char setupKey[64] = "";

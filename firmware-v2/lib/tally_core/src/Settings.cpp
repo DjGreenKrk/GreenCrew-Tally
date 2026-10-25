@@ -32,6 +32,14 @@ bool parseInteger(const char* text, long minimum, long maximum, long& out) {
 
 }  // namespace
 
+bool isHubId(const char* text) {
+    if (strlen(text) != 8) return false;
+    for (const char* c = text; *c != '\0'; c++) {
+        if (!isdigit(static_cast<unsigned char>(*c)) && (*c < 'a' || *c > 'f')) return false;
+    }
+    return true;
+}
+
 Settings::Settings(const char* defaultName) {
     setText(name, sizeof(name), defaultName, strlen(defaultName));
 }
@@ -85,6 +93,12 @@ void Settings::parseLine(const char* line) {
         setText(password, sizeof(password), value, strlen(value));
     } else if (equals(key, "hub.ip")) {
         setText(hubIp, sizeof(hubIp), value, strlen(value));
+    } else if (equals(key, "hub.id")) {
+        if (isHubId(value)) {
+            setText(hubId, sizeof(hubId), value, strlen(value));
+        } else {
+            warn("hub.id needs the 8 characters (0-9, a-f) shown in the Hub, got \"%.20s\"", value);
+        }
     } else if (equals(key, "hub.port")) {
         long port;
         if (parseInteger(value, 1, 65535, port)) {
