@@ -1,6 +1,7 @@
 # Unreleased
 
 * [FEATURE] Firmware v2 (`firmware-v2/`, not tested on hardware yet): C++ firmware for the ESP8266 built with PlatformIO, a drop-in replacement for the NodeMCU/Lua firmware with the same settings file, pins, colours, blink patterns and UDP protocol. It also tells the Hub its device id, firmware version and capabilities. The NodeMCU firmware stays unchanged (#26, stage 1 of #31)
+* [FEATURE] Firmware v2 setup page: a tally without settings (or after pressing reset twice) opens a password-protected access point `GreenCrew-Tally-<id>` with a page at http://192.168.4.1/ to choose the Wi-Fi network, password, name and Hub address from a phone, without USB. New settings are tried for 40 s and only kept when they connect; otherwise the page shows why. A configured tally that has no Wi-Fi for 30 s also offers the page while it keeps trying. Reconnects back off from 2 s up to 30 s. Flash is written only when saving (#27, stage 2 of #31)
 * [FEATURE] The tally card shows the firmware version of v2 tallies; NodeMCU tallies look as before (#26)
 * [DEV] CI tests the firmware v2 logic, builds it for the D1 Mini with its size and runs it against a real Hub: colours, highlight, lost Hub and reconnect (#26)
 

@@ -8,6 +8,7 @@ namespace {
 
 const Color blue = {0, 0, 255};
 const Color black = {0, 0, 0};
+const Color purple = {255, 0, 255};
 
 // Pattern strings as in my-led.lua, written as bits: 1 = bright, 0 = dim.
 const uint16_t waitForWifiSteps = 0b10;
@@ -66,6 +67,7 @@ void LedEngine::showWaitForWifi(uint32_t nowMs) { showFlash(blue, black, waitFor
 void LedEngine::showWaitForIp(uint32_t nowMs) { showFlash(blue, black, waitForIpSteps, 4, 250, nowMs); }
 void LedEngine::showWaitForHub(uint32_t nowMs) { showFlash(blue, black, waitForHubSteps, 6, 150, nowMs); }
 void LedEngine::showInvalidSettings(uint32_t nowMs) { showFlash(blue, black, invalidSettingsSteps, 12, 150, nowMs); }
+void LedEngine::showSetup(uint32_t nowMs) { showFlash(purple, black, 0b10, 2, 1000, nowMs); }
 
 bool LedEngine::tick(uint32_t nowMs) {
     if (flashing) {
