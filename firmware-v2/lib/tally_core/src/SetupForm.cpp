@@ -103,7 +103,6 @@ FormError validateSetupForm(const SetupForm& form) {
         return FormError::nameInvalid;
     }
 
-    if (form.hubIp[0] == '\0') return FormError::hubIpMissing;
     if (!isHostName(form.hubIp)) return FormError::hubIpInvalid;
 
     if (form.hubPort[0] != '\0') {
@@ -111,6 +110,7 @@ FormError validateSetupForm(const SetupForm& form) {
         long port = strtol(form.hubPort, &end, 10);
         if (*end != '\0' || port < 1 || port > 65535) return FormError::hubPortInvalid;
     }
+    if (form.hubId[0] != '\0' && !isHubId(form.hubId)) return FormError::hubIdInvalid;
     return FormError::none;
 }
 
@@ -150,7 +150,7 @@ bool updateIni(const char* original, const IniChange* changes, size_t count, cha
 }
 
 bool applySetupForm(const char* original, const SetupForm& form, char* out, size_t size) {
-    IniChange changes[5];
+    IniChange changes[6];
     size_t count = 0;
     changes[count++] = {"station.ssid", form.ssid};
     if (form.password[0] != '\0') {
@@ -159,7 +159,8 @@ bool applySetupForm(const char* original, const SetupForm& form, char* out, size
         changes[count++] = {"station.password", nullptr};
     }
     changes[count++] = {"tally.name", form.name};
-    changes[count++] = {"hub.ip", form.hubIp};
+    changes[count++] = {"hub.ip", form.hubIp[0] != '\0' ? form.hubIp : nullptr};
+    changes[count++] = {"hub.id", form.hubId[0] != '\0' ? form.hubId : nullptr};
     changes[count++] = {"hub.port", form.hubPort[0] != '\0' ? form.hubPort : "7411"};
     return updateIni(original, changes, count, out, size);
 }

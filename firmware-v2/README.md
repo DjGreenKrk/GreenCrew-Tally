@@ -4,8 +4,9 @@ Firmware v2 replaces the NodeMCU/Lua firmware in [`../tally`](../tally) with C++
 [PlatformIO](https://platformio.org) and the ESP8266 Arduino core. It is stage 1 of the plan in
 #31 (issue #26): the same lights, the same settings file and the same UDP protocol as v1, so the
 current Hub drives v1 and v2 lights side by side. Stage 2 (#27) adds the setup page: Wi-Fi and
-name from a phone, without USB after the first flash. Discovery, remote management, OTA and
-ESP-NOW (#28–#30, #25) build on it later.
+name from a phone, without USB after the first flash. Stage 3 (#28) starts with finding the
+Hub without its IP address. Pairing, remote management, OTA and ESP-NOW (#28–#30, #25) build on
+it later.
 
 **Status: not tested on hardware yet.** The logic is tested on a computer and against a running
 Hub (see [Tests](#tests)); the D1 Mini build compiles in CI. Keep v1 on lights used in
@@ -54,10 +55,14 @@ A Windows flash flow for v2 in the release ZIP comes with a later step of #26.
 `station.ssid`, `station.password`, `hub.ip`, `hub.port`, `tally.name`, `operator.type`,
 `operator.ws2812`, `stage.type`, `stage.ws2812`. Lines starting with `;` are comments.
 
+`hub.ip` may be left out in v2: the tally then finds the Hub on its own (see
+[Finding the Hub](#finding-the-hub)). v1 always needs it.
+
 New in v2 (v1 warns about them in its log and works on):
 
 | Key | Default | |
 | --- | --- | --- |
+| `hub.id` | none | Use only this Hub when looking for one: the 8 characters on the Hub's Configuration page |
 | `setup.password` | generated | Password of the setup access point, 8 to 63 characters |
 | `setup.recovery-after` | `30` | Seconds without Wi-Fi before the recovery access point starts; `0` turns it off |
 
@@ -81,7 +86,7 @@ The access point starts:
 
 | When | What runs | Light (operator) |
 | --- | --- | --- |
-| No valid settings (no `station.ssid` or `hub.ip`), e.g. a freshly flashed board | setup mode: only the access point | purple, 1 s on, 1 s off |
+| No valid settings (no `station.ssid`), e.g. a freshly flashed board | setup mode: only the access point | purple, 1 s on, 1 s off |
 | Reset pressed twice within 3 s | setup mode | purple |
 | New settings did not connect | setup mode with the reason | purple |
 | A configured tally had no Wi-Fi for `setup.recovery-after` seconds | recovery: the tally keeps trying its network and drives the lights; the access point stops once the network is back and nobody uses the page | as without Wi-Fi |
@@ -101,7 +106,8 @@ shown either (an empty field keeps it). The page only answers devices on the acc
 on the show network.
 
 **The page** lists the networks nearby and sets the Wi-Fi network and password, the tally name and
-the Hub address and port (until automatic discovery, #28, the Hub address is needed).
+the Hub: leave the address empty to find the Hub on its own, and enter the Hub ID if several Hubs
+share the network.
 Communication is Wi-Fi + UDP; ESP-NOW (#25) will be chosen here later, deliberately, never as an
 automatic fallback. The ESP8266 sees only 2.4 GHz networks and cannot join WPA3-only networks.
 
@@ -125,6 +131,32 @@ both use the station's channel, and every connection attempt to the show network
 channels and briefly disturbs phones on the access point. So while someone is on the page, the
 tally tries its network only every 30 s. A future ESP-NOW mode shares the channel the same way.
 
+## Finding the Hub
+
+Without `hub.ip` the tally looks for the Hub over mDNS (DNS-SD), so a Hub that got a new address
+from DHCP is found again without touching the tally.
+
+- The Hub announces `GC Tally Hub <id>._gctally._udp.local` on the tally port, with the host
+  name `gctally-hub-<id>.local` and the TXT record `v=1 id=<id> name=<computer>`. `<id>` is a
+  random id the Hub creates once and keeps in its configuration; it is shown on the
+  Configuration page ("Hub discovery"). `GC_TALLY_MDNS=off` turns the announcement off.
+- The tally asks for `_gctally._udp` after getting an IP address. The ESP8266 query returns
+  host names, addresses and ports (no TXT), so the id is read from the host name.
+- **One Hub** on the network: the tally uses it. **Several Hubs** and no `hub.id`: the tally
+  uses none and logs the ids it saw, so it never ends up on the wrong Hub by chance. With
+  `hub.id` it uses only that Hub.
+- Nothing found: the tally asks again after 3 s, doubling up to 30 s, and logs why (Hub not
+  running, or multicast blocked by client isolation or a multicast filter: then set `hub.ip`).
+- A Hub that stays silent for 10 s is looked up again (new address, restarted Hub). A search
+  takes about a second and only runs while no Hub is connected.
+- The address found is kept in RAM only; nothing is written to flash.
+- The tally announces itself too, as `_gctally-device._udp` with `v`, `id`, `fw` and `name` in
+  TXT, for the Hub's device list in a later step of #28.
+
+`hub.ip` (an IP address or a DNS name) always wins and works on every network. Pairing (a tally
+that only follows its own Hub after confirming it on the Hub) is the next step of #28; until then
+`hub.id` is a preference, not a security measure.
+
 ## Pins
 
 The same as v1, so a light built for v1 works unchanged:
@@ -142,7 +174,7 @@ PWM runs at 1 kHz with 256 steps (v1: 100 steps).
 
 | Situation | Operator light |
 | --- | --- |
-| Settings invalid (no `station.ssid` or `hub.ip`) | blue, 3 short blinks, pause |
+| Settings invalid (v1: no `station.ssid` or `hub.ip`) | v1: blue, 3 short blinks, pause. v2: setup access point, purple (see [Setup and recovery](#setup-and-recovery)) |
 | Connecting to Wi-Fi | blue, blinks every 500 ms |
 | Connected, waiting for an IP | blue, blinks every 250 ms |
 | No packet from the Hub for 3 s | blue, two short blinks, pause |
@@ -183,12 +215,12 @@ Measured from the CI build (`pio run -e d1_mini -t size`), version 2.0.0-dev:
 
 | | Used | Available |
 | --- | --- | --- |
-| Sketch (flash) | 363 KB | 1020 KB with `eagle.flash.4m1m.ld` |
-| RAM, static | 37 KB | 80 KB |
+| Sketch (flash) | 388 KB | 1020 KB with `eagle.flash.4m1m.ld` |
+| RAM, static | 38 KB | 80 KB |
 
 Layout `eagle.flash.4m1m.ld` (4 MB boards like the D1 Mini): 1 MB sketch area, 1 MB LittleFS,
 the rest free. An OTA update (#30) on the ESP8266 needs the new image to fit next to the running
-one in the sketch area, so with about 363 KB per image OTA fits on 4 MB boards. On 1 MB modules
+one in the sketch area, so with about 388 KB per image OTA fits on 4 MB boards. On 1 MB modules
 (ESP-01, some clones) the space is tight and must be measured on the real module before
 promising OTA there. The ESP8266 has no rollback to the previous image after a bad update; USB
 stays the recovery path.
@@ -206,9 +238,10 @@ in use (`esptool flash_id`).
   - `LogBuffer`: logs kept until the Hub can receive them
   - `TallyController`: Wi-Fi events, Hub timeout, `tally-ho` and logs
   - `WifiSupervisor`: reconnect backoff, recovery access point, trial of new settings
+  - `HubFinder`: which Hub to use and when to look for it
   - `SetupForm`: checks the setup page and writes the settings file
   - `SetupPage`: the setup page (HTML, Polish and English)
-- `src/main.cpp`: ESP8266 hardware (Wi-Fi, UDP, pins), setup mode, double reset
+- `src/main.cpp`: ESP8266 hardware (Wi-Fi, UDP, mDNS, pins), setup mode, double reset
 - `src/ConfigStore.cpp`: the settings files on LittleFS
 - `src/Portal.cpp`: access point, DNS and web server of the setup page
 - `sim/`: the logic as a Linux program that talks UDP to a Hub
@@ -219,11 +252,14 @@ in use (`esptool flash_id`).
 - `pio test -e native`: unit tests. The expected values come from the v1 Lua code and from
   what the Hub sends. Also the setup page: form checks, the settings file after saving, the
   backoff, the recovery access point and the trial timing, and that the page never contains the
-  password.
+  password. Also the choice of Hub (one, several, pinned) and the search timing.
+- `cd ../hub && npm run build:backend && node scripts/check-hub-mdns.cjs`: the running Hub
+  announces itself the way the tally asks for it, and says goodbye when it stops.
 - `make -C sim && (cd ../hub && npm run build:backend && node scripts/check-firmware-v2-sim.cjs)`:
   the tally logic against a real running Hub: the Hub recognises the v2 tally and its firmware;
   UNKNOWN, Program, Preview, AUX and highlight colours; keep-alives do not redraw a static colour;
   the lost Hub after 3 s; the reconnect after the Hub restarts.
 
 Not covered without hardware: the pins, the WS2812 timing, Wi-Fi behaviour, the access point and
-the captive portal on real phones, power loss, the double reset.
+the captive portal on real phones, power loss, the double reset, the mDNS query of the ESP8266
+on real networks (including multicast filtering and client isolation).

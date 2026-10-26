@@ -16,6 +16,7 @@ import { DefaultTallyConfiguration } from "../tally/TallyConfiguration";
 import { AppConfiguration } from "./AppConfiguration";
 import { ChannelList } from "./MixerCommunicator";
 import { VmixProjectState } from "./VmixProjectManager";
+import { HubDiscoveryState } from "./HubDiscoveryState";
 
 /* events that are send around on the server */
 
@@ -36,6 +37,7 @@ export interface EventHandlersDataMap {
     'config.changed.tallies': (tallies: Tally[]) => void
     'config.changed.mixer': (mixerName: string) => void
     'config.changed.companionLan': () => void
+    'discovery.changed': (state: HubDiscoveryState) => void
     'mixer.connected': () => void
     'mixer.disconnected': () => void
     'vmix.project.changed': (presetPath?: string) => void

@@ -1,5 +1,6 @@
 import { AtemConfigurationSaveType } from "../mixer/atem/AtemConfiguration";
 import { CompanionLanState } from "./CompanionLanState";
+import { HubDiscoveryState } from "./HubDiscoveryState";
 import { CompanionConfigurationSaveType } from "../mixer/companion/CompanionConfiguration";
 import { MockConfigurationSaveType } from "../mixer/mock/MockConfiguration";
 import { ManualConfigurationSaveType } from "../mixer/manual/ManualConfiguration";
@@ -43,6 +44,7 @@ export interface ServerSentEvents {
     'config.state.tallyconfig': (defaultTallyConfiguration: TallyConfigurationObjectType) => void
     'config.state.mixer': (data: {mixerName: string, allowedMixers: string[]}) => void
     'companion.lan.state': (state: CompanionLanState) => void
+    'discovery.state': (state: HubDiscoveryState) => void
 
     'flasher.device': (tallyDevice: TallyDeviceObjectType) => void
     'flasher.settingsIni.progress': (state: TallySettingsIniProgressType) => void
@@ -84,6 +86,7 @@ export interface ClientSentEvents {
     'companion.lan.get': () => void
     'companion.lan.generate': () => void
     'companion.lan.disable': () => void
+    'discovery.get': () => void
     'config.change.test': (testConfiguration: TestConfigurationSaveType, newMixer?: "test") => void
     'config.change.obs': (obsConfiguration: ObsConfigurationSaveType, newMixer?: "obs") => void
     'config.change.rolandV8HD': (rolandV8HDConfiguration: RolandV8HDConfigurationSaveType, newMixer?: "rolandV8HD") => void

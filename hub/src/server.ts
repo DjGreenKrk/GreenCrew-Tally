@@ -34,6 +34,7 @@ import VmixProjectManager from './lib/VmixProjectManager'
 import registerCompanionApi, { isLoopbackAddress } from './mixer/companion/CompanionApi'
 import { companionLanState, effectiveCompanionToken, generateCompanionToken, hubLanAddresses } from './mixer/companion/CompanionLanAccess'
 import { describeListenError, exitWithStartupError } from './lib/startupFailure'
+import HubAnnouncer from './lib/HubAnnouncer'
 
 const { values: argv } = parseArgs({
   options: {
@@ -78,6 +79,23 @@ new UdpTallyDriver(myConfiguration, myTallyContainer, error => {
   exitWithStartupError(describeListenError(error, 'tally (UDP)', myConfiguration.getTallyPort()))
 })
 const myWebTallyDriver = new WebTallyDriver(myConfiguration, myTallyContainer)
+
+// Firmware v2 tallies find the Hub over mDNS (#28). GC_TALLY_MDNS=off turns
+// it off; the test environment only announces with GC_TALLY_MDNS=on.
+const myHubAnnouncer = new HubAnnouncer(state => myEmitter.emit('discovery.changed', state))
+const mdnsSetting = process.env.GC_TALLY_MDNS
+if (mdnsSetting === 'off' || (myConfiguration.isTest() && mdnsSetting !== 'on')) {
+  myHubAnnouncer.disable(myConfiguration.getHubId(), myConfiguration.getTallyPort())
+} else {
+  myHubAnnouncer.start(myConfiguration.getHubId(), myConfiguration.getTallyPort())
+}
+// say goodbye on the network, so tallies do not keep a stale Hub
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.once(signal, () => {
+    setTimeout(() => process.exit(0), 500).unref()
+    myHubAnnouncer.stop(() => process.exit(0))
+  })
+}
 
 const myMixerDriver = new MixerDriver(myConfiguration, myEmitter)
 const myVmixProjectManager = new VmixProjectManager(myConfiguration, myTallyContainer, myEmitter)
@@ -354,6 +372,13 @@ io.on('connection', (socket: ServerSideSocket) => {
   socket.on('companion.lan.get', () => {
     companionLanEvent.register()
     sendCompanionLanState()
+  })
+  const discoveryEvent = new SocketAwareEvent(myEmitter, 'discovery.changed', socket, (socket, state) => {
+    socket.emit('discovery.state', state)
+  })
+  socket.on('discovery.get', () => {
+    discoveryEvent.register()
+    socket.emit('discovery.state', myHubAnnouncer.getState())
   })
   socket.on('companion.lan.generate', () => {
     if (isHubComputer && !process.env.VTALLY_COMPANION_TOKEN) myConfiguration.setCompanionLanToken(generateCompanionToken())

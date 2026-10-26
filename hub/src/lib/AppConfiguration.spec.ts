@@ -28,6 +28,24 @@ describe("toJson/fromJson", () => {
         cleared.fromJson(config.toJson())
         expect(cleared.getCompanionLanToken()).toBeUndefined()
     })
+    test('it generates the Hub id once and keeps it', () => {
+        const emitter = new EventEmitter()
+        const config = new AppConfiguration(emitter)
+        let saved = 0
+        emitter.on('config.changed', changed => { if (changed === config) saved++ })
+        const hubId = config.getHubId()
+        expect(hubId).toMatch(/^[0-9a-f]{8}$/)
+        expect(config.getHubId()).toEqual(hubId)
+        expect(saved).toEqual(1)
+
+        const otherConfig = new AppConfiguration(emitter)
+        otherConfig.fromJson(config.toJson())
+        expect(otherConfig.getHubId()).toEqual(hubId)
+
+        const invalid = new AppConfiguration(emitter)
+        invalid.fromJson({ hubId: 'not-an-id' })
+        expect(invalid.getHubId()).not.toEqual('not-an-id')
+    })
     test('it can persist atem configuration', () => {
         const emitter = new EventEmitter()
         const config = new AppConfiguration(emitter)

@@ -38,7 +38,11 @@ void TallyController::wifiGotIp(uint32_t nowMs) {
     wifiUp = true;
     leds.showWaitForHub(nowMs);
     char text[96];
-    snprintf(text, sizeof(text), "Contacting hub on %s:%u", settings.hubAddress(), settings.hubUdpPort());
+    if (settings.hasHubAddress()) {
+        snprintf(text, sizeof(text), "Contacting hub on %s:%u", settings.hubAddress(), settings.hubUdpPort());
+    } else {
+        snprintf(text, sizeof(text), "Looking for the hub (mDNS)");
+    }
     log(Severity::info, text);
     sendHello();
 }

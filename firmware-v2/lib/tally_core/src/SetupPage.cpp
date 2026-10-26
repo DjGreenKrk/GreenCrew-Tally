@@ -29,7 +29,10 @@ struct Texts {
     const char* openNetwork;
     const char* name;
     const char* hubIp;
+    const char* hubIpHint;
     const char* hubPort;
+    const char* hubId;
+    const char* hubIdHint;
     const char* mode;
     const char* modeWifi;
     const char* save;
@@ -60,7 +63,10 @@ const Texts english = {
     "Network without a password",
     "Tally name",
     "Hub address (IP)",
+    "Leave empty to find the Hub automatically (mDNS). Enter it on networks that block multicast.",
     "Hub port",
+    "Hub ID",
+    "Optional. With several Hubs on the network: the ID shown on the Hub's Configuration page.",
     "Communication",
     "Wi-Fi + UDP (ESP-NOW in a later version)",
     "Save and connect",
@@ -75,9 +81,9 @@ const Texts english = {
         "The password may not start or end with a space.",
         "Enter the tally name.",
         "The tally name may have at most 26 characters, no \" and no spaces at the start or end.",
-        "Enter the Hub address.",
         "The Hub address may contain letters, digits, dots and dashes only.",
         "The Hub port must be a number from 1 to 65535.",
+        "The Hub ID has 8 characters: digits and the letters a to f.",
     },
 };
 
@@ -102,7 +108,10 @@ const Texts polish = {
     "Sieć bez hasła",
     "Nazwa lampki",
     "Adres Huba (IP)",
+    "Puste pole: lampka sama znajdzie Hub (mDNS). Wpisz adres w sieciach, które blokują multicast.",
     "Port Huba",
+    "ID Huba",
+    "Opcjonalne. Gdy w sieci jest kilka Hubów: ID widoczne na stronie Konfiguracja w Hubie.",
     "Komunikacja",
     "Wi-Fi + UDP (ESP-NOW w późniejszej wersji)",
     "Zapisz i połącz",
@@ -117,9 +126,9 @@ const Texts polish = {
         "Hasło nie może zaczynać się ani kończyć spacją.",
         "Podaj nazwę lampki.",
         "Nazwa lampki może mieć najwyżej 26 znaków, bez \" i bez spacji na początku i końcu.",
-        "Podaj adres Huba.",
         "Adres Huba może zawierać tylko litery, cyfry, kropki i myślniki.",
         "Port Huba musi być liczbą od 1 do 65535.",
+        "ID Huba ma 8 znaków: cyfry i litery od a do f.",
     },
 };
 
@@ -153,6 +162,12 @@ void writeInput(TextSink& sink, const char* label, const char* attributes, const
     sink.write(" value=\"");
     writeEscaped(sink, value);
     sink.write("\"></label>");
+}
+
+void writeHint(TextSink& sink, const char* text) {
+    sink.write("<p class=\"hint\">");
+    sink.write(text);
+    sink.write("</p>");
 }
 
 const char* failureText(const Texts& texts, WifiFailure failure) {
@@ -276,8 +291,11 @@ void renderSetupPage(const SetupPageModel& model, TextSink& sink) {
     sink.write(texts.openNetwork);
     sink.write("</label>");
     writeInput(sink, texts.name, "name=\"name\" maxlength=\"26\" required", model.name);
-    writeInput(sink, texts.hubIp, "name=\"hub\" maxlength=\"63\" required autocapitalize=\"off\"", model.hubIp);
+    writeInput(sink, texts.hubIp, "name=\"hub\" maxlength=\"63\" autocapitalize=\"off\"", model.hubIp);
+    writeHint(sink, texts.hubIpHint);
     writeInput(sink, texts.hubPort, "name=\"port\" type=\"number\" min=\"1\" max=\"65535\"", model.hubPort);
+    writeInput(sink, texts.hubId, "name=\"hubid\" maxlength=\"8\" autocapitalize=\"off\"", model.hubId);
+    writeHint(sink, texts.hubIdHint);
     sink.write("<label>");
     sink.write(texts.mode);
     sink.write("<select name=\"mode\"><option value=\"wifi\">");

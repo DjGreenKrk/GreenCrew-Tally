@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto'
 import {MixerDriver} from './MixerDriver'
 import Channel from '../domain/Channel'
 import ServerEventEmitter from './ServerEventEmitter'
@@ -53,6 +54,9 @@ export class AppConfiguration extends Configuration {
     mixerSelection?: string
     // kept apart from the Companion mixer settings: changing those restarts the mixer
     companionLanToken?: string
+    // Stable id of this Hub, announced over mDNS so tallies can stick to it
+    // when several Hubs share a network (#28). Generated once.
+    hubId?: string
     tallyPort: number
     tallyHighlightTime: number
     tallyKeepAlivesPerSecond: number
@@ -167,6 +171,9 @@ export class AppConfiguration extends Configuration {
         if (typeof data.companionLanToken === 'string' && data.companionLanToken) {
             this.companionLanToken = data.companionLanToken
         }
+        if (typeof data.hubId === 'string' && AppConfiguration.isHubId(data.hubId)) {
+            this.hubId = data.hubId
+        }
     }
     toJson(): object {
         return {
@@ -186,6 +193,7 @@ export class AppConfiguration extends Configuration {
             channels: this.channels.map(channel => channel.toJson()),
             vmixProjects: this.vmixProjectProfiles,
             companionLanToken: this.companionLanToken,
+            hubId: this.hubId,
         }
     }
     clone(): AppConfiguration {
@@ -246,6 +254,18 @@ export class AppConfiguration extends Configuration {
         this.companionLanToken = token || undefined
         this.emitter.emit("config.changed", this)
         this.emitter.emit("config.changed.companionLan")
+    }
+
+    static isHubId(value: string) {
+        return /^[0-9a-f]{8}$/.test(value)
+    }
+
+    getHubId(): string {
+        if (!this.hubId) {
+            this.hubId = randomBytes(4).toString('hex')
+            this.emitter.emit("config.changed", this)
+        }
+        return this.hubId
     }
 
     setNullConfiguration(nullConfiguration: NullConfiguration) {

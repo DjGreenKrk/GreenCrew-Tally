@@ -11,8 +11,11 @@ struct SetupForm {
     const char* password = "";
     bool openNetwork = false;
     const char* name = "";
+    // Empty: look for the Hub over mDNS
     const char* hubIp = "";
     const char* hubPort = "";
+    // Empty: any single Hub
+    const char* hubId = "";
 };
 
 enum class FormError {
@@ -23,9 +26,9 @@ enum class FormError {
     passwordInvalid,
     nameMissing,
     nameInvalid,     // longer than 26 characters, '"' or control characters
-    hubIpMissing,
     hubIpInvalid,
     hubPortInvalid,
+    hubIdInvalid,
 };
 
 FormError validateSetupForm(const SetupForm& form);

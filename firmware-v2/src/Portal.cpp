@@ -120,6 +120,7 @@ void sendSetupPage(const SetupForm* typed, FormError error) {
     model.name = typed ? typed->name : info.settings->tallyName();
     model.hubIp = typed ? typed->hubIp : info.settings->hubAddress();
     model.hubPort = typed ? typed->hubPort : port;
+    model.hubId = typed ? typed->hubId : info.settings->pinnedHubId();
     model.networks = scanned;
     model.networkCount = networkCount;
     model.error = error;
@@ -147,6 +148,7 @@ void handleSave() {
     String name = server->arg("name");
     String hub = server->arg("hub");
     String port = server->arg("port");
+    String hubId = server->arg("hubid");
     SetupForm form;
     form.ssid = ssid.c_str();
     form.password = password.c_str();
@@ -154,6 +156,7 @@ void handleSave() {
     form.name = name.c_str();
     form.hubIp = hub.c_str();
     form.hubPort = port.c_str();
+    form.hubId = hubId.c_str();
 
     FormError error = validateSetupForm(form);
     if (error != FormError::none) {

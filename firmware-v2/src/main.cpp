@@ -4,10 +4,12 @@
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
 #include <NeoPixelBus.h>
 #include <WiFiUdp.h>
 
 #include "ConfigStore.h"
+#include "HubFinder.h"
 #include "LedEngine.h"
 #include "LightOutput.h"
 #include "Portal.h"
@@ -54,6 +56,11 @@ bool trialCommitted = false;
 WifiFailure shownTrialFailure = WifiFailure::none;
 char shownTrialSsid[36] = "";
 uint32_t lastApCheckMs = 0;
+// Without hub.ip: the Hub found over mDNS. Kept in RAM only.
+HubFinder hubFinder;
+IPAddress foundHubIp;
+uint16_t foundHubPort = 0;
+bool mdnsStarted = false;
 LedEngine leds;
 WiFiUDP udp;
 // WS2812 on D4 (GPIO2) through UART1, like NodeMCU's ws2812 module. Bytes
@@ -63,7 +70,15 @@ NeoPixelBus<NeoRgbFeature, NeoEsp8266Uart1Ws2812xMethod>* strip;
 class EspPlatform : public Platform {
 public:
     void sendToHub(const char* text) override {
-        if (udp.beginPacket(settings->hubAddress(), settings->hubUdpPort())) {
+        int ready;
+        if (settings->hasHubAddress()) {
+            ready = udp.beginPacket(settings->hubAddress(), settings->hubUdpPort());
+        } else if (hubFinder.hasHub()) {
+            ready = udp.beginPacket(foundHubIp, foundHubPort);
+        } else {
+            return;  // still looking; logs stay in the buffer
+        }
+        if (ready) {
             udp.write(text, strlen(text));
             udp.endPacket();
         }
@@ -206,6 +221,80 @@ void startStation() {
     supervisor->begin(millis());
 }
 
+// mDNS: the tally announces itself (_gctally-device._udp, for the Hub's device
+// list in a later step of #28) and, without hub.ip, looks for the Hub.
+void startMdns() {
+    if (mdnsStarted) return;
+    char hostName[40];
+    settings->hostName(hostName, sizeof(hostName));
+    if (!MDNS.begin(hostName)) {
+        controller->log(Severity::warning, "mDNS could not start");
+        return;
+    }
+    mdnsStarted = true;
+    MDNSResponder::hMDNSService service = MDNS.addService(nullptr, "gctally-device", "udp", listenPort);
+    MDNS.addServiceTxt(service, "v", "1");
+    MDNS.addServiceTxt(service, "id", deviceId);
+    MDNS.addServiceTxt(service, "fw", GC_FIRMWARE_VERSION);
+    MDNS.addServiceTxt(service, "name", settings->tallyName());
+}
+
+void logSearch(HubSearch result, const HubAnswer* answers, uint32_t count) {
+    // the diagnosis once per failure streak, then every 10th time
+    if (result != HubSearch::found && hubFinder.failures() % 10 != 1) return;
+    char text[LogBuffer::maxMessageLength + 1];
+    switch (result) {
+        case HubSearch::found:
+            return;
+        case HubSearch::none:
+            snprintf(text, sizeof(text), "No hub found (mDNS). Hub not running, or multicast blocked: set hub.ip");
+            break;
+        case HubSearch::several: {
+            size_t used = snprintf(text, sizeof(text), "Several hubs found, set hub.id:");
+            char id[9];
+            for (uint32_t i = 0; i < count && used < sizeof(text); i++) {
+                if (hubIdFromHostName(answers[i].hostName, id, sizeof(id))) used += snprintf(text + used, sizeof(text) - used, " %s", id);
+            }
+            break;
+        }
+        case HubSearch::pinnedMissing:
+            snprintf(text, sizeof(text), "Hub %s (hub.id) not found, only other hubs answered", settings->pinnedHubId());
+            break;
+    }
+    controller->log(Severity::warning, text);
+}
+
+void searchHub() {
+    const uint32_t maxAnswers = 8;
+    uint32_t count = MDNS.queryService("gctally", "udp", 1000);
+    if (count > maxAnswers) count = maxAnswers;
+    HubAnswer answers[maxAnswers];
+    String hostNames[maxAnswers];
+    for (uint32_t i = 0; i < count; i++) {
+        hostNames[i] = MDNS.answerHostname(i);
+        answers[i] = {hostNames[i].c_str(), static_cast<uint32_t>(MDNS.answerIP(i)), MDNS.answerPort(i)};
+    }
+    MDNS.removeQuery();
+
+    size_t chosen = 0;
+    HubSearch result = chooseHub(answers, count, settings->pinnedHubId(), chosen);
+    hubFinder.searchDone(millis(), result);
+    logSearch(result, answers, count);
+    if (result != HubSearch::found) return;
+
+    IPAddress ip(answers[chosen].ip);
+    bool changed = ip != foundHubIp || answers[chosen].port != foundHubPort;
+    foundHubIp = ip;
+    foundHubPort = answers[chosen].port;
+    if (changed) {
+        char id[9];
+        hubIdFromHostName(answers[chosen].hostName, id, sizeof(id));
+        char text[80];
+        snprintf(text, sizeof(text), "Found hub %s at %s:%u", id, foundHubIp.toString().c_str(), foundHubPort);
+        controller->log(Severity::info, text);
+    }
+}
+
 void loopSetupMode(uint32_t now) {
     // A configured tally goes back to work when nobody uses the page.
     if (settings->isValid() && now - Portal::lastRequestMs() > setupIdleMs && WiFi.softAPgetStationNum() == 0) restartTally();
@@ -320,6 +409,8 @@ void loop() {
     if (eventGotIp) {
         eventGotIp = false;
         supervisor->gotIp(now);
+        startMdns();
+        hubFinder.wifiUp(now);
         controller->log(Severity::info, ("Got IP " + WiFi.localIP().toString()).c_str());
         controller->wifiGotIp(now);
     }
@@ -328,6 +419,7 @@ void loop() {
         char text[80];
         snprintf(text, sizeof(text), "Got disconnected from %s. Reason %u", settings->stationSsid(), disconnectReason);
         supervisor->lost(now, disconnectReason);
+        hubFinder.wifiDown();
         controller->wifiLost(now);
         controller->log(Severity::error, text);
         logRetry();
@@ -335,12 +427,18 @@ void loop() {
     if (eventDhcpTimeout) {
         eventDhcpTimeout = false;
         supervisor->dhcpTimeout(now);
+        hubFinder.wifiDown();
         controller->wifiLost(now);
         controller->log(Severity::error, "DHCP timeout");
         WiFi.disconnect();
         logRetry();
     }
     if (supervisor->connectDue(now)) connectWifi(now);
+    if (mdnsStarted) MDNS.update();
+    if (!settings->hasHubAddress() && hubFinder.searchDue(now, controller->isHubConnected(now))) {
+        searchHub();
+        now = millis();  // the search takes a second
+    }
     checkTrial(now);
     checkRecoveryAp(now);
 
