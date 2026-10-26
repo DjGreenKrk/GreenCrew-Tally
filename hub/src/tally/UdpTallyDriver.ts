@@ -1,4 +1,4 @@
-import { ConnectionState, UdpTally } from '../domain/Tally'
+import { ConnectionState, TallyDevice, UdpTally } from '../domain/Tally'
 import dgram from 'dgram'
 import { ChannelList } from '../lib/MixerCommunicator'
 import { AppConfiguration } from '../lib/AppConfiguration'
@@ -35,8 +35,8 @@ class UdpTallyDriver {
             try {
                 const command = CommandParser.parse(msg.toString().trim())
                 if (command.command === "tally-ho") {
-                    const {tallyName} = command
-                    this.tallyReported(tallyName, rinfo)
+                    const {tallyName, device} = command
+                    this.tallyReported(tallyName, rinfo, { device })
                 } else if (command.command === "log") {
                     const {tallyName, log} = command
                     this.tallyReported(tallyName, rinfo)
@@ -98,18 +98,24 @@ class UdpTallyDriver {
             })
         }, 1000 / this.configuration.getTallyKeepAlivesPerSecond())
     }
-    private tallyReported(tallyName: string, rinfo: dgram.RemoteInfo) {
+    // hello: only "tally-ho" says what the device is (nothing for NodeMCU
+    // tallies); a log keeps what is known
+    private tallyReported(tallyName: string, rinfo: dgram.RemoteInfo, hello?: { device?: TallyDevice }) {
         this.lastTallyReport.set(tallyName, new Date())
         const tally = this.container.getOrCreate(tallyName, "udp") as UdpTally
         const oldState = tally.state
         const oldAddress = tally.address
         const oldPort = tally.port
+        const oldDevice = JSON.stringify(tally.device)
 
         tally.state = ConnectionState.CONNECTED
         tally.address = rinfo.address
         tally.port = rinfo.port
+        if (hello) {
+            tally.device = hello.device
+        }
 
-        if (oldState !== tally.state || oldAddress !== tally.address || oldPort !== tally.port) {
+        if (oldState !== tally.state || oldAddress !== tally.address || oldPort !== tally.port || oldDevice !== JSON.stringify(tally.device)) {
             this.container.update(tally)
         }
         return tally

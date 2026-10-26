@@ -57,6 +57,7 @@ const pl = {
   "tally.missing": "brak sygnału",
   "tally.connected": "połączona",
   "tally.disconnected": "rozłączona",
+  "tally.firmware": "firmware {version}",
   "tallyCreate.title": "Dodaj Web Tally",
   "tallyCreate.submit": "Dodaj",
   "tallyCreate.name": "Nazwa",

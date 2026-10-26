@@ -131,6 +131,15 @@ describe('toJson/fromJson', () => {
         expect(tally.configuration.getOperatorLightBrightness()).toEqual(42)
         expect(tally.configuration.getStageLightBrightness()).toEqual(21)
     })
+
+    test('it sends the device of a firmware v2 tally but does not save it', () => {
+        const udpTally = new UdpTally("CAM1", "1", "1.2.3.4", 1234, ConnectionState.CONNECTED)
+        udpTally.device = { protocol: 1, id: "a1b2c3", firmware: "2.0.0-dev", hardware: "esp8266", capabilities: ["ws2812", "pwm"] }
+
+        const tally = Tally.fromJson(udpTally.toJson()) as UdpTally
+        expect(tally.device).toEqual(udpTally.device)
+        expect(udpTally.toJsonForSave()).not.toHaveProperty("device")
+    })
     
     test('it can save and load a WebTally', () => {
         const webTally = new WebTally("Web Tally", "123", [{address: "1.2.3.4"}])

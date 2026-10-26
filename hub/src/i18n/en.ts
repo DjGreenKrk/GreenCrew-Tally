@@ -59,6 +59,7 @@ const en: Record<keyof typeof pl, string> = {
   "tally.missing": "missing",
   "tally.connected": "connected",
   "tally.disconnected": "disconnected",
+  "tally.firmware": "firmware {version}",
   "tallyCreate.title": "Create Web Tally",
   "tallyCreate.submit": "Create",
   "tallyCreate.name": "Name",

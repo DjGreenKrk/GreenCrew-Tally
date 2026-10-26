@@ -1,3 +1,9 @@
+# Unreleased
+
+* [FEATURE] Firmware v2 (`firmware-v2/`, not tested on hardware yet): C++ firmware for the ESP8266 built with PlatformIO, a drop-in replacement for the NodeMCU/Lua firmware with the same settings file, pins, colours, blink patterns and UDP protocol. It also tells the Hub its device id, firmware version and capabilities. The NodeMCU firmware stays unchanged (#26, stage 1 of #31)
+* [FEATURE] The tally card shows the firmware version of v2 tallies; NodeMCU tallies look as before (#26)
+* [DEV] CI tests the firmware v2 logic, builds it for the D1 Mini with its size and runs it against a real Hub: colours, highlight, lost Hub and reconnect (#26)
+
 # GC Tally 1.0.0-rc.2
 
 Second release candidate of GC Tally 1.0: a configurable Companion channel list (up to 32), Companion module 0.9.0 and newer server libraries. The tray app is not shipped yet.

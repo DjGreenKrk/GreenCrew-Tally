@@ -144,6 +144,7 @@ function Tally({ tally, className }: TallyProps) {
             <div className={classes.tallyFoot + (tally.isActive() && tally.isMissing() ? " " + classes.tallyFootMissing : "")}>
                 <div className={classes.tallyFootItem}>{ tally.isActive() ? (tally.isMissing() ? t('tally.missing') : t('tally.connected')) : t('tally.disconnected') }</div>
                 {tally.isUdpTally() && tally.address && tally.port && (<div className={classes.tallyFootItem}>{tally.address}:{tally.port}</div>)}
+                {tally.isUdpTally() && tally.device?.firmware && (<div className={classes.tallyFootItem} data-testid={`tally-${tally.name}-firmware`}>{t('tally.firmware', { version: tally.device.firmware })}</div>)}
             </div>
         </Paper>
     </>)
