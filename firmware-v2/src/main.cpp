@@ -17,6 +17,14 @@
 #include "TallyController.h"
 #include "WifiSupervisor.h"
 
+// The crew password for the setup access point, from GC_SETUP_PASSWORD at
+// build time (scripts/crew_password.py); empty when not built in.
+const char crewSetupPassword[] = {
+#ifdef GC_CREW_SETUP_PASSWORD_CODES
+    GC_CREW_SETUP_PASSWORD_CODES,
+#endif
+    0};
+
 using namespace gctally;
 
 namespace {
@@ -48,6 +56,7 @@ RtcState rtc;
 char deviceId[9];
 char apName[32];
 String setupPassword;
+SetupPasswordSource setupPasswordSource = SetupPasswordSource::generated;
 Settings* settings;
 bool setupMode = false;
 ConfigStore::Boot boot = ConfigStore::Boot::committed;
@@ -185,7 +194,12 @@ void readSettings() {
         Serial.println("[WARN]  Configuration file /tally-settings.ini does not exist. Using defaults.");
     }
     settings->parse(text.c_str());
-    setupPassword = settings->setupPassword()[0] != '\0' ? String(settings->setupPassword()) : ConfigStore::setupKey();
+    setupPasswordSource = pickSetupPassword(settings->setupPassword(), crewSetupPassword);
+    switch (setupPasswordSource) {
+        case SetupPasswordSource::settings: setupPassword = settings->setupPassword(); break;
+        case SetupPasswordSource::crew: setupPassword = crewSetupPassword; break;
+        case SetupPasswordSource::generated: setupPassword = ConfigStore::setupKey(); break;
+    }
 }
 
 void startSetupMode() {
@@ -194,8 +208,13 @@ void startSetupMode() {
     rtc.trialFailure = 0;
     writeRtc();
 
-    // Only on the serial console: logs also go to the Hub.
-    Serial.printf("[INFO]  Setup access point %s, password %s, page http://192.168.4.1/\n", apName, setupPassword.c_str());
+    // Only on the serial console: logs also go to the Hub. The crew
+    // password is known to the crew and not printed.
+    if (setupPasswordSource == SetupPasswordSource::crew) {
+        Serial.printf("[INFO]  Setup access point %s, password: the crew password, page http://192.168.4.1/\n", apName);
+    } else {
+        Serial.printf("[INFO]  Setup access point %s, password %s, page http://192.168.4.1/\n", apName, setupPassword.c_str());
+    }
     controller->log(Severity::info, "Setup mode");
     leds.showSetup(millis());
     Portal::start(apName, setupPassword.c_str(), {deviceId, settings, false, shownTrialFailure, shownTrialSsid});

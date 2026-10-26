@@ -561,6 +561,22 @@ void test_settings_rejects_a_short_setup_password() {
     TEST_ASSERT_EQUAL_size_t(2, settings.warningCount());
 }
 
+void test_setup_password_is_printable_ascii() {
+    TEST_ASSERT_TRUE(isSetupPassword("crew pass 1!"));
+    TEST_ASSERT_TRUE(isSetupPassword("123456789012345678901234567890123456789012345678901234567890123"));
+    TEST_ASSERT_FALSE(isSetupPassword("1234567"));
+    TEST_ASSERT_FALSE(isSetupPassword("1234567890123456789012345678901234567890123456789012345678901234"));
+    TEST_ASSERT_FALSE(isSetupPassword("ha\tsło-ekipy"));
+    TEST_ASSERT_FALSE(isSetupPassword("hasło-ekipy"));
+}
+
+void test_setup_password_from_settings_then_crew_then_generated() {
+    TEST_ASSERT_TRUE(pickSetupPassword("lamp-key-1", "crew-key-1") == SetupPasswordSource::settings);
+    TEST_ASSERT_TRUE(pickSetupPassword("", "crew-key-1") == SetupPasswordSource::crew);
+    TEST_ASSERT_TRUE(pickSetupPassword("", "") == SetupPasswordSource::generated);
+    TEST_ASSERT_TRUE(pickSetupPassword("", "short") == SetupPasswordSource::generated);
+}
+
 void test_setup_led_pattern_is_purple() {
     LedEngine leds;
     leds.showSetup(0);
@@ -1006,6 +1022,8 @@ int main() {
     RUN_TEST(test_controller_wifi_loss_blinks_and_stops_hello);
     RUN_TEST(test_settings_setup_keys);
     RUN_TEST(test_settings_rejects_a_short_setup_password);
+    RUN_TEST(test_setup_password_is_printable_ascii);
+    RUN_TEST(test_setup_password_from_settings_then_crew_then_generated);
     RUN_TEST(test_setup_led_pattern_is_purple);
     RUN_TEST(test_form_accepts_valid_input);
     RUN_TEST(test_form_rejects_invalid_input);

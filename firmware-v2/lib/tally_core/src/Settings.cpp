@@ -32,6 +32,21 @@ bool parseInteger(const char* text, long minimum, long maximum, long& out) {
 
 }  // namespace
 
+bool isSetupPassword(const char* text) {
+    size_t length = strlen(text);
+    if (length < 8 || length > 63) return false;
+    for (const char* c = text; *c != '\0'; c++) {
+        if (*c < ' ' || *c > '~') return false;
+    }
+    return true;
+}
+
+SetupPasswordSource pickSetupPassword(const char* fromSettings, const char* crew) {
+    if (isSetupPassword(fromSettings)) return SetupPasswordSource::settings;
+    if (isSetupPassword(crew)) return SetupPasswordSource::crew;
+    return SetupPasswordSource::generated;
+}
+
 bool isHubId(const char* text) {
     if (strlen(text) != 8) return false;
     for (const char* c = text; *c != '\0'; c++) {
@@ -109,11 +124,10 @@ void Settings::parseLine(const char* line) {
     } else if (equals(key, "tally.name")) {
         setText(name, sizeof(name), value, strlen(value));
     } else if (equals(key, "setup.password")) {
-        // WPA2 needs 8 to 63 characters
-        if (strlen(value) >= 8 && strlen(value) <= 63) {
+        if (isSetupPassword(value)) {
             setText(setupKey, sizeof(setupKey), value, strlen(value));
         } else {
-            warn("setup.password needs %s characters. It is ignored.", "8 to 63");
+            warn("setup.password needs %s characters. It is ignored.", "8 to 63 printable ASCII");
         }
     } else if (equals(key, "setup.recovery-after")) {
         long seconds;
