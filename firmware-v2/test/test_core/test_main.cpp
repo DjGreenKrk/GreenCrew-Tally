@@ -12,8 +12,11 @@
 #include "LightOutput.h"
 #include "LogBuffer.h"
 #include "Settings.h"
+#include "SetupForm.h"
+#include "SetupPage.h"
 #include "StateMessage.h"
 #include "TallyController.h"
+#include "WifiSupervisor.h"
 
 using namespace gctally;
 
@@ -44,6 +47,29 @@ Settings validSettings() {
     Settings settings("a1b2c3");
     settings.parse("station.ssid=Studio\nstation.password=secret\nhub.ip=192.168.1.10\ntally.name=CAM1\n");
     return settings;
+}
+
+class StringSink : public TextSink {
+public:
+    void write(const char* text) override { text_ += text; }
+    bool contains(const char* part) const { return text_.find(part) != std::string::npos; }
+    std::string text_;
+};
+
+std::string updated(const char* original, std::vector<IniChange> changes) {
+    char out[512];
+    TEST_ASSERT_TRUE(updateIni(original, changes.data(), changes.size(), out, sizeof(out)));
+    return out;
+}
+
+SetupForm validForm() {
+    SetupForm form;
+    form.ssid = "Studio";
+    form.password = "new-secret";
+    form.name = "CAM2";
+    form.hubIp = "192.168.1.20";
+    form.hubPort = "7411";
+    return form;
 }
 
 }  // namespace
@@ -514,6 +540,322 @@ void test_controller_wifi_loss_blinks_and_stops_hello() {
     TEST_ASSERT_EQUAL_size_t(sent, platform.sent.size());
 }
 
+// --- setup settings ---------------------------------------------------------
+
+void test_settings_setup_keys() {
+    Settings settings("x");
+    TEST_ASSERT_EQUAL_STRING("", settings.setupPassword());
+    TEST_ASSERT_EQUAL_UINT32(30000, settings.recoveryAfterMs());
+    settings.parse("setup.password=lamp-key-1\nsetup.recovery-after=0\n");
+    TEST_ASSERT_EQUAL_STRING("lamp-key-1", settings.setupPassword());
+    TEST_ASSERT_EQUAL_UINT32(0, settings.recoveryAfterMs());
+    TEST_ASSERT_EQUAL_size_t(0, settings.warningCount());
+}
+
+void test_settings_rejects_a_short_setup_password() {
+    Settings settings("x");
+    settings.parse("setup.password=short\nsetup.recovery-after=soon\n");
+    TEST_ASSERT_EQUAL_STRING("", settings.setupPassword());
+    TEST_ASSERT_EQUAL_UINT32(30000, settings.recoveryAfterMs());
+    TEST_ASSERT_EQUAL_size_t(2, settings.warningCount());
+}
+
+void test_setup_led_pattern_is_purple() {
+    LedEngine leds;
+    leds.showSetup(0);
+    leds.tick(0);
+    assertColor({255, 0, 255}, leds.frame().operatorColor);
+    leds.tick(1000);
+    assertColor({77, 0, 77}, leds.frame().operatorColor);
+    leds.tick(2000);
+    assertColor({255, 0, 255}, leds.frame().operatorColor);
+}
+
+// --- setup form ---------------------------------------------------------------
+
+void test_form_accepts_valid_input() {
+    TEST_ASSERT_TRUE(validateSetupForm(validForm()) == FormError::none);
+    SetupForm form = validForm();
+    form.password = "";  // keep the stored one
+    form.hubPort = "";   // default port
+    form.hubIp = "hub.local";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::none);
+    form.password = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";  // 64 hex digits
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::none);
+}
+
+void test_form_rejects_invalid_input() {
+    SetupForm form = validForm();
+    form.ssid = "";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::ssidMissing);
+    form.ssid = "123456789012345678901234567890123";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::ssidInvalid);
+    form.ssid = "Studio ";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::ssidInvalid);
+    form.ssid = "Stu\ndio";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::ssidInvalid);
+
+    form = validForm();
+    form.password = "short";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::passwordLength);
+    form.password = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdeg";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::passwordLength);
+    form.password = " secret-with-space";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::passwordInvalid);
+
+    form = validForm();
+    form.name = "";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::nameMissing);
+    form.name = "CAM \"1\"";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::nameInvalid);
+    form.name = "123456789012345678901234567";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::nameInvalid);
+
+    form = validForm();
+    form.hubIp = "";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::hubIpMissing);
+    form.hubIp = "192.168.1.20\nstation.ssid=x";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::hubIpInvalid);
+
+    form = validForm();
+    form.hubPort = "0";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::hubPortInvalid);
+    form.hubPort = "74x";
+    TEST_ASSERT_TRUE(validateSetupForm(form) == FormError::hubPortInvalid);
+}
+
+void test_ini_update_replaces_in_place_and_keeps_comments() {
+    TEST_ASSERT_EQUAL_STRING("; my tally\nstation.ssid=New\n; LEDs\noperator.ws2812=16 grb\n",
+                             updated("; my tally\nstation.ssid = Old\nstation.ssid=Older\r\n; LEDs\noperator.ws2812=16 grb\n", {{"station.ssid", "New"}}).c_str());
+}
+
+void test_ini_update_adds_and_removes_keys() {
+    TEST_ASSERT_EQUAL_STRING("tally.name=CAM1\nhub.ip=10.0.0.2\n", updated("station.password=old\ntally.name=CAM1", {{"station.password", nullptr}, {"hub.ip", "10.0.0.2"}}).c_str());
+    TEST_ASSERT_EQUAL_STRING("station.ssid=Studio\n", updated("", {{"station.ssid", "Studio"}}).c_str());
+    TEST_ASSERT_EQUAL_STRING(";station.ssid=Commented\nstation.ssid=Studio\n", updated(";station.ssid=Commented\n", {{"station.ssid", "Studio"}}).c_str());
+}
+
+void test_ini_update_fails_when_the_result_does_not_fit() {
+    IniChange change = {"station.ssid", "Studio"};
+    char out[10];
+    TEST_ASSERT_FALSE(updateIni("tally.name=CAM1\n", &change, 1, out, sizeof(out)));
+}
+
+void test_saved_form_reads_back_as_the_new_settings() {
+    const char* original = "station.ssid=Old\nstation.password=old-secret\nhub.ip=192.168.1.10\ntally.name=CAM1\noperator.ws2812=16 grb\nsetup.password=lamp-key-1\n";
+    char out[512];
+
+    TEST_ASSERT_TRUE(applySetupForm(original, validForm(), out, sizeof(out)));
+    Settings settings("x");
+    settings.parse(out);
+    TEST_ASSERT_EQUAL_STRING("Studio", settings.stationSsid());
+    TEST_ASSERT_EQUAL_STRING("new-secret", settings.stationPassword());
+    TEST_ASSERT_EQUAL_STRING("CAM2", settings.tallyName());
+    TEST_ASSERT_EQUAL_STRING("192.168.1.20", settings.hubAddress());
+    TEST_ASSERT_EQUAL_UINT8(16, settings.operatorWs2812Lights);
+    TEST_ASSERT_EQUAL_STRING("lamp-key-1", settings.setupPassword());
+    TEST_ASSERT_EQUAL_size_t(0, settings.warningCount());
+
+    SetupForm keep = validForm();
+    keep.password = "";
+    TEST_ASSERT_TRUE(applySetupForm(original, keep, out, sizeof(out)));
+    Settings kept("x");
+    kept.parse(out);
+    TEST_ASSERT_EQUAL_STRING("old-secret", kept.stationPassword());
+
+    SetupForm open = keep;
+    open.openNetwork = true;
+    TEST_ASSERT_TRUE(applySetupForm(original, open, out, sizeof(out)));
+    Settings opened("x");
+    opened.parse(out);
+    TEST_ASSERT_EQUAL_STRING("", opened.stationPassword());
+}
+
+// --- Wi-Fi supervisor -----------------------------------------------------------
+
+void test_supervisor_connects_at_once_and_backs_off() {
+    WifiSupervisor wifi(30000, false);
+    wifi.begin(0);
+    TEST_ASSERT_TRUE(wifi.connectDue(0));
+    TEST_ASSERT_FALSE(wifi.connectDue(1));
+    wifi.connectStarted(0);
+
+    const uint32_t expected[] = {2000, 4000, 8000, 16000, 30000, 30000};
+    uint32_t now = 0;
+    for (uint32_t delay : expected) {
+        now += 100;
+        wifi.lost(now, 201);
+        TEST_ASSERT_EQUAL_UINT32(delay, wifi.retryDelayMs());
+        TEST_ASSERT_FALSE(wifi.connectDue(now + delay - 1));
+        now += delay;
+        TEST_ASSERT_TRUE(wifi.connectDue(now));
+        wifi.connectStarted(now);
+    }
+    TEST_ASSERT_TRUE(wifi.lastFailure() == WifiFailure::networkNotFound);
+
+    wifi.gotIp(now);
+    TEST_ASSERT_TRUE(wifi.lastFailure() == WifiFailure::none);
+    wifi.lost(now + 1, 201);
+    TEST_ASSERT_EQUAL_UINT32(2000, wifi.retryDelayMs());
+}
+
+void test_supervisor_retries_quickly_after_auth_expire_and_dhcp_timeout() {
+    WifiSupervisor wifi(30000, false);
+    wifi.begin(0);
+    wifi.lost(10, 2);
+    TEST_ASSERT_EQUAL_UINT32(200, wifi.retryDelayMs());
+    wifi.dhcpTimeout(300);
+    TEST_ASSERT_EQUAL_UINT32(200, wifi.retryDelayMs());
+    TEST_ASSERT_TRUE(wifi.lastFailure() == WifiFailure::noIp);
+    wifi.lost(600, 2);  // third failure in a row: back off
+    TEST_ASSERT_EQUAL_UINT32(8000, wifi.retryDelayMs());
+}
+
+void test_supervisor_counts_a_silent_attempt_as_failed() {
+    WifiSupervisor wifi(30000, false);
+    wifi.begin(0);
+    TEST_ASSERT_TRUE(wifi.connectDue(0));
+    wifi.connectStarted(0);
+    TEST_ASSERT_FALSE(wifi.connectDue(19999));
+    TEST_ASSERT_FALSE(wifi.connectDue(20000));  // failed now, retry in 2 s
+    TEST_ASSERT_TRUE(wifi.connectDue(22000));
+}
+
+void test_supervisor_offers_recovery_ap_after_the_outage() {
+    WifiSupervisor wifi(30000, false);
+    wifi.begin(0);
+    wifi.gotIp(5000);
+    TEST_ASSERT_FALSE(wifi.recoveryApWanted(100000));
+    wifi.lost(100000, 201);
+    TEST_ASSERT_FALSE(wifi.recoveryApWanted(129999));
+    TEST_ASSERT_TRUE(wifi.recoveryApWanted(130000));
+
+    wifi.setApClients(1);
+    wifi.gotIp(140000);
+    TEST_ASSERT_TRUE(wifi.recoveryApWanted(140000));  // someone is still on the setup page
+    wifi.setApClients(0);
+    TEST_ASSERT_FALSE(wifi.recoveryApWanted(140001));
+}
+
+void test_supervisor_without_wifi_from_the_start_offers_recovery_ap() {
+    WifiSupervisor wifi(30000, false);
+    wifi.begin(1000);
+    TEST_ASSERT_FALSE(wifi.recoveryApWanted(30999));
+    TEST_ASSERT_TRUE(wifi.recoveryApWanted(31000));
+}
+
+void test_supervisor_recovery_ap_can_be_turned_off() {
+    WifiSupervisor wifi(0, false);
+    wifi.begin(0);
+    TEST_ASSERT_FALSE(wifi.recoveryApWanted(3600000));
+}
+
+void test_supervisor_reconnects_rarely_while_the_recovery_ap_is_used() {
+    WifiSupervisor wifi(30000, false);
+    wifi.begin(0);
+    wifi.connectDue(0);
+    wifi.connectStarted(0);
+    wifi.lost(100, 201);
+    wifi.setApClients(1);
+    TEST_ASSERT_FALSE(wifi.connectDue(2100));
+    TEST_ASSERT_TRUE(wifi.connectDue(30100));
+}
+
+void test_supervisor_trial_succeeds_with_an_ip() {
+    WifiSupervisor wifi(30000, true);
+    wifi.begin(0);
+    TEST_ASSERT_TRUE(wifi.trial(0) == WifiSupervisor::Trial::running);
+    TEST_ASSERT_FALSE(wifi.recoveryApWanted(35000));
+    wifi.gotIp(35000);
+    TEST_ASSERT_TRUE(wifi.trial(35000) == WifiSupervisor::Trial::succeeded);
+    wifi.lost(50000, 201);
+    TEST_ASSERT_TRUE(wifi.recoveryApWanted(80000));  // a normal tally from now on
+}
+
+void test_supervisor_trial_fails_after_the_timeout() {
+    WifiSupervisor wifi(30000, true);
+    wifi.begin(0);
+    wifi.lost(1000, 202);
+    TEST_ASSERT_TRUE(wifi.trial(39999) == WifiSupervisor::Trial::running);
+    TEST_ASSERT_TRUE(wifi.trial(40000) == WifiSupervisor::Trial::failed);
+    TEST_ASSERT_TRUE(wifi.lastFailure() == WifiFailure::wrongPassword);
+}
+
+void test_classifies_disconnect_reasons() {
+    TEST_ASSERT_TRUE(classifyDisconnect(201) == WifiFailure::networkNotFound);
+    TEST_ASSERT_TRUE(classifyDisconnect(202) == WifiFailure::wrongPassword);
+    TEST_ASSERT_TRUE(classifyDisconnect(15) == WifiFailure::wrongPassword);
+    TEST_ASSERT_TRUE(classifyDisconnect(204) == WifiFailure::wrongPassword);
+    TEST_ASSERT_TRUE(classifyDisconnect(8) == WifiFailure::other);
+}
+
+// --- setup page -----------------------------------------------------------------
+
+void test_picks_the_page_language() {
+    TEST_ASSERT_TRUE(pickLanguage("pl-PL,pl;q=0.9,en;q=0.8") == Language::pl);
+    TEST_ASSERT_TRUE(pickLanguage("PL") == Language::pl);
+    TEST_ASSERT_TRUE(pickLanguage("en-US,pl;q=0.5") == Language::en);
+    TEST_ASSERT_TRUE(pickLanguage("plx") == Language::en);
+    TEST_ASSERT_TRUE(pickLanguage("") == Language::en);
+}
+
+void test_escapes_html() {
+    StringSink sink;
+    writeEscaped(sink, "<a href=\"x\">Tom & Jerry's</a>");
+    TEST_ASSERT_EQUAL_STRING("&lt;a href=&quot;x&quot;&gt;Tom &amp; Jerry&#39;s&lt;/a&gt;", sink.text_.c_str());
+    StringSink longText;
+    std::string input(200, '&');
+    writeEscaped(longText, input.c_str());
+    TEST_ASSERT_EQUAL_size_t(1000, longText.text_.size());
+}
+
+void test_setup_page_shows_settings_but_never_the_password() {
+    ScannedNetwork networks[] = {{"Studio <5G>", -60, true}, {"Guests", -80, false}};
+    SetupPageModel model;
+    model.language = Language::pl;
+    model.deviceId = "a1b2c3";
+    model.firmware = "2.0.0-dev";
+    model.ssid = "Studio";
+    model.hasPassword = true;
+    model.name = "CAM1";
+    model.hubIp = "192.168.1.10";
+    model.networks = networks;
+    model.networkCount = 2;
+    model.trialFailure = WifiFailure::wrongPassword;
+    model.trialSsid = "Nowa";
+    model.error = FormError::nameInvalid;
+
+    StringSink sink;
+    renderSetupPage(model, sink);
+    TEST_ASSERT_TRUE(sink.contains("<html lang=\"pl\">"));
+    TEST_ASSERT_TRUE(sink.contains("value=\"Studio\""));
+    TEST_ASSERT_TRUE(sink.contains("value=\"CAM1\""));
+    TEST_ASSERT_TRUE(sink.contains("data-s=\"Studio &lt;5G&gt;\""));
+    TEST_ASSERT_TRUE(sink.contains("(-60 dBm, WPA)"));
+    TEST_ASSERT_TRUE(sink.contains("błędne hasło"));
+    TEST_ASSERT_TRUE(sink.contains("„Nowa”"));
+    TEST_ASSERT_TRUE(sink.contains("Nazwa lampki może mieć najwyżej 26 znaków"));
+    TEST_ASSERT_TRUE(sink.contains("Puste pole zachowuje zapisane hasło."));
+    TEST_ASSERT_TRUE(sink.contains("<input name=\"password\" type=\"password\" maxlength=\"64\" autocomplete=\"off\">"));
+    TEST_ASSERT_FALSE(sink.contains("Lampka nie może połączyć się ze swoją siecią"));
+}
+
+void test_recovery_page_explains_itself() {
+    SetupPageModel model;
+    model.recovery = true;
+    StringSink sink;
+    renderSetupPage(model, sink);
+    TEST_ASSERT_TRUE(sink.contains("cannot reach its Wi-Fi network"));
+    TEST_ASSERT_TRUE(sink.contains("No networks found."));
+    TEST_ASSERT_TRUE(sink.contains("No password stored yet."));
+}
+
+void test_saved_page_names_the_network() {
+    StringSink sink;
+    renderSavedPage(Language::en, "Studio & Co", sink);
+    TEST_ASSERT_TRUE(sink.contains("connects to „Studio &amp; Co”."));
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_parses_a_static_program_message);
@@ -552,5 +894,29 @@ int main() {
     RUN_TEST(test_controller_buffers_logs_until_the_hub_answers);
     RUN_TEST(test_controller_logs_invalid_packets);
     RUN_TEST(test_controller_wifi_loss_blinks_and_stops_hello);
+    RUN_TEST(test_settings_setup_keys);
+    RUN_TEST(test_settings_rejects_a_short_setup_password);
+    RUN_TEST(test_setup_led_pattern_is_purple);
+    RUN_TEST(test_form_accepts_valid_input);
+    RUN_TEST(test_form_rejects_invalid_input);
+    RUN_TEST(test_ini_update_replaces_in_place_and_keeps_comments);
+    RUN_TEST(test_ini_update_adds_and_removes_keys);
+    RUN_TEST(test_ini_update_fails_when_the_result_does_not_fit);
+    RUN_TEST(test_saved_form_reads_back_as_the_new_settings);
+    RUN_TEST(test_supervisor_connects_at_once_and_backs_off);
+    RUN_TEST(test_supervisor_retries_quickly_after_auth_expire_and_dhcp_timeout);
+    RUN_TEST(test_supervisor_counts_a_silent_attempt_as_failed);
+    RUN_TEST(test_supervisor_offers_recovery_ap_after_the_outage);
+    RUN_TEST(test_supervisor_without_wifi_from_the_start_offers_recovery_ap);
+    RUN_TEST(test_supervisor_recovery_ap_can_be_turned_off);
+    RUN_TEST(test_supervisor_reconnects_rarely_while_the_recovery_ap_is_used);
+    RUN_TEST(test_supervisor_trial_succeeds_with_an_ip);
+    RUN_TEST(test_supervisor_trial_fails_after_the_timeout);
+    RUN_TEST(test_classifies_disconnect_reasons);
+    RUN_TEST(test_picks_the_page_language);
+    RUN_TEST(test_escapes_html);
+    RUN_TEST(test_setup_page_shows_settings_but_never_the_password);
+    RUN_TEST(test_recovery_page_explains_itself);
+    RUN_TEST(test_saved_page_names_the_network);
     return UNITY_END();
 }

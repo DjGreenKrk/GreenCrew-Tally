@@ -37,6 +37,12 @@ public:
     const char* hubAddress() const { return hubIp; }
     uint16_t hubUdpPort() const { return hubPort; }
     const char* tallyName() const { return name; }
+    // Password of the setup and recovery access point (setup.password),
+    // empty when not set.
+    const char* setupPassword() const { return setupKey; }
+    // How long without Wi-Fi before the recovery access point starts
+    // (setup.recovery-after, seconds); 0 turns it off.
+    uint32_t recoveryAfterMs() const { return recoveryAfter * 1000; }
     // "Tally-" and the name with every run of non-alphanumerics as one "-"
     void hostName(char* out, size_t size) const;
 
@@ -62,6 +68,8 @@ private:
     char hubIp[64] = "";
     uint16_t hubPort = 7411;
     char name[maxNameLength + 1] = "";
+    char setupKey[64] = "";
+    uint32_t recoveryAfter = 30;
 
     char warningTexts[maxWarnings][96];
     size_t warnings = 0;

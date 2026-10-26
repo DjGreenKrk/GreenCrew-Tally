@@ -94,6 +94,20 @@ void Settings::parseLine(const char* line) {
         }
     } else if (equals(key, "tally.name")) {
         setText(name, sizeof(name), value, strlen(value));
+    } else if (equals(key, "setup.password")) {
+        // WPA2 needs 8 to 63 characters
+        if (strlen(value) >= 8 && strlen(value) <= 63) {
+            setText(setupKey, sizeof(setupKey), value, strlen(value));
+        } else {
+            warn("setup.password needs %s characters. It is ignored.", "8 to 63");
+        }
+    } else if (equals(key, "setup.recovery-after")) {
+        long seconds;
+        if (parseInteger(value, 0, 3600, seconds)) {
+            recoveryAfter = static_cast<uint32_t>(seconds);
+        } else {
+            warn("setup.recovery-after needs seconds from 0 to 3600, but got \"%.30s\"", value);
+        }
     } else if (equals(key, "operator.type")) {
         parseLightType(key, value, operatorType);
     } else if (equals(key, "operator.ws2812")) {
