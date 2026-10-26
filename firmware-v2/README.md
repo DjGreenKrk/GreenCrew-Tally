@@ -33,12 +33,14 @@ Hub.
 1. Create `firmware-v2/data/tally-settings.ini` (the folder is ignored by git, so your Wi-Fi
    password never ends up in the repository). The file is the same as for v1, e.g. start from
    [`../tally/examples/d1-mini-ws2812-4x4.ini.example`](../tally/examples/d1-mini-ws2812-4x4.ini.example).
-   Set `setup.password` to the password you want for the setup access point (see
-   [Setup and recovery](#setup-and-recovery)). Without a settings file the tally starts in setup
+   The setup access point uses the crew password built into the firmware (see
+   [Setup and recovery](#setup-and-recovery)); `setup.password` in the file overrides it for
+   this one tally. Without a settings file the tally starts in setup
    mode and Wi-Fi and name can be set from a phone.
-2. Flash the firmware and the settings:
+2. Flash the firmware and the settings, with the crew password for the setup access point:
 
    ```sh
+   export GC_SETUP_PASSWORD='the crew password'
    pio run -e d1_mini -t upload
    pio run -e d1_mini -t uploadfs
    ```
@@ -63,7 +65,7 @@ New in v2 (v1 warns about them in its log and works on):
 | Key | Default | |
 | --- | --- | --- |
 | `hub.id` | none | Use only this Hub when looking for one: the 8 characters on the Hub's Configuration page |
-| `setup.password` | generated | Password of the setup access point, 8 to 63 characters |
+| `setup.password` | crew password | Password of the setup access point for this tally, 8 to 63 printable ASCII characters; overrides the crew password |
 | `setup.recovery-after` | `30` | Seconds without Wi-Fi before the recovery access point starts; `0` turns it off |
 
 Differences from v1:
@@ -93,13 +95,23 @@ The access point starts:
 
 A configured tally leaves setup mode by itself after 5 minutes without anyone on the page.
 
-**Password.** The access point is WPA2 with `setup.password`. Without that key the tally
-generates a password once, stores it in `/setup-key` on the flash and prints it on the serial
-console at every boot (`pio device monitor`):
+**Password.** The access point is WPA2. Its password is, in this order:
 
-```
-[INFO]  Setup access point GreenCrew-Tally-a1b2c3, password 7kq2m9xwtd, page http://192.168.4.1/
-```
+1. `setup.password` from the settings file, for one tally;
+2. the crew password, the same on every tally: set `GC_SETUP_PASSWORD` (8 to 63 printable ASCII
+   characters) when building, as in [Flashing a D1 Mini](#flashing-a-d1-mini). The build prints
+   `Crew setup password: built in`;
+3. without either, a password the tally generates once, stores in `/setup-key` on the flash and
+   prints on the serial console at every boot (`pio device monitor`):
+
+   ```
+   [INFO]  Setup access point GreenCrew-Tally-a1b2c3, password 7kq2m9xwtd, page http://192.168.4.1/
+   ```
+
+The crew password is never printed. It is not in the repository and the firmware built by CI
+does not have it: the repository and its CI builds are public, and anyone with a firmware file
+can read the password from it. Keep firmware files with the crew password inside the crew.
+Changing the crew password from the Hub on every paired tally comes with pairing (#28).
 
 The password is never sent to the Hub or shown on the page; the stored Wi-Fi password is not
 shown either (an empty field keeps it). The page only answers devices on the access point, not

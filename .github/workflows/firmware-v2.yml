@@ -42,6 +42,9 @@ jobs:
       - name: Unit tests of the tally logic
         run: pio test -e native
       - name: Build for the D1 Mini
+        # Public artifacts: never with the crew password
+        env:
+          GC_SETUP_PASSWORD: ''
         run: |
           set -o pipefail
           pio run -e d1_mini | tee build.txt
