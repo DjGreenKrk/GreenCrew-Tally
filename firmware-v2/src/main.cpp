@@ -12,6 +12,7 @@
 #include "HubFinder.h"
 #include "LedEngine.h"
 #include "LightOutput.h"
+#include "Pairing.h"
 #include "Portal.h"
 #include "Settings.h"
 #include "TallyController.h"
@@ -67,6 +68,7 @@ char shownTrialSsid[36] = "";
 uint32_t lastApCheckMs = 0;
 // Without hub.ip: the Hub found over mDNS. Kept in RAM only.
 HubFinder hubFinder;
+char foundHubId[9] = "";
 IPAddress foundHubIp;
 uint16_t foundHubPort = 0;
 bool mdnsStarted = false;
@@ -96,6 +98,8 @@ public:
 };
 EspPlatform platform;
 TallyController* controller;
+uint32_t hardwareRandom() { return ESP.random(); }
+PairingController pairing(deviceId, hardwareRandom);
 
 // Wi-Fi events arrive from the SDK; they are only recorded here and handled
 // in loop().
@@ -194,13 +198,27 @@ void readSettings() {
         Serial.println("[WARN]  Configuration file /tally-settings.ini does not exist. Using defaults.");
     }
     settings->parse(text.c_str());
-    setupPasswordSource = pickSetupPassword(settings->setupPassword(), crewSetupPassword);
+}
+
+void readPairing() {
+    Pairing stored;
+    stored.parse(ConfigStore::readPairing().c_str());
+    String hubCrewPassword = ConfigStore::readHubCrewPassword();
+    pairing.begin(stored, hubCrewPassword.c_str());
+}
+
+void chooseSetupPassword() {
+    setupPasswordSource = pickSetupPassword(settings->setupPassword(), pairing.crewPassword(), crewSetupPassword);
     switch (setupPasswordSource) {
         case SetupPasswordSource::settings: setupPassword = settings->setupPassword(); break;
+        case SetupPasswordSource::hub: setupPassword = pairing.crewPassword(); break;
         case SetupPasswordSource::crew: setupPassword = crewSetupPassword; break;
         case SetupPasswordSource::generated: setupPassword = ConfigStore::setupKey(); break;
     }
 }
+
+// The paired Hub, else hub.id; "" for any single Hub
+const char* pinnedHubId() { return pairing.pairing().paired ? pairing.pairing().hubId : settings->pinnedHubId(); }
 
 void startSetupMode() {
     shownTrialFailure = static_cast<WifiFailure>(rtc.trialFailure);
@@ -210,14 +228,14 @@ void startSetupMode() {
 
     // Only on the serial console: logs also go to the Hub. The crew
     // password is known to the crew and not printed.
-    if (setupPasswordSource == SetupPasswordSource::crew) {
+    if (setupPasswordSource == SetupPasswordSource::crew || setupPasswordSource == SetupPasswordSource::hub) {
         Serial.printf("[INFO]  Setup access point %s, password: the crew password, page http://192.168.4.1/\n", apName);
     } else {
         Serial.printf("[INFO]  Setup access point %s, password %s, page http://192.168.4.1/\n", apName, setupPassword.c_str());
     }
     controller->log(Severity::info, "Setup mode");
     leds.showSetup(millis());
-    Portal::start(apName, setupPassword.c_str(), {deviceId, settings, false, shownTrialFailure, shownTrialSsid});
+    Portal::start(apName, setupPassword.c_str(), {deviceId, settings, false, shownTrialFailure, shownTrialSsid, pairing.pairing().hubId});
 }
 
 void startStation() {
@@ -256,6 +274,10 @@ void startMdns() {
     MDNS.addServiceTxt(service, "id", deviceId);
     MDNS.addServiceTxt(service, "fw", GC_FIRMWARE_VERSION);
     MDNS.addServiceTxt(service, "name", settings->tallyName());
+    // answered from RAM, so it follows pairing and unpairing
+    MDNS.setDynamicServiceTxtCallback([](const MDNSResponder::hMDNSService service) {
+        MDNS.addDynamicServiceTxt(service, "pair", pairing.pairing().paired ? pairing.pairing().hubId : "-");
+    });
 }
 
 void logSearch(HubSearch result, const HubAnswer* answers, uint32_t count) {
@@ -277,7 +299,7 @@ void logSearch(HubSearch result, const HubAnswer* answers, uint32_t count) {
             break;
         }
         case HubSearch::pinnedMissing:
-            snprintf(text, sizeof(text), "Hub %s (hub.id) not found, only other hubs answered", settings->pinnedHubId());
+            snprintf(text, sizeof(text), "Hub %s (paired or hub.id) not found, only other hubs answered", pinnedHubId());
             break;
     }
     controller->log(Severity::warning, text);
@@ -296,18 +318,19 @@ void searchHub() {
     MDNS.removeQuery();
 
     size_t chosen = 0;
-    HubSearch result = chooseHub(answers, count, settings->pinnedHubId(), chosen);
+    HubSearch result = chooseHub(answers, count, pinnedHubId(), chosen);
     hubFinder.searchDone(millis(), result);
     logSearch(result, answers, count);
     if (result != HubSearch::found) return;
 
     IPAddress ip(answers[chosen].ip);
-    bool changed = ip != foundHubIp || answers[chosen].port != foundHubPort;
+    char id[9] = "";
+    hubIdFromHostName(answers[chosen].hostName, id, sizeof(id));
+    bool changed = ip != foundHubIp || answers[chosen].port != foundHubPort || strcmp(id, foundHubId) != 0;
     foundHubIp = ip;
     foundHubPort = answers[chosen].port;
+    strcpy(foundHubId, id);
     if (changed) {
-        char id[9];
-        hubIdFromHostName(answers[chosen].hostName, id, sizeof(id));
         char text[80];
         snprintf(text, sizeof(text), "Found hub %s at %s:%u", id, foundHubIp.toString().c_str(), foundHubPort);
         controller->log(Severity::info, text);
@@ -348,10 +371,54 @@ void checkRecoveryAp(uint32_t now) {
     if (wanted && !Portal::isRunning()) {
         Serial.printf("[INFO]  Recovery access point %s, page http://192.168.4.1/\n", apName);
         controller->log(Severity::warning, "No Wi-Fi for a while, recovery access point started");
-        Portal::start(apName, setupPassword.c_str(), {deviceId, settings, true, WifiFailure::none, ""});
+        Portal::start(apName, setupPassword.c_str(), {deviceId, settings, true, WifiFailure::none, "", pairing.pairing().hubId});
     } else if (!wanted && Portal::isRunning()) {
         Portal::stop();
         controller->log(Severity::info, "Recovery access point stopped");
+    }
+}
+
+// Messages of the Hub besides the state packets (Pairing.h). Flash is
+// written only when the pairing or the crew password changes.
+void handleManagement(const char* data, size_t length, uint32_t now) {
+    IPAddress sender = udp.remoteIP();
+    uint16_t senderPort = udp.remotePort();
+    PairingController::Result result = pairing.handle(data, length);
+    char text[LogBuffer::maxMessageLength + 1];
+    switch (result.effect) {
+        case PairingController::Effect::none:
+            break;
+        case PairingController::Effect::identify:
+            controller->identify(now);
+            break;
+        case PairingController::Effect::savePairing: {
+            char file[64];
+            pairing.pairing().write(file, sizeof(file));
+            if (!ConfigStore::writePairing(String(file))) controller->log(Severity::error, "Could not save the pairing");
+            snprintf(text, sizeof(text), "Paired with hub %s", pairing.pairing().hubId);
+            controller->log(Severity::info, text);
+            chooseSetupPassword();
+            break;
+        }
+        case PairingController::Effect::removePairing:
+            ConfigStore::removePairing();
+            controller->log(Severity::info, "Unpaired by the hub");
+            chooseSetupPassword();
+            break;
+        case PairingController::Effect::saveCrewPassword:
+            if (!ConfigStore::writeHubCrewPassword(String(pairing.crewPassword()))) controller->log(Severity::error, "Could not save the crew password");
+            controller->log(Severity::info, pairing.crewPassword()[0] != '\0' ? "The hub set the crew password" : "The hub cleared the crew password");
+            chooseSetupPassword();
+            break;
+    }
+    if (strncmp(result.reply, "gc/1 refused", 12) == 0) {
+        snprintf(text, sizeof(text), "Refused from %s: %.50s", sender.toString().c_str(), result.reply + 5);
+        text[strcspn(text, "\n")] = '\0';
+        controller->log(Severity::warning, text);
+    }
+    if (result.reply[0] != '\0' && udp.beginPacket(sender, senderPort)) {
+        udp.write(result.reply, strlen(result.reply));
+        udp.endPacket();
     }
 }
 
@@ -379,12 +446,15 @@ void setup() {
     writeRtc();
 
     readSettings();
+    readPairing();
+    chooseSetupPassword();
     if (settings->operatorWs2812Lights + settings->stageWs2812Lights > 0) {
         strip = new NeoPixelBus<NeoRgbFeature, NeoEsp8266Uart1Ws2812xMethod>(settings->operatorWs2812Lights + settings->stageWs2812Lights);
         strip->Begin();
     }
 
     controller = new TallyController(*settings, deviceId, leds, platform);
+    controller->setPairing(&pairing);
     char text[80];
     snprintf(text, sizeof(text), "GC Tally firmware %s, device %s", GC_FIRMWARE_VERSION, deviceId);
     controller->log(Severity::info, text);
@@ -454,7 +524,10 @@ void loop() {
     }
     if (supervisor->connectDue(now)) connectWifi(now);
     if (mdnsStarted) MDNS.update();
-    if (!settings->hasHubAddress() && hubFinder.searchDue(now, controller->isHubConnected(now))) {
+    // Talking to another Hub than the paired one (it was the only one
+    // around when the tally was paired elsewhere) counts as not connected.
+    bool pairedHubOrAny = !pairing.pairing().paired || strcmp(foundHubId, pairing.pairing().hubId) == 0;
+    if (!settings->hasHubAddress() && hubFinder.searchDue(now, controller->isHubConnected(now) && pairedHubOrAny)) {
         searchHub();
         now = millis();  // the search takes a second
     }
@@ -463,10 +536,14 @@ void loop() {
 
     int size = udp.parsePacket();
     if (size > 0) {
-        char packet[64];
+        char packet[336];
         int length = udp.read(packet, sizeof(packet) - 1);
         udp.flush();
-        if (length > 0) controller->packetReceived(packet, length, now);
+        if (length > 0 && PairingController::isManagementMessage(packet, length)) {
+            handleManagement(packet, length, now);
+        } else if (length > 0) {
+            controller->packetReceived(packet, length, now);
+        }
     }
 
     controller->tick(now);

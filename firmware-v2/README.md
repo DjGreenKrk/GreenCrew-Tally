@@ -98,22 +98,23 @@ A configured tally leaves setup mode by itself after 5 minutes without anyone on
 **Password.** The access point is WPA2. Its password is, in this order:
 
 1. `setup.password` from the settings file, for one tally;
-2. the crew password, the same on every tally: set `GC_SETUP_PASSWORD` (8 to 63 printable ASCII
+2. the crew password set by the paired Hub (see [Pairing](#pairing)), kept in `/hub-crew-password`;
+3. the crew password built into the firmware: set `GC_SETUP_PASSWORD` (8 to 63 printable ASCII
    characters) when building, as in [Flashing a D1 Mini](#flashing-a-d1-mini). The build prints
    `Crew setup password: built in`;
-3. without either, a password the tally generates once, stores in `/setup-key` on the flash and
+4. without any of these, a password the tally generates once, stores in `/setup-key` on the flash and
    prints on the serial console at every boot (`pio device monitor`):
 
    ```
    [INFO]  Setup access point GreenCrew-Tally-a1b2c3, password 7kq2m9xwtd, page http://192.168.4.1/
    ```
 
-The crew password is never printed. It is not in the repository and the firmware built by CI
-does not have it: the repository and its CI builds are public, and anyone with a firmware file
-can read the password from it. Keep firmware files with the crew password inside the crew.
-Changing the crew password from the Hub on every paired tally comes with pairing (#28).
+Crew passwords are never printed. The built-in one is not in the repository and the firmware
+built by CI does not have it: the repository and its CI builds are public, and anyone with a
+firmware file can read the password from it. Keep firmware files with the crew password inside
+the crew.
 
-The password is never sent to the Hub or shown on the page; the stored Wi-Fi password is not
+The tally never sends its password to the Hub, and it is not shown on the page; the stored Wi-Fi password is not
 shown either (an empty field keeps it). The page only answers devices on the access point, not
 on the show network.
 
@@ -162,12 +163,51 @@ from DHCP is found again without touching the tally.
 - A Hub that stays silent for 10 s is looked up again (new address, restarted Hub). A search
   takes about a second and only runs while no Hub is connected.
 - The address found is kept in RAM only; nothing is written to flash.
-- The tally announces itself too, as `_gctally-device._udp` with `v`, `id`, `fw` and `name` in
-  TXT, for the Hub's device list in a later step of #28.
+- The tally announces itself too, as `_gctally-device._udp` with `v`, `id`, `fw`, `name` and
+  `pair` (the paired Hub or `-`) in TXT, for the Hub's device list.
+- A paired tally looks only for its paired Hub; `hub.id` applies to unpaired tallies.
 
-`hub.ip` (an IP address or a DNS name) always wins and works on every network. Pairing (a tally
-that only follows its own Hub after confirming it on the Hub) is the next step of #28; until then
-`hub.id` is a preference, not a security measure.
+`hub.ip` (an IP address or a DNS name) always wins and works on every network.
+
+## Pairing
+
+The Hub's Configuration page lists the v2 tallies on the network ("v2 tallies"), from their
+`tally-ho` and from mDNS, by device id: also tallies that talk to another Hub or to none yet, and
+two tallies with the same name side by side.
+
+- **Pair**: the tally blinks white on the operator light for 10 s (stage light off); after the
+  operator confirms on the page that the right one blinks, the Hub sends a random 16-byte token.
+  The tally keeps the Hub id and the token in `/pairing` and from then on follows only that Hub
+  over mDNS.
+- **Unpair**: from the Hub while the tally is online, or on the tally's setup page ("Unpair",
+  for a tally whose Hub is gone). The Hub notices an unpairing on the setup page from the next
+  `tally-ho`. **Forget** on the Hub drops the token of a tally that is not around.
+- **Crew password**: set on the Hub computer (Configuration, "Crew password"); the Hub sends it to
+  every paired tally that is online and shows which have it. It replaces the built-in one; an
+  empty password removes it again.
+- A paired tally refuses to pair with another Hub until it is unpaired. A tally that is not
+  paired accepts pairing from any Hub on the network: pair new tallies on a network you trust.
+- Two tallies with the same name: the one the Hub talks to keeps the name and the lights, the
+  other is ignored with a warning in the log, and both are marked on the device list.
+
+Messages besides the state packets, on the same UDP port:
+
+```
+Hub → tally   gc/1 identify hub=<id>
+Hub → tally   gc/1 pair hub=<id> token=<32 hex>
+Hub → tally   gc/1 unpair hub=<id> ch=<challenge> mac=<hmac>
+Hub → tally   gc/1 crew-password hub=<id> ch=<challenge> pw=<hex> mac=<hmac>
+tally → Hub   gc/1 paired | unpaired | crew-password-set id=<device> hub=<id>
+tally → Hub   gc/1 refused id=<device> to=<message> why=<reason>
+```
+
+`mac` is HMAC-SHA256 with the token over the line before ` mac=`. `ch` is the challenge the tally
+sends in its `tally-ho` (`pair=<hub id or -> ch=<16 hex>`); it changes after every accepted
+message, so a recorded message cannot be sent again. The crew password travels XORed with a key
+stream from the token and the challenge. The token itself crosses the network once, in plain
+text, when pairing. Colour messages stay unsigned as in v1.
+
+Flash is written only when the tally is paired or unpaired and when the crew password changes.
 
 ## Pins
 
@@ -205,7 +245,7 @@ nothing for 20 s counts as failed.
 Unchanged UDP port 7411 and messages, plus a description of the device after the name:
 
 ```
-tally → Hub   tally-ho "CAM1" gc/1 id=a1b2c3 fw=2.0.0-dev hw=esp8266 caps=ws2812,pwm
+tally → Hub   tally-ho "CAM1" gc/1 id=a1b2c3 fw=2.0.0-dev hw=esp8266 caps=ws2812,pwm pair=- ch=0123456789abcdef
 tally → Hub   log "CAM1" INFO "Got IP 192.168.1.23"
 Hub → tally   O255/000/000 S255/000/000
 Hub → tally   O000/000/255 S000/000/000 0x80 250
@@ -214,7 +254,9 @@ Hub → tally   O000/000/255 S000/000/000 0x80 250
 - `gc/1`: version 1 of these fields. A newer version may add `key=value` fields; the Hub skips
   keys it does not know.
 - `id`: the ESP8266 chip id in hex, stable across renames and IP changes. It identifies the
-  device; it is **not** a secret and not an authentication (pairing comes with #28).
+  device; it is **not** a secret and not an authentication (that is the pairing token).
+- `pair`, `ch`: the paired Hub and the challenge for management messages, see
+  [Pairing](#pairing).
 - `fw`: firmware version; `hw`: hardware family; `caps`: what the firmware can drive.
 
 The Hub (from this version) shows the firmware version on the tally card and keeps the fields
@@ -227,12 +269,12 @@ Measured from the CI build (`pio run -e d1_mini -t size`), version 2.0.0-dev:
 
 | | Used | Available |
 | --- | --- | --- |
-| Sketch (flash) | 388 KB | 1020 KB with `eagle.flash.4m1m.ld` |
-| RAM, static | 38 KB | 80 KB |
+| Sketch (flash) | 399 KB | 1020 KB with `eagle.flash.4m1m.ld` |
+| RAM, static | 40 KB | 80 KB |
 
 Layout `eagle.flash.4m1m.ld` (4 MB boards like the D1 Mini): 1 MB sketch area, 1 MB LittleFS,
 the rest free. An OTA update (#30) on the ESP8266 needs the new image to fit next to the running
-one in the sketch area, so with about 388 KB per image OTA fits on 4 MB boards. On 1 MB modules
+one in the sketch area, so with about 400 KB per image OTA fits on 4 MB boards. On 1 MB modules
 (ESP-01, some clones) the space is tight and must be measured on the real module before
 promising OTA there. The ESP8266 has no rollback to the previous image after a bad update; USB
 stays the recovery path.
@@ -253,6 +295,8 @@ in use (`esptool flash_id`).
   - `HubFinder`: which Hub to use and when to look for it
   - `SetupForm`: checks the setup page and writes the settings file
   - `SetupPage`: the setup page (HTML, Polish and English)
+  - `Pairing`: pairing with a Hub, management messages, the crew password
+  - `Sha256`: SHA-256 and HMAC for the management messages
 - `src/main.cpp`: ESP8266 hardware (Wi-Fi, UDP, mDNS, pins), setup mode, double reset
 - `src/ConfigStore.cpp`: the settings files on LittleFS
 - `src/Portal.cpp`: access point, DNS and web server of the setup page
@@ -264,13 +308,17 @@ in use (`esptool flash_id`).
 - `pio test -e native`: unit tests. The expected values come from the v1 Lua code and from
   what the Hub sends. Also the setup page: form checks, the settings file after saving, the
   backoff, the recovery access point and the trial timing, and that the page never contains the
-  password. Also the choice of Hub (one, several, pinned) and the search timing.
+  password. Also the choice of Hub (one, several, pinned) and the search timing; SHA-256 and HMAC
+  against the published test vectors; pairing, unpairing and the crew password with lines made by
+  the Hub's code, a wrong mac and a replayed message.
 - `cd ../hub && npm run build:backend && node scripts/check-hub-mdns.cjs`: the running Hub
-  announces itself the way the tally asks for it, and says goodbye when it stops.
+  announces itself the way the tally asks for it, lists a tally announced over mDNS, and says
+  goodbye when it stops.
 - `make -C sim && (cd ../hub && npm run build:backend && node scripts/check-firmware-v2-sim.cjs)`:
   the tally logic against a real running Hub: the Hub recognises the v2 tally and its firmware;
   UNKNOWN, Program, Preview, AUX and highlight colours; keep-alives do not redraw a static colour;
-  the lost Hub after 3 s; the reconnect after the Hub restarts.
+  the lost Hub after 3 s; the reconnect after the Hub restarts; then identify, pairing, the crew
+  password, a second tally with the same name, and unpairing, all through the Hub's page events.
 
 Not covered without hardware: the pins, the WS2812 timing, Wi-Fi behaviour, the access point and
 the captive portal on real phones, power loss, the double reset, the mDNS query of the ESP8266

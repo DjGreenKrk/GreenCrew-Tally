@@ -1,7 +1,8 @@
 // The Hub announces itself over mDNS the way firmware v2 looks for it (#28):
 // a PTR query for _gctally._udp.local must lead to the SRV (tally port, host
 // gctally-hub-<id>.local), the TXT (v, id) and an IPv4 address. Stopping the
-// Hub says goodbye (TTL 0). The page state says "active".
+// Hub says goodbye (TTL 0). The page state says "active". A tally announced
+// as _gctally-device._udp shows up in the Hub's device list.
 // Build first: npm run build:backend
 'use strict'
 const assert = require('node:assert/strict')
@@ -12,6 +13,7 @@ const net = require('node:net')
 const { spawn } = require('node:child_process')
 const io = require('socket.io-client')
 const multicastDns = require('multicast-dns')
+const { Bonjour } = require('bonjour-service')
 
 const root = path.resolve(__dirname, '..')
 const hubId = '0a1b2c3d'
@@ -95,6 +97,20 @@ async function run() {
     client.emit('discovery.get')
   })
   assert.deepEqual(state, { status: 'active', hubId, serviceName: instance, port: 7411 })
+
+  // a tally announced like firmware v2 does, not talking to the Hub
+  const tally = new Bonjour()
+  tally.publish({ name: 'Tally-MdnsCam', type: 'gctally-device', protocol: 'udp', port: 7411, host: 'tally-mdnscam.local',
+    txt: { v: '1', id: 'abcdef', fw: '2.0.0', name: 'MdnsCam', pair: '-' }, disableIPv6: true })
+  let devices
+  client.on('devices.state', update => { devices = update })
+  client.emit('devices.get')
+  const found = await waitFor(() => devices?.devices.find(d => d.id === 'abcdef'), 10000, 'the announced tally in the device list')
+  assert.equal(found.name, 'MdnsCam')
+  assert.equal(found.status, 'unpaired')
+  assert.deepEqual(found.via, ['mdns'])
+  await new Promise(resolve => tally.unpublishAll(resolve))
+  tally.destroy()
   client.close()
 
   // goodbye on a normal stop
@@ -104,7 +120,7 @@ async function run() {
   await exited
   await waitFor(() => find('PTR', service, record => record.ttl === 0), 3000, 'goodbye (PTR with TTL 0)')
 
-  console.log(`PASS Hub mDNS: ${instance} -> ${srv.data.target}:${srv.data.port} (${address.data}), TXT id=${pairs.id}, goodbye on stop`)
+  console.log(`PASS Hub mDNS: ${instance} -> ${srv.data.target}:${srv.data.port} (${address.data}), TXT id=${pairs.id}, finds an announced tally, goodbye on stop`)
 }
 
 run().then(() => {

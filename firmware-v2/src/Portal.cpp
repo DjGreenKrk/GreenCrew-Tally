@@ -126,6 +126,7 @@ void sendSetupPage(const SetupForm* typed, FormError error) {
     model.error = error;
     model.trialFailure = info.trialFailure;
     model.trialSsid = info.trialSsid;
+    model.pairedHubId = info.pairedHubId;
 
     startPage();
     ChunkSink sink;
@@ -190,6 +191,16 @@ void handleRestart() {
     restartAtMs = millis() + 500;
 }
 
+// For a tally whose Hub is gone; the Hub can unpair it too.
+void handleUnpair() {
+    if (!fromAccessPoint()) return;
+    ConfigStore::removePairing();
+    Serial.println("[INFO]  Unpaired on the setup page");
+    server->send(200, "text/plain; charset=utf-8", "Unpaired. Restarting.");
+    restarting = true;
+    restartAtMs = millis() + 500;
+}
+
 // Captive portal: whatever the phone asks for (generate_204,
 // hotspot-detect.html, connecttest.txt, ...) is sent to the setup page.
 void handleOther() {
@@ -221,6 +232,7 @@ void start(const char* apName, const char* password, const Info& portalInfo) {
     server->on("/", HTTP_GET, handleRoot);
     server->on("/save", HTTP_POST, handleSave);
     server->on("/restart", HTTP_POST, handleRestart);
+    server->on("/unpair", HTTP_POST, handleUnpair);
     server->onNotFound(handleOther);
     server->begin();
     lastRequest = millis();

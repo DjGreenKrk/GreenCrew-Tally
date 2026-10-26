@@ -46,6 +46,30 @@ describe("toJson/fromJson", () => {
         invalid.fromJson({ hubId: 'not-an-id' })
         expect(invalid.getHubId()).not.toEqual('not-an-id')
     })
+    test('it persists paired tallies and the crew password', () => {
+        const emitter = new EventEmitter()
+        const config = new AppConfiguration(emitter)
+        const device = { id: 'a1b2c3', name: 'CAM1', token: '000102030405060708090a0b0c0d0e0f', crewPasswordVersion: '' }
+        config.setPairedDevice(device)
+        config.setPairedDevice({ ...device, crewPasswordVersion: 'v1' })
+        config.setCrewPassword('crew pass 1!')
+        const version = config.getCrewPassword().version
+        expect(version).toMatch(/^[0-9a-f]{8}$/)
+
+        const loaded = new AppConfiguration(emitter)
+        loaded.fromJson(config.toJson())
+        expect(loaded.getPairedDevices()).toEqual([{ ...device, crewPasswordVersion: 'v1' }])
+        expect(loaded.getCrewPassword()).toEqual({ password: 'crew pass 1!', version })
+
+        loaded.removePairedDevice('a1b2c3')
+        expect(loaded.getPairedDevice('a1b2c3')).toBeUndefined()
+        config.setCrewPassword('')
+        expect(config.getCrewPassword().version).not.toEqual(version)
+
+        const invalid = new AppConfiguration(emitter)
+        invalid.fromJson({ pairedDevices: [{ id: 'a1b2c3', name: 'CAM1', token: 'short', crewPasswordVersion: '' }, 'x'] })
+        expect(invalid.getPairedDevices()).toEqual([])
+    })
     test('it can persist atem configuration', () => {
         const emitter = new EventEmitter()
         const config = new AppConfiguration(emitter)

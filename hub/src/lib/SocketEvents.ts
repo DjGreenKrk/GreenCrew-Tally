@@ -1,6 +1,7 @@
 import { AtemConfigurationSaveType } from "../mixer/atem/AtemConfiguration";
 import { CompanionLanState } from "./CompanionLanState";
 import { HubDiscoveryState } from "./HubDiscoveryState";
+import { DeviceListState } from "../tally/DeviceList";
 import { CompanionConfigurationSaveType } from "../mixer/companion/CompanionConfiguration";
 import { MockConfigurationSaveType } from "../mixer/mock/MockConfiguration";
 import { ManualConfigurationSaveType } from "../mixer/manual/ManualConfiguration";
@@ -45,6 +46,7 @@ export interface ServerSentEvents {
     'config.state.mixer': (data: {mixerName: string, allowedMixers: string[]}) => void
     'companion.lan.state': (state: CompanionLanState) => void
     'discovery.state': (state: HubDiscoveryState) => void
+    'devices.state': (state: DeviceListState) => void
 
     'flasher.device': (tallyDevice: TallyDeviceObjectType) => void
     'flasher.settingsIni.progress': (state: TallySettingsIniProgressType) => void
@@ -87,6 +89,12 @@ export interface ClientSentEvents {
     'companion.lan.generate': () => void
     'companion.lan.disable': () => void
     'discovery.get': () => void
+    'devices.get': () => void
+    'device.identify': (deviceId: string) => void
+    'device.pair': (deviceId: string) => void
+    'device.unpair': (deviceId: string) => void
+    'device.forget': (deviceId: string) => void
+    'crewPassword.set': (password: string) => void
     'config.change.test': (testConfiguration: TestConfigurationSaveType, newMixer?: "test") => void
     'config.change.obs': (obsConfiguration: ObsConfigurationSaveType, newMixer?: "obs") => void
     'config.change.rolandV8HD': (rolandV8HDConfiguration: RolandV8HDConfigurationSaveType, newMixer?: "rolandV8HD") => void

@@ -13,6 +13,7 @@ import TestSettings from '../mixer/test/react/TestSettings'
 import VmixSettings from '../mixer/vmix/react/VmixSettings'
 import TallySettings from '../components/config/TallySettings'
 import HubDiscovery from '../components/config/HubDiscovery'
+import Devices from '../components/config/Devices'
 
 const ConfigPage = () => {
   return (
@@ -31,6 +32,7 @@ const ConfigPage = () => {
       </MixerSelection>
       <TallySettings />
       <HubDiscovery />
+      <Devices />
     </Layout>
   )
 }

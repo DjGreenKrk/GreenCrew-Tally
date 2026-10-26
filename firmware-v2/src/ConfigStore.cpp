@@ -8,6 +8,8 @@ const char* committedPath = "/tally-settings.ini";
 const char* newPath = "/tally-settings.new";
 const char* trialPath = "/tally-settings.trial";
 const char* keyPath = "/setup-key";
+const char* pairingPath = "/pairing";
+const char* hubCrewPasswordPath = "/hub-crew-password";
 const char* temporaryPath = "/write.tmp";
 
 String readFile(const char* path) {
@@ -63,6 +65,22 @@ String setupKey() {
     for (int i = 0; i < 10; i++) key += alphabet[ESP.random() % strlen(alphabet)];
     if (!writeFile(keyPath, key)) Serial.println("[ERROR] Could not store the setup password");
     return key;
+}
+
+String readPairing() { return readFile(pairingPath); }
+
+bool writePairing(const String& text) { return writeFile(pairingPath, text); }
+
+void removePairing() {
+    LittleFS.remove(pairingPath);
+    LittleFS.remove(hubCrewPasswordPath);
+}
+
+String readHubCrewPassword() { return readFile(hubCrewPasswordPath); }
+
+bool writeHubCrewPassword(const String& password) {
+    if (password.length() == 0) return !LittleFS.exists(hubCrewPasswordPath) || LittleFS.remove(hubCrewPasswordPath);
+    return writeFile(hubCrewPasswordPath, password);
 }
 
 }  // namespace ConfigStore

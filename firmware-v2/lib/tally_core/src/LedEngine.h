@@ -36,6 +36,9 @@ public:
     void showInvalidSettings(uint32_t nowMs);
     // Not in v1: the setup access point is running (purple, 1 s on, 1 s off).
     void showSetup(uint32_t nowMs);
+    // Not in v1: the Hub asks the tally to show itself for pairing (white
+    // on the operator light, fast).
+    void showIdentify(uint32_t nowMs);
 
     // Advances the pattern; true when frame() changed since the last call.
     bool tick(uint32_t nowMs);

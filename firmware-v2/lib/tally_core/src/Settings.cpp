@@ -41,8 +41,9 @@ bool isSetupPassword(const char* text) {
     return true;
 }
 
-SetupPasswordSource pickSetupPassword(const char* fromSettings, const char* crew) {
+SetupPasswordSource pickSetupPassword(const char* fromSettings, const char* fromHub, const char* crew) {
     if (isSetupPassword(fromSettings)) return SetupPasswordSource::settings;
+    if (isSetupPassword(fromHub)) return SetupPasswordSource::hub;
     if (isSetupPassword(crew)) return SetupPasswordSource::crew;
     return SetupPasswordSource::generated;
 }

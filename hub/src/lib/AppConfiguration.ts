@@ -16,6 +16,25 @@ import Tally, { TallySaveObjectType } from '../domain/Tally'
 import TestConfiguration from '../mixer/test/TestConfiguration'
 import { DefaultTallyConfiguration } from '../tally/TallyConfiguration'
 
+// A firmware v2 tally paired with this Hub (#28). The token signs the
+// management messages; crewPasswordVersion is the crew password the tally
+// has confirmed.
+export type PairedDevice = {
+    id: string
+    name: string
+    token: string
+    crewPasswordVersion: string
+}
+
+function isPairedDevice(value: unknown): value is PairedDevice {
+    const device = value as PairedDevice
+    return typeof device === 'object' && device !== null &&
+        typeof device.id === 'string' && /^[0-9a-f]{1,16}$/.test(device.id) &&
+        typeof device.name === 'string' &&
+        typeof device.token === 'string' && /^[0-9a-f]{32}$/.test(device.token) &&
+        typeof device.crewPasswordVersion === 'string'
+}
+
 type ConfigPayload<C extends { fromJson(data: never): void }> = Parameters<C['fromJson']>[0]
 
 // Persisted configuration payload. Every section is optional and the remaining
@@ -57,6 +76,11 @@ export class AppConfiguration extends Configuration {
     // Stable id of this Hub, announced over mDNS so tallies can stick to it
     // when several Hubs share a network (#28). Generated once.
     hubId?: string
+    pairedDevices: PairedDevice[] = []
+    // The crew password the Hub sets on paired tallies for their setup
+    // access point (#28); '' for none. The version changes with every change.
+    crewPassword = ''
+    crewPasswordVersion = ''
     tallyPort: number
     tallyHighlightTime: number
     tallyKeepAlivesPerSecond: number
@@ -174,6 +198,13 @@ export class AppConfiguration extends Configuration {
         if (typeof data.hubId === 'string' && AppConfiguration.isHubId(data.hubId)) {
             this.hubId = data.hubId
         }
+        if (Array.isArray(data.pairedDevices)) {
+            this.pairedDevices = data.pairedDevices.filter(isPairedDevice).map(device => ({ ...device }))
+        }
+        if (typeof data.crewPassword === 'string' && typeof data.crewPasswordVersion === 'string') {
+            this.crewPassword = data.crewPassword
+            this.crewPasswordVersion = data.crewPasswordVersion
+        }
     }
     toJson(): object {
         return {
@@ -194,6 +225,9 @@ export class AppConfiguration extends Configuration {
             vmixProjects: this.vmixProjectProfiles,
             companionLanToken: this.companionLanToken,
             hubId: this.hubId,
+            pairedDevices: this.pairedDevices,
+            crewPassword: this.crewPassword,
+            crewPasswordVersion: this.crewPasswordVersion,
         }
     }
     clone(): AppConfiguration {
@@ -266,6 +300,36 @@ export class AppConfiguration extends Configuration {
             this.emitter.emit("config.changed", this)
         }
         return this.hubId
+    }
+
+    getPairedDevices(): PairedDevice[] {
+        return this.pairedDevices
+    }
+
+    getPairedDevice(id: string): PairedDevice | undefined {
+        return this.pairedDevices.find(device => device.id === id)
+    }
+
+    setPairedDevice(device: PairedDevice) {
+        this.pairedDevices = [...this.pairedDevices.filter(other => other.id !== device.id), { ...device }]
+        this.emitter.emit("config.changed", this)
+    }
+
+    removePairedDevice(id: string) {
+        if (!this.getPairedDevice(id)) return
+        this.pairedDevices = this.pairedDevices.filter(device => device.id !== id)
+        this.emitter.emit("config.changed", this)
+    }
+
+    getCrewPassword() {
+        return { password: this.crewPassword, version: this.crewPasswordVersion }
+    }
+
+    // '' removes it from the tallies again
+    setCrewPassword(password: string) {
+        this.crewPassword = password
+        this.crewPasswordVersion = randomBytes(4).toString('hex')
+        this.emitter.emit("config.changed", this)
     }
 
     setNullConfiguration(nullConfiguration: NullConfiguration) {

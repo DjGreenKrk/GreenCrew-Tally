@@ -35,6 +35,10 @@ import registerCompanionApi, { isLoopbackAddress } from './mixer/companion/Compa
 import { companionLanState, effectiveCompanionToken, generateCompanionToken, hubLanAddresses } from './mixer/companion/CompanionLanAccess'
 import { describeListenError, exitWithStartupError } from './lib/startupFailure'
 import HubAnnouncer from './lib/HubAnnouncer'
+import DeviceRegistry from './tally/DeviceRegistry'
+import DeviceBrowser from './tally/DeviceBrowser'
+import { DeviceListState } from './tally/DeviceList'
+import { isCrewPassword } from './tally/ManagementMessages'
 
 const { values: argv } = parseArgs({
   options: {
@@ -75,9 +79,17 @@ if (myConfiguration.isTest()) {
 }
 
 const myTallyContainer = new TallyContainer(myConfiguration, myEmitter)
-new UdpTallyDriver(myConfiguration, myTallyContainer, error => {
+const myUdpTallyDriver = new UdpTallyDriver(myConfiguration, myTallyContainer, error => {
   exitWithStartupError(describeListenError(error, 'tally (UDP)', myConfiguration.getTallyPort()))
 })
+// Firmware v2 tallies by device id: the list on the Configuration page,
+// pairing and the crew password (#28)
+const myDeviceRegistry = new DeviceRegistry(myConfiguration,
+  (text, address, port) => myUdpTallyDriver.sendManagement(text, address, port),
+  state => myEmitter.emit('devices.changed', state))
+myUdpTallyDriver.registry = myDeviceRegistry
+setInterval(() => myDeviceRegistry.tick(), 500)
+const myDeviceBrowser = new DeviceBrowser(myDeviceRegistry)
 const myWebTallyDriver = new WebTallyDriver(myConfiguration, myTallyContainer)
 
 // Firmware v2 tallies find the Hub over mDNS (#28). GC_TALLY_MDNS=off turns
@@ -88,11 +100,13 @@ if (mdnsSetting === 'off' || (myConfiguration.isTest() && mdnsSetting !== 'on'))
   myHubAnnouncer.disable(myConfiguration.getHubId(), myConfiguration.getTallyPort())
 } else {
   myHubAnnouncer.start(myConfiguration.getHubId(), myConfiguration.getTallyPort())
+  myDeviceBrowser.start()
 }
 // say goodbye on the network, so tallies do not keep a stale Hub
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     setTimeout(() => process.exit(0), 500).unref()
+    myDeviceBrowser.stop()
     myHubAnnouncer.stop(() => process.exit(0))
   })
 }
@@ -379,6 +393,22 @@ io.on('connection', (socket: ServerSideSocket) => {
   socket.on('discovery.get', () => {
     discoveryEvent.register()
     socket.emit('discovery.state', myHubAnnouncer.getState())
+  })
+  const sendDevices = (state: Omit<DeviceListState, 'canChangeCrewPassword'>) =>
+    socket.emit('devices.state', { ...state, canChangeCrewPassword: isHubComputer })
+  const devicesEvent = new SocketAwareEvent(myEmitter, 'devices.changed', socket, (_socket, state) => sendDevices(state))
+  socket.on('devices.get', () => {
+    devicesEvent.register()
+    sendDevices(myDeviceRegistry.getState())
+  })
+  socket.on('device.identify', id => { if (typeof id === 'string') myDeviceRegistry.identify(id) })
+  socket.on('device.pair', id => { if (typeof id === 'string') myDeviceRegistry.pair(id) })
+  socket.on('device.unpair', id => { if (typeof id === 'string') myDeviceRegistry.unpair(id) })
+  socket.on('device.forget', id => { if (typeof id === 'string') myDeviceRegistry.forget(id) })
+  // like the Companion token: a secret, so only on the Hub computer
+  socket.on('crewPassword.set', password => {
+    if (!isHubComputer || typeof password !== 'string') return
+    if (password === '' || isCrewPassword(password)) myConfiguration.setCrewPassword(password)
   })
   socket.on('companion.lan.generate', () => {
     if (isHubComputer && !process.env.VTALLY_COMPANION_TOKEN) myConfiguration.setCompanionLanToken(generateCompanionToken())
