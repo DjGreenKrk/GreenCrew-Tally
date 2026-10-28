@@ -1,9 +1,10 @@
+import { Color, DefaultColorScheme, createCustomColorScheme } from './ColorScheme'
 import { DefaultTallyConfiguration, TallyConfiguration } from './TallyConfiguration'
 
 describe('DefaultTallyConfiguration', () => {
   test('it has defaults', () => {
     const config = new DefaultTallyConfiguration()
-  
+
     expect(config.getStageLightBrightness()).toEqual(100)
     expect(config.getOperatorLightBrightness()).toEqual(100)
     expect(config.getStageColorScheme()).toEqual("default")
@@ -11,6 +12,17 @@ describe('DefaultTallyConfiguration', () => {
     expect(config.getStageShowsPreview()).toEqual(true)
     expect(config.getStageShowsAux()).toEqual(false)
     expect(config.getOperatorShowsIdle()).toEqual(false)
+    expect(config.getCustomColorScheme()).toEqual(createCustomColorScheme())
+  })
+
+  describe('setCustomColor', () => {
+    test('overrides a single channel and keeps the rest', () => {
+      const config = new DefaultTallyConfiguration()
+      config.setCustomColor("aux", new Color(9, 8, 7))
+
+      expect(config.getCustomColorScheme().aux).toEqual(new Color(9, 8, 7))
+      expect(config.getCustomColorScheme().program).toEqual(DefaultColorScheme.program)
+    })
   })
 
   describe('getStageLightBrightness', () => {
@@ -64,10 +76,12 @@ describe('DefaultTallyConfiguration', () => {
         conf.setStageShowsPreview(false)
         conf.setStageShowsAux(true)
         conf.setOperatorShowsIdle(false)
+        conf.setCustomColor("program", new Color(1, 2, 3))
+        conf.setCustomColor("highlight", new Color(4, 5, 6))
 
         const loadedConf = new DefaultTallyConfiguration()
         loadedConf.fromJson(conf.toJson())
-        
+
         expect(loadedConf.getOperatorLightBrightness()).toEqual(42)
         expect(loadedConf.getStageLightBrightness()).toEqual(21)
         expect(loadedConf.getOperatorColorScheme()).toEqual("yellow-pink")
@@ -75,6 +89,10 @@ describe('DefaultTallyConfiguration', () => {
         expect(loadedConf.getStageShowsPreview()).toEqual(false)
         expect(loadedConf.getStageShowsAux()).toEqual(true)
         expect(loadedConf.getOperatorShowsIdle()).toEqual(false)
+        expect(loadedConf.getCustomColorScheme().program).toEqual(new Color(1, 2, 3))
+        expect(loadedConf.getCustomColorScheme().highlight).toEqual(new Color(4, 5, 6))
+        // channels never customized keep the Default scheme's colors
+        expect(loadedConf.getCustomColorScheme().preview).toEqual(DefaultColorScheme.preview)
     })
     it("handles falsy values correctly", () => {
         const conf = new DefaultTallyConfiguration()
@@ -101,9 +119,20 @@ describe('DefaultTallyConfiguration', () => {
 
       const clone = conf.clone()
       clone.setOperatorLightBrightness(90) // it should be a new instance
-      
+
       expect(clone.getOperatorLightBrightness()).toEqual(90)
       expect(conf.getOperatorLightBrightness()).toEqual(42)
+    })
+
+    it("does not share the custom color scheme with the original", () => {
+      const conf = new DefaultTallyConfiguration()
+      conf.setCustomColor("idle", new Color(1, 1, 1))
+
+      const clone = conf.clone()
+      clone.setCustomColor("idle", new Color(2, 2, 2))
+
+      expect(clone.getCustomColorScheme().idle).toEqual(new Color(2, 2, 2))
+      expect(conf.getCustomColorScheme().idle).toEqual(new Color(1, 1, 1))
     })
   })
 })

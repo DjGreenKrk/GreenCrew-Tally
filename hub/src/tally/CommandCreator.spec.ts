@@ -1,5 +1,6 @@
 import {UdpTally} from '../domain/Tally'
 import CommandCreator from './CommandCreator'
+import { Color } from './ColorScheme'
 import { DefaultTallyConfiguration } from './TallyConfiguration'
 import 'jest-extended'
 
@@ -145,6 +146,23 @@ describe("operatorColorScheme()", () => {
         test('for PROGRAM', () => {
             expect(CommandCreator.createStateCommand(tally, ["channel"], [], defaultConfig)).toEqual("O255/000/000 S255/000/000")
         })
+    })
+})
+describe("custom color scheme", () => {
+    const defaultConfig = new DefaultTallyConfiguration()
+    defaultConfig.setOperatorColorScheme("custom")
+    defaultConfig.setStageColorScheme("custom")
+    defaultConfig.setCustomColor("program", new Color(10, 20, 30))
+    defaultConfig.setCustomColor("preview", new Color(40, 50, 60))
+    test('is used for both operator and stage when selected as the default', () => {
+        const tally = new UdpTally("test", "channel")
+        expect(CommandCreator.createStateCommand(tally, ["channel"], [], defaultConfig)).toEqual("O010/020/030 S010/020/030")
+        expect(CommandCreator.createStateCommand(tally, ["other-channel"], ["channel"], defaultConfig)).toEqual("O040/050/060 S040/050/060")
+    })
+    test('the colors can still be overridden per tally while the custom scheme stays shared', () => {
+        const tally = new UdpTally("test", "channel")
+        tally.configuration.setOperatorColorScheme("default")
+        expect(CommandCreator.createStateCommand(tally, ["channel"], [], defaultConfig)).toEqual("O255/000/000 S010/020/030")
     })
 })
 describe("stageShowPreview()", () => {

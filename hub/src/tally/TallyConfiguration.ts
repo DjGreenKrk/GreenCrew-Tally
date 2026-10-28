@@ -1,4 +1,4 @@
-import { ColorSchemeId, DefaultColorScheme } from "./ColorScheme"
+import { Color, ColorScheme, ColorSchemeId, CustomColorChannel, DefaultColorScheme, createCustomColorScheme } from "./ColorScheme"
 
 export type TallyConfigurationObjectType = {
   stBrightness?: number
@@ -8,6 +8,7 @@ export type TallyConfigurationObjectType = {
   stPreview?: boolean
   stAux?: boolean
   opIdle?: boolean
+  customColors?: Partial<Record<CustomColorChannel, string>>
 }
 
 /**
@@ -30,6 +31,9 @@ export class DefaultTallyConfiguration {
   // Off by default: on a single RGB light a dim idle colour was mistaken for
   // preview. Power is visible on the ESP board and "no hub" is shown in blue.
   private _operatorShowsIdle: boolean = false
+  // The "Custom" color scheme itself: edited here, used wherever a tally
+  // (or the defaults) picks "custom" as its operator or stage color scheme.
+  private _customColorScheme: ColorScheme = createCustomColorScheme()
 
   getStageLightBrightness() { return this._stageLightBrightness }
   setStageLightBrightness(value: number) { 
@@ -66,7 +70,17 @@ export class DefaultTallyConfiguration {
   getOperatorShowsIdle() { return this._operatorShowsIdle}
   setOperatorShowsIdle(shouldItShow: boolean) { this._operatorShowsIdle = shouldItShow }
 
+  getCustomColorScheme() : ColorScheme { return this._customColorScheme }
+  setCustomColor(channel: CustomColorChannel, color: Color) {
+    this._customColorScheme = { ...this._customColorScheme, [channel]: color }
+  }
+
   toJson() : TallyConfigurationObjectType {
+    const customColors: Partial<Record<CustomColorChannel, string>> = {}
+    for (const channel of Object.keys(this._customColorScheme) as (keyof ColorScheme)[]) {
+      if (channel === "id" || channel === "name" || channel === "description") continue
+      customColors[channel as CustomColorChannel] = this._customColorScheme[channel].toHex()
+    }
     return {
       stBrightness: this._stageLightBrightness,
       opBrightness: this._operatorLightBrightness,
@@ -75,6 +89,7 @@ export class DefaultTallyConfiguration {
       stPreview: this._stageShowsPreview,
       stAux: this._stageShowsAux,
       opIdle: this._operatorShowsIdle,
+      customColors,
     }
   }
   fromJson(valueObject: TallyConfigurationObjectType) {
@@ -85,6 +100,11 @@ export class DefaultTallyConfiguration {
     if (valueObject.stPreview !== undefined) this.setStageShowsPreview(valueObject.stPreview)
     if (valueObject.stAux !== undefined) this.setStageShowsAux(valueObject.stAux)
     if (valueObject.opIdle !== undefined) this.setOperatorShowsIdle(valueObject.opIdle)
+    if (valueObject.customColors !== undefined) {
+      for (const [channel, hex] of Object.entries(valueObject.customColors)) {
+        if (hex !== undefined) this.setCustomColor(channel as CustomColorChannel, Color.fromHex(hex))
+      }
+    }
   }
 
   clone(): DefaultTallyConfiguration {

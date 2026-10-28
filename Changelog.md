@@ -5,6 +5,7 @@
 * [FEATURE] v2 tallies find the Hub on their own: the Hub announces itself over mDNS (`_gctally._udp`) and `hub.ip` may stay empty. With several Hubs on one network a tally waits for `hub.id` (the Hub ID on the Configuration page) instead of guessing. The Configuration page shows whether discovery works; `GC_TALLY_MDNS=off` turns it off. NodeMCU tallies still need `hub.ip` (#28, stage 3 of #31)
 * [FEATURE] Firmware v2 crew password: the setup access point of every tally uses one password set with `GC_SETUP_PASSWORD` when building the firmware (never in the repository or in CI builds). `setup.password` still overrides it for one tally; without either the tally generates its own as before (#28)
 * [FEATURE] The tally card shows the firmware version of v2 tallies; NodeMCU tallies look as before (#26)
+* [FEATURE] A **Custom** color scheme in Configuration → Tally Defaults: pick Program, Preview, AUX, Highlight, No Mixer and Idle colors with color pickers, on top of Default and Yellow-Pink. Select it as the Operator or Stage scheme (for the defaults, or per tally as before); no firmware change is needed, since the Hub still just sends RGB values over the wire (#20)
 * [DEV] CI tests the firmware v2 logic, builds it for the D1 Mini with its size and runs it against a real Hub: colours, highlight, lost Hub and reconnect (#26), and the Hub's mDNS announcement (#28)
 
 # GC Tally 1.0.0-rc.2

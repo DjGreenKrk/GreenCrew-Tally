@@ -157,7 +157,7 @@ function WebTallyPage() {
   }
 
   const colorSchemeId = tally?.configuration?.getOperatorColorScheme() || defaultTallyConfiguration?.getOperatorColorScheme() || "default"
-  const colorScheme = ColorSchemes.getById(colorSchemeId)
+  const colorScheme = ColorSchemes.getById(colorSchemeId, defaultTallyConfiguration?.getCustomColorScheme())
   const classRoot: string[] = [classes.root]
   let dataColor = ""
   let bgColor = theme.palette.grey[800]
