@@ -6,6 +6,7 @@
 * [FEATURE] Firmware v2 crew password: the setup access point of every tally uses one password set with `GC_SETUP_PASSWORD` when building the firmware (never in the repository or in CI builds). `setup.password` still overrides it for one tally; without either the tally generates its own as before (#28)
 * [FEATURE] The tally card shows the firmware version of v2 tallies; NodeMCU tallies look as before (#26)
 * [DEV] CI tests the firmware v2 logic, builds it for the D1 Mini with its size and runs it against a real Hub: colours, highlight, lost Hub and reconnect (#26), and the Hub's mDNS announcement (#28)
+* [DOCS] Event network notes in the README and `START-TUTAJ.txt`, from lessons learned at a real event: the ESP8266 can't join WPA3-only or 5 GHz networks, client isolation can block tally ↔ Hub traffic, and Windows classifying an event network as Public can make its firewall silently block UDP 7411 (#15)
 
 # GC Tally 1.0.0-rc.2
 
