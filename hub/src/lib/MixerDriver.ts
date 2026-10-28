@@ -132,6 +132,16 @@ export class MixerDriver {
         }
     }
 
+    // Forces a fresh connect on the current mixer, e.g. after a vMix/OBS
+    // connector gave up retrying. Re-running changeMixer resets any
+    // reconnect-attempt timers the connector keeps internally.
+    async reconnect() {
+        if (this.currentMixerId === undefined) {
+            return
+        }
+        await this.changeMixer(this.currentMixerId)
+    }
+
     getCurrentPrograms() {
         return this.communicator.getCurrentPrograms()
     }

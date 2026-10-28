@@ -176,6 +176,7 @@ const pl = {
   "vmix.ip": "IP vMix",
   "vmix.port": "Port vMix",
   "vmix.portWarning": "To prawdopodobnie nie zadziała. Wpisano port interfejsu WWW, a potrzebny jest port TCP API. Jeśli nie wiesz, co to znaczy, zostaw pole puste, aby użyć wartości domyślnej.",
+  "vmix.reconnect": "Połącz ponownie",
   "companionLan.or": " lub ",
   "companionLan.thisComputer": "adres IP tego komputera",
   "companionLan.localTitle": "Companion na tym komputerze",

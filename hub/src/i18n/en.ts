@@ -178,6 +178,7 @@ const en: Record<keyof typeof pl, string> = {
   "vmix.ip": "vMix IP",
   "vmix.port": "vMix Port",
   "vmix.portWarning": "This will probably not work. You entered the port of the Web UI, but the port for the TCPAPI is required. If you are unsure what this message means, leave the field blank to use the default.",
+  "vmix.reconnect": "Reconnect",
   "companionLan.or": " or ",
   "companionLan.thisComputer": "the IP address of this computer",
   "companionLan.localTitle": "Companion on this computer",

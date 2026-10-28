@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
+import { Button } from '@mui/material'
 import MixerSettingsWrapper from '../../../components/config/MixerSettingsWrapper'
 import ValidatingInput from '../../../components/config/ValidatingInput'
 import ExternalLink from '../../../components/ExternalLink'
-import { useVmixConfiguration } from '../../../hooks/useConfiguration'
+import { useMixerNameConfiguration, useVmixConfiguration } from '../../../hooks/useConfiguration'
 import { socket } from '../../../hooks/useSocket'
 import { useTranslation } from '../../../i18n'
 
@@ -11,6 +12,7 @@ const httpApiPort = "8088"
 function VmixSettings() {
     const { t } = useTranslation()
     const configuration = useVmixConfiguration()
+    const mixerName = useMixerNameConfiguration()
     const [ip, setIp] = useState<string|null>(null)
     const [ipValid, setIpValid] = useState(true)
     const [port, setPort] = useState<string|null>(null)
@@ -30,8 +32,15 @@ function VmixSettings() {
         }
     }
 
+    // After giving up reconnecting for 10 minutes, vMix stays disconnected
+    // until the Hub is restarted or the mixer is re-selected (#4). This
+    // button does the latter without requiring a settings change.
+    const handleReconnect = () => {
+        socket.emit('mixer.reconnect')
+    }
+
     return (
-        <MixerSettingsWrapper 
+        <MixerSettingsWrapper
             title="vMix"
             testId="vmix"
             description={<>{t('vmix.descriptionBefore')}<ExternalLink href="https://www.vmix.com/help24/index.htm?TCPAPI.html">TCP API</ExternalLink>{t('vmix.descriptionAfter')}</>}
@@ -50,6 +59,11 @@ function VmixSettings() {
                 onInvalid={() => setPortValid(false)}
                 warningMessage={port === httpApiPort ? t('vmix.portWarning') : ""}
             />
+            { mixerName === "vmix" && (
+                <Button data-testid="vmix-reconnect" type="button" variant="outlined" onClick={handleReconnect} sx={{ mt: 2 }}>
+                    {t('vmix.reconnect')}
+                </Button>
+            )}
         </>)}
         </MixerSettingsWrapper>
     )
