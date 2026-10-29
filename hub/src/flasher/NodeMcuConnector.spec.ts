@@ -164,6 +164,93 @@ describe('NodeMCU timeout quarantine and transport cleanup (simulated device)', 
   })
 })
 
+// Serial transport mock only. This is NOT physical ESP8266 acceptance.
+describe('NodeMCU device detection races with the tally app (#16)', () => {
+  beforeEach(() => {
+    jest.useFakeTimers()
+    jest.spyOn(FirmwareAssets, 'findFirmwareFiles').mockResolvedValue([
+      { fileName: 'init.lua', filePath: '/tmp/init.lua', fileSize: 42 },
+    ])
+  })
+  afterEach(() => {
+    jest.restoreAllMocks()
+    jest.useRealTimers()
+  })
+
+  const connectedDevice = (overrides: Record<string, unknown> = {}) => ({
+    onError: jest.fn(),
+    isConnected: jest.fn().mockReturnValue(false),
+    listDevices: jest.fn().mockResolvedValue([{ path: 'COM1', vendorId: '0403' }]),
+    connect: jest.fn().mockResolvedValue(undefined),
+    disconnect: jest.fn().mockResolvedValue(undefined),
+    purge: jest.fn().mockResolvedValue(undefined),
+    write: jest.fn().mockResolvedValue(undefined),
+    checkConnection: jest.fn().mockResolvedValue(true),
+    deviceInfo: jest.fn().mockResolvedValue({ chipID: 'X', flashID: 'Y', version: '1', modules: [] }),
+    ...overrides,
+  })
+
+  const settle = async <T>(operation: Promise<T>) => {
+    let done = false
+    void operation.finally(() => { done = true })
+    for (let i = 0; i < 200 && !done; i++) await jest.advanceTimersByTimeAsync(1000)
+    return operation
+  }
+
+  test('a file list reply stalled by app logs fails with a deadline instead of hanging forever', async () => {
+    // A native call that eventually settles, just too late: withMutex must
+    // report the deadline to the caller now and only release the transport
+    // once this very late reply actually arrives (quarantine, see #16).
+    let resolveLate: ((value: { files: { name: string, size: number }[] }) => void) | undefined
+    const stalled = new Promise<{ files: { name: string, size: number }[] }>(resolve => { resolveLate = resolve })
+    const device = connectedDevice({
+      fsinfo: jest.fn().mockReturnValue(stalled),
+    })
+    const connector = new NodeMcuConnector(device)
+    const result = await settle(connector.getDevice())
+    expect(result.errorMessage).toContain('timed out')
+
+    // Let the stalled reply settle so the mutex it still holds is released;
+    // otherwise every later test in this file would wait on it forever.
+    resolveLate!({ files: [] })
+    await jest.advanceTimersByTimeAsync(1000)
+  })
+
+  test('a file listing missing a file right after a reboot is confirmed, not reported, before a settled re-read', async () => {
+    const goodFiles = { files: [{ name: 'init.lua', size: 42 }] }
+    const noisyFiles = { files: [] } // a boot log line dropped a file from this one reply
+    const fsinfo = jest.fn()
+      .mockResolvedValueOnce(noisyFiles)
+      .mockResolvedValueOnce(goodFiles)
+    const device = connectedDevice({ fsinfo })
+    const connector = new NodeMcuConnector(device)
+    const result = await settle(connector.getDevice())
+    expect(result.errorMessage).toBeUndefined()
+    expect(result.update).toBe('up-to-date')
+    expect(fsinfo).toHaveBeenCalledTimes(2)
+  })
+
+  test('a genuinely outdated tally is still reported as updateable after the confirming re-read', async () => {
+    const outdatedFiles = { files: [] }
+    const fsinfo = jest.fn().mockResolvedValue(outdatedFiles)
+    const device = connectedDevice({ fsinfo })
+    const connector = new NodeMcuConnector(device)
+    const result = await settle(connector.getDevice())
+    expect(result.errorMessage).toBeUndefined()
+    expect(result.update).toBe('updateable')
+    expect(fsinfo).toHaveBeenCalledTimes(2)
+  })
+
+  test('a single up-to-date reply is trusted without a second read', async () => {
+    const fsinfo = jest.fn().mockResolvedValue({ files: [{ name: 'init.lua', size: 42 }] })
+    const device = connectedDevice({ fsinfo })
+    const connector = new NodeMcuConnector(device)
+    const result = await settle(connector.getDevice())
+    expect(result.update).toBe('up-to-date')
+    expect(fsinfo).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('NodeMCU serial port detection', () => {
   test('accepts CH340, CP2102 and FTDI bridges regardless of case', () => {
     expect(isSupportedSerialPort({ vendorId: '1a86' })).toBe(true)

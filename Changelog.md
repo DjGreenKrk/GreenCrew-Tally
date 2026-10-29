@@ -6,6 +6,7 @@
 * [FEATURE] Firmware v2 crew password: the setup access point of every tally uses one password set with `GC_SETUP_PASSWORD` when building the firmware (never in the repository or in CI builds). `setup.password` still overrides it for one tally; without either the tally generates its own as before (#28)
 * [FEATURE] The tally card shows the firmware version of v2 tallies; NodeMCU tallies look as before (#26)
 * [DEV] CI tests the firmware v2 logic, builds it for the D1 Mini with its size and runs it against a real Hub: colours, highlight, lost Hub and reconnect (#26), and the Hub's mDNS announcement (#28)
+* [BUGFIX] Flasher: `listDevices`/`deviceInfo`/`fsinfo`/`download` now fail with a clear timeout instead of leaving the Flash page stuck on "connecting" when a reply never arrives. A file listing that looks out of date is read once more, settled, before reporting the tally as outdated, since a tally that just restarted (e.g. right after Save) can briefly drop a file from one listing if its own log output lands on the same lines as the reply (#16)
 
 # GC Tally 1.0.0-rc.2
 
