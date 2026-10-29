@@ -90,4 +90,13 @@ void HubFinder::searchDone(uint32_t nowMs, HubSearch result) {
     nextSearchMs = nowMs + (delay > maxRetryMs ? maxRetryMs : delay);
 }
 
+bool GatewayFallback::searchDone(HubSearch result) {
+    if (result != HubSearch::none) {
+        noneInRow = 0;
+        return false;
+    }
+    if (noneInRow < 255) noneInRow++;
+    return noneInRow >= afterFailures;
+}
+
 }  // namespace gctally

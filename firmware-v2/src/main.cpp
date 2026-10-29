@@ -67,8 +67,10 @@ char shownTrialSsid[36] = "";
 uint32_t lastApCheckMs = 0;
 // Without hub.ip: the Hub found over mDNS. Kept in RAM only.
 HubFinder hubFinder;
+GatewayFallback gatewayFallback;
 IPAddress foundHubIp;
 uint16_t foundHubPort = 0;
+bool haveGatewayGuess = false;  // foundHubIp is a gateway guess, not a confirmed mDNS find
 bool mdnsStarted = false;
 LedEngine leds;
 WiFiUDP udp;
@@ -82,7 +84,7 @@ public:
         int ready;
         if (settings->hasHubAddress()) {
             ready = udp.beginPacket(settings->hubAddress(), settings->hubUdpPort());
-        } else if (hubFinder.hasHub()) {
+        } else if (hubFinder.hasHub() || haveGatewayGuess) {
             ready = udp.beginPacket(foundHubIp, foundHubPort);
         } else {
             return;  // still looking; logs stay in the buffer
@@ -299,6 +301,23 @@ void searchHub() {
     HubSearch result = chooseHub(answers, count, settings->pinnedHubId(), chosen);
     hubFinder.searchDone(millis(), result);
     logSearch(result, answers, count);
+    if (gatewayFallback.searchDone(result)) {
+        IPAddress gateway = WiFi.gatewayIP();
+        if (static_cast<uint32_t>(gateway) != 0) {
+            // Re-applied on every "none" search past the threshold, not just
+            // the first, so the guess tracks the current gateway instead of
+            // going stale (e.g. after a reconnect changes it).
+            foundHubIp = gateway;
+            foundHubPort = listenPort;
+            haveGatewayGuess = true;
+            if (gatewayFallback.firstApplication()) {
+                char text[96];
+                snprintf(text, sizeof(text), "No hub found via mDNS; trying the Wi-Fi gateway %s as a guess (set hub.ip to silence this)",
+                         gateway.toString().c_str());
+                controller->log(Severity::warning, text);
+            }
+        }
+    }
     if (result != HubSearch::found) return;
 
     IPAddress ip(answers[chosen].ip);
