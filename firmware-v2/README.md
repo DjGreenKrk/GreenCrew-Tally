@@ -161,10 +161,13 @@ from DHCP is found again without touching the tally.
   running, or multicast blocked by client isolation or a multicast filter: then set `hub.ip`).
 - After 3 searches in a row with no answer at all (not "several Hubs"/"wrong hub.id", where
   multicast clearly does work), the tally also guesses the network's default gateway as the
-  Hub's address and logs it once — useful on a phone hotspot (#22, stage 2 of #19), where the
-  Hub-running device is usually also the only router, and some phones filter multicast so mDNS
-  never gets an answer even though the Hub is reachable. mDNS keeps retrying in the background
-  and replaces the guess the moment it actually finds a Hub.
+  Hub's address, logging it once and then keeping the guess refreshed to the current gateway on
+  every further failed search (so a changed gateway, e.g. after a reconnect, isn't stuck with a
+  stale guess). Useful on an Android phone hotspot (#22, stage 2 of #19), where the Hub-running
+  device is also the hotspot's only router and some phones filter multicast so mDNS never gets
+  an answer even though the Hub is reachable — not on an iOS hotspot, where the Hub runs on a
+  separate device and the gateway is only the iPhone. mDNS keeps retrying in the background and
+  replaces the guess the moment it actually finds a Hub.
 - A Hub that stays silent for 10 s is looked up again (new address, restarted Hub). A search
   takes about a second and only runs while no Hub is connected.
 - The address found is kept in RAM only; nothing is written to flash.

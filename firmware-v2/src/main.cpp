@@ -304,13 +304,18 @@ void searchHub() {
     if (gatewayFallback.searchDone(result)) {
         IPAddress gateway = WiFi.gatewayIP();
         if (static_cast<uint32_t>(gateway) != 0) {
+            // Re-applied on every "none" search past the threshold, not just
+            // the first, so the guess tracks the current gateway instead of
+            // going stale (e.g. after a reconnect changes it).
             foundHubIp = gateway;
             foundHubPort = listenPort;
             haveGatewayGuess = true;
-            char text[96];
-            snprintf(text, sizeof(text), "No hub found via mDNS; trying the Wi-Fi gateway %s as a guess (set hub.ip to silence this)",
-                     gateway.toString().c_str());
-            controller->log(Severity::warning, text);
+            if (gatewayFallback.firstApplication()) {
+                char text[96];
+                snprintf(text, sizeof(text), "No hub found via mDNS; trying the Wi-Fi gateway %s as a guess (set hub.ip to silence this)",
+                         gateway.toString().c_str());
+                controller->log(Severity::warning, text);
+            }
         }
     }
     if (result != HubSearch::found) return;

@@ -96,7 +96,7 @@ bool GatewayFallback::searchDone(HubSearch result) {
         return false;
     }
     if (noneInRow < 255) noneInRow++;
-    return noneInRow == afterFailures;
+    return noneInRow >= afterFailures;
 }
 
 }  // namespace gctally

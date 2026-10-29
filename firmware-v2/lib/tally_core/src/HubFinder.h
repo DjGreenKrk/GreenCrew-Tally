@@ -67,10 +67,14 @@ class GatewayFallback {
 public:
     static const uint8_t afterFailures = 3;
 
-    // Call after every finished mDNS search. True the moment the guess
-    // should be (re)applied: exactly when the streak first reaches
-    // afterFailures, so the caller logs/applies it once, not every search.
+    // Call after every finished mDNS search. True from the moment the streak
+    // first reaches afterFailures and on every "none" search after that, so
+    // the caller keeps (re)applying the guess to the *current* gateway
+    // (which can change after a reconnect) instead of it going stale after
+    // the first application. Use firstApplication() right after a true
+    // result to log the fallback only once per streak, not on every search.
     bool searchDone(HubSearch result);
+    bool firstApplication() const { return noneInRow == afterFailures; }
 
 private:
     uint8_t noneInRow = 0;

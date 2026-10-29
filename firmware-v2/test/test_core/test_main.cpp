@@ -987,9 +987,13 @@ void test_gateway_fallback_after_three_none_in_a_row() {
     TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
     TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
     TEST_ASSERT_TRUE(fallback.searchDone(HubSearch::none));
-    // stays applied already; does not re-fire every search after that
-    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
-    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
+    TEST_ASSERT_TRUE(fallback.firstApplication());
+    // keeps being applied (so the guess tracks a gateway that may have
+    // changed, e.g. after a reconnect) but is no longer the *first* time
+    TEST_ASSERT_TRUE(fallback.searchDone(HubSearch::none));
+    TEST_ASSERT_FALSE(fallback.firstApplication());
+    TEST_ASSERT_TRUE(fallback.searchDone(HubSearch::none));
+    TEST_ASSERT_FALSE(fallback.firstApplication());
 }
 
 void test_gateway_fallback_resets_when_mdns_actually_works() {
