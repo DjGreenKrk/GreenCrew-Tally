@@ -1,7 +1,7 @@
 import { FormHelperText, Tooltip } from '@mui/material'
 import { makeStyles } from "tss-react/mui"
 import React, { useState } from 'react'
-import ColorSchemes, { ColorSchemeId } from '../../tally/ColorScheme'
+import ColorSchemes, { ColorScheme, ColorSchemeId } from '../../tally/ColorScheme'
 import ChipLikeButton from '../ChipLikeButton'
 import { TranslationKey, useTranslation } from '../../i18n'
 
@@ -56,15 +56,17 @@ type ColorSchemeSelectorProps = {
   onChange: (value: ColorSchemeId) => void
   disabled?: boolean
   testId: string
+  // the current colors of the "Custom" scheme, edited in Tally Defaults
+  customScheme?: ColorScheme
 }
 
-function ColorSchemeSelector({value, onChange, disabled, testId}: ColorSchemeSelectorProps) {
+function ColorSchemeSelector({value, onChange, disabled, testId, customScheme}: ColorSchemeSelectorProps) {
   const { classes } = useStyle()
   const { t } = useTranslation()
-  const schemes = ColorSchemes.getAll()
+  const schemes = ColorSchemes.getAll(customScheme)
   const [focusTracker, setFocusTracker] = useState(new Map(schemes.map(scheme => [scheme.id, false])))
   const isFocussed = !!Array.from(focusTracker.values()).find(bool => bool)
-  const selectedScheme = value !== undefined ? ColorSchemes.getById(value) : undefined
+  const selectedScheme = value !== undefined ? ColorSchemes.getById(value, customScheme) : undefined
 
   const handleFocus = (scheme) => {
     const newTracker = new Map(focusTracker)

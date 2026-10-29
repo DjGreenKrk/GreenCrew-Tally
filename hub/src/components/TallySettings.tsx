@@ -147,6 +147,7 @@ function TallySettings({ tally, open, onClose }: TallySettingsProps) {
             value={oc}
             onChange={(value) => { setOc(value) }}
             disabled={isOcDefault}
+            customScheme={defaultSettings?.getCustomColorScheme()}
           />
         </TallySettingsField>
         <TallySettingsField
@@ -197,6 +198,7 @@ function TallySettings({ tally, open, onClose }: TallySettingsProps) {
               value={sc}
               onChange={(value) => { setSc(value) }}
               disabled={isScDefault}
+              customScheme={defaultSettings?.getCustomColorScheme()}
             />
         </TallySettingsField>
         <TallySettingsField

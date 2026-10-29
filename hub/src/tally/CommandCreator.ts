@@ -31,8 +31,9 @@ class CommandCreator {
     let stepDuration: number = 0
 
     const state = this.getState(tally, programs, previews, auxes)
-    const stColorScheme = ColorSchemes.getById(tally.configuration.getStageColorScheme() || defaultConfiguration.getStageColorScheme())
-    const opColorScheme = ColorSchemes.getById(tally.configuration.getOperatorColorScheme() || defaultConfiguration.getOperatorColorScheme())
+    const customColorScheme = defaultConfiguration.getCustomColorScheme()
+    const stColorScheme = ColorSchemes.getById(tally.configuration.getStageColorScheme() || defaultConfiguration.getStageColorScheme(), customColorScheme)
+    const opColorScheme = ColorSchemes.getById(tally.configuration.getOperatorColorScheme() || defaultConfiguration.getOperatorColorScheme(), customColorScheme)
     if(state === "highlight") {
       opColor = opColorScheme.highlight
       stColor = stColorScheme.highlight

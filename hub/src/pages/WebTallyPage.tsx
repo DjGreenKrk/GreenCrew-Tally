@@ -14,14 +14,37 @@ import { StateCommand } from '../tally/CommandCreator'
 import PageNotFound from './PageNotFound'
 import TallySettings from '../components/TallySettings'
 import { useDefaultTallyConfiguration } from '../hooks/useConfiguration'
-import ColorSchemes from '../tally/ColorScheme'
+import ColorSchemes, { Color, ColorScheme } from '../tally/ColorScheme'
 import { useTranslation } from '../i18n'
 
+// highlight flashes between the scheme's highlight color and off (black), the
+// same on/off the physical tally's flash pattern (0xAA) blinks between.
+const HIGHLIGHT_COLOR_VAR = '--tally-highlight-color'
+
+export function resolveTallyVisual(command: StateCommand, colorScheme: ColorScheme): { dataColor: string, color: Color } {
+  if (command === "highlight") {
+    return { dataColor: "highlight", color: colorScheme.highlight }
+  } else if (command === "on-air") {
+    return { dataColor: "program", color: colorScheme.program }
+  } else if (command === "aux") {
+    return { dataColor: "aux", color: colorScheme.aux }
+  } else if (command === "preview") {
+    return { dataColor: "preview", color: colorScheme.preview }
+  } else if (command === "release") {
+    return { dataColor: "idle", color: colorScheme.idle }
+  } else if (command === "unknown") {
+    return { dataColor: "unknown", color: colorScheme.unknown }
+  } else {
+    // if typescript fails here, we forgot a case
+    const unreachable: never = command
+    throw new Error(`Unhandled web tally state: ${String(unreachable)}`)
+  }
+}
 
 const useStyles = makeStyles()((theme) => {
   const highlightFrames = keyframes({
     from: {
-      backgroundColor: '#fff',
+      backgroundColor: `var(${HIGHLIGHT_COLOR_VAR}, #fff)`,
       color: alpha(theme.palette.getContrastText('#fff'), 0.7)
     },
     "50%": {
@@ -29,7 +52,7 @@ const useStyles = makeStyles()((theme) => {
       color: alpha(theme.palette.getContrastText('#000'), 0.7)
     },
     to: {
-      backgroundColor: '#fff',
+      backgroundColor: `var(${HIGHLIGHT_COLOR_VAR}, #fff)`,
       color: alpha(theme.palette.getContrastText('#fff'), 0.7)
     },
     })
@@ -157,7 +180,7 @@ function WebTallyPage() {
   }
 
   const colorSchemeId = tally?.configuration?.getOperatorColorScheme() || defaultTallyConfiguration?.getOperatorColorScheme() || "default"
-  const colorScheme = ColorSchemes.getById(colorSchemeId)
+  const colorScheme = ColorSchemes.getById(colorSchemeId, defaultTallyConfiguration?.getCustomColorScheme())
   const classRoot: string[] = [classes.root]
   let dataColor = ""
   let bgColor = theme.palette.grey[800]
@@ -167,39 +190,33 @@ function WebTallyPage() {
     dataColor = "loading"
     text = t('webTally.waiting')
     showSpinner = true
-  } else if (command === "highlight") {
-    classRoot.push(classes.highlight)
-    dataColor = "highlight"
-    text = t('webTally.highlight')
-  } else if (command === "on-air") {
-    bgColor = colorScheme.program.toCss()
-    text = t('webTally.program')
-    dataColor = "program"
-  } else if (command === "aux") {
-    bgColor = colorScheme.aux.toCss()
-    text = t('webTally.aux')
-    dataColor = "aux"
-  } else if (command === "preview") {
-    bgColor = colorScheme.preview.toCss()
-    text = t('webTally.preview')
-    dataColor = "preview"
-  } else if (command === "release") {
-    bgColor = colorScheme.idle.toCss()
-    dataColor = "idle"
-    text = t('webTally.idle')
-  } else if (command === "unknown") {
-    dataColor = "unknown"
-    text = t('webTally.noMixer')
-    showSpinner = true
   } else {
-    // if typescript fails here, we forgot a case
-    const unreachable: never = command
-    throw new Error(`Unhandled web tally state: ${String(unreachable)}`)
+    const visual = resolveTallyVisual(command, colorScheme)
+    dataColor = visual.dataColor
+    bgColor = visual.color.toCss()
+    if (command === "highlight") {
+      classRoot.push(classes.highlight)
+      text = t('webTally.highlight')
+    } else if (command === "on-air") {
+      text = t('webTally.program')
+    } else if (command === "aux") {
+      text = t('webTally.aux')
+    } else if (command === "preview") {
+      text = t('webTally.preview')
+    } else if (command === "release") {
+      text = t('webTally.idle')
+    } else if (command === "unknown") {
+      text = t('webTally.noMixer')
+      showSpinner = true
+    }
   }
 
   const brightness = (tally?.configuration?.getOperatorLightBrightness() || defaultTallyConfiguration?.getOperatorLightBrightness() || 100) / 100
   bgColor = darken(bgColor, 1 - brightness)
   const textColor = theme.palette.getContrastText(bgColor)
+  // the flash animation (see highlightFrames) reads its "on" color from this
+  // CSS variable instead of a static inline backgroundColor
+  const highlightStyle = command === "highlight" ? { [HIGHLIGHT_COLOR_VAR]: bgColor } : undefined
 
   const enterFullScreen = () => {
     noSleep.enable()
@@ -211,7 +228,7 @@ function WebTallyPage() {
   }
 
   return <FullScreen handle={handle}>
-    <div data-testid="page-tally-web" data-color={dataColor} data-brightness={brightness} className={classRoot.join(" ")} style={{backgroundColor: bgColor, color: textColor}}>
+    <div data-testid="page-tally-web" data-color={dataColor} data-brightness={brightness} className={classRoot.join(" ")} style={{backgroundColor: bgColor, color: textColor, ...highlightStyle}}>
       { showSpinner ? (
         <CircularProgress className={classes.spinner} color="inherit" size="min(30vw, 30vh)" />
       ) : (<>
