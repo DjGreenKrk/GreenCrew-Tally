@@ -452,3 +452,58 @@ describe('NodeMCU recovery from a check that gave up (simulated nodemcu-tool)', 
     expect(device.checkConnection).toHaveBeenCalledTimes(2)
   })
 })
+
+// Serial transport mock only. This is NOT physical ESP8266 acceptance.
+//
+// MUST stay the LAST describe block in this file: the native fsinfo() call
+// below is built to never settle, at all, for the rest of the process. By
+// design (see withMutex's quarantine) that means the transport mutex it
+// takes out is never released once this block runs, which would otherwise
+// make every later test in this file wait on it forever too.
+describe('NodeMCU mutex acquisition is bounded, not indefinite (#16)', () => {
+  beforeEach(() => {
+    jest.useFakeTimers()
+    jest.spyOn(FirmwareAssets, 'findFirmwareFiles').mockResolvedValue([])
+  })
+  afterEach(() => {
+    jest.restoreAllMocks()
+    jest.useRealTimers()
+  })
+
+  // advanceTimersByTimeAsync() has a fixed real-time cost per call, so this
+  // uses few, large (1 s) ticks rather than one matching the exact deadline
+  // — same reasoning as settle() elsewhere in this file.
+  const settle = async <T>(operation: Promise<T>) => {
+    let done = false
+    void operation.finally(() => { done = true })
+    for (let i = 0; i < 200 && !done; i++) await jest.advanceTimersByTimeAsync(1000)
+    return operation
+  }
+
+  test('a later job fails with a clear error instead of queuing behind a stuck one forever', async () => {
+    const stuckDevice = {
+      onError: jest.fn(),
+      isConnected: jest.fn().mockReturnValue(false),
+      listDevices: jest.fn().mockResolvedValue([{ path: 'COM1', vendorId: '0403' }]),
+      connect: jest.fn().mockResolvedValue(undefined),
+      disconnect: jest.fn().mockResolvedValue(undefined),
+      purge: jest.fn().mockResolvedValue(undefined),
+      write: jest.fn().mockResolvedValue(undefined),
+      checkConnection: jest.fn().mockResolvedValue(true),
+      deviceInfo: jest.fn().mockResolvedValue({ chipID: 'X', flashID: 'Y', version: '1', modules: [] }),
+      // A native call that never settles, not even late: unlike the timeout
+      // quarantine tests elsewhere in this file, nothing ever resolves this.
+      fsinfo: jest.fn().mockImplementation(() => new Promise(() => {})),
+    }
+    const connector = new NodeMcuConnector(stuckDevice)
+
+    const first = await settle(connector.getDevice()) // fsinfo()'s own 5 s withTimeout deadline
+    expect(first.errorMessage).toContain('timed out')
+
+    // The stuck native call is still pending, so the mutex it holds is
+    // never released (by design). A second job must still give up on its
+    // own bounded wait instead of waiting on it forever.
+    const second = await settle(connector.getDevice()) // mutexAcquireTimeoutMs (90 s) < 200 s of ticks
+    expect(second.errorMessage).toContain('busy')
+  })
+})

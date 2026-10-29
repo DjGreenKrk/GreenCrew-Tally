@@ -86,6 +86,13 @@ export interface NodeMcuTool {
 // rejection (which we can recover from) always comes first.
 const checkTimeoutMs = 2500
 
+// How long a job waits for a previous one's quarantined native operation to
+// settle before giving up. Generous enough for a full program() (connect,
+// two hard resets, 8 file uploads) to finish normally; still finite, so a
+// native call that never truly settles fails every later job with a clear
+// error instead of queuing them behind it forever (see #16).
+const mutexAcquireTimeoutMs = 90000
+
 class NodeMcuConnector {
   nodemcu: NodeMcuTool
   // Native operations may finish AFTER their public timeout; the transport
@@ -98,7 +105,11 @@ class NodeMcuConnector {
     }
     // Serialport is a singleton in the current NodeMCU tool: never start a
     // second job while a timed-out native operation may still complete.
+    const acquireDeadline = Date.now() + mutexAcquireTimeoutMs
     while (!tryToAquireMutex()) {
+      if (Date.now() >= acquireDeadline) {
+        throw new Error('NodeMCU serial transport is still busy with a previous operation that has not completed. Try again in a moment.')
+      }
       await this.sleep(100)
     }
     try {
