@@ -6,7 +6,7 @@ import { DeviceListState, DeviceView } from '../../tally/DeviceList'
 
 const unpaired: DeviceView = {
   id: 'a1b2c3', name: 'CAM1', firmware: '2.0.0', address: '10.0.0.5', online: true, via: ['udp'],
-  status: 'unpaired', crewPassword: 'none', duplicateName: false,
+  status: 'unpaired', crewPassword: 'none', duplicateName: false, staleToken: false,
 }
 const state = (devices: DeviceView[], extra: Partial<DeviceListState> = {}): DeviceListState =>
   ({ hubId: '1a2b3c4d', devices, crewPasswordSet: false, canChangeCrewPassword: true, ...extra })
@@ -29,6 +29,14 @@ describe('v2 tallies', () => {
     fireEvent.click(getByTestId('device-confirm-pair'))
     expect(actions.pair).toHaveBeenCalledWith('a1b2c3')
     expect(queryByTestId('device-confirm')).toBeNull()
+  })
+
+  test('a tally no longer paired can be paired again or forgotten', () => {
+    const { actions, getByTestId } = setup(state([{ ...unpaired, staleToken: true }]))
+    expect(getByTestId('device-stale')).toBeInTheDocument()
+    expect(getByTestId('device-pair')).toBeInTheDocument()
+    fireEvent.click(getByTestId('device-forget'))
+    expect(actions.forget).toHaveBeenCalledWith('a1b2c3')
   })
 
   test('paired tallies can be unpaired, or forgotten when away', () => {

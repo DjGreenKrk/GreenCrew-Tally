@@ -963,6 +963,15 @@ void test_choose_hub() {
     TEST_ASSERT_TRUE(chooseHub(other, 2, "", chosen) == HubSearch::none);
 }
 
+void test_paired_tally_uses_only_its_own_hub() {
+    TEST_ASSERT_TRUE(isUsableHub("1a2b3c4d", ""));
+    TEST_ASSERT_TRUE(isUsableHub("", ""));
+    TEST_ASSERT_TRUE(isUsableHub("1a2b3c4d", "1a2b3c4d"));
+    // found before it was paired with another Hub
+    TEST_ASSERT_FALSE(isUsableHub("99999999", "1a2b3c4d"));
+    TEST_ASSERT_FALSE(isUsableHub("", "1a2b3c4d"));
+}
+
 void test_hub_finder_searches_after_ip_and_backs_off() {
     HubFinder finder;
     TEST_ASSERT_FALSE(finder.searchDue(0, false));  // no Wi-Fi
@@ -1124,7 +1133,7 @@ void test_paired_hub_unpairs_with_the_challenge_once() {
     controller.begin(testPairing(), "hub-pass-1");
     PairingController::Result result = send(controller, hubUnpair);
     TEST_ASSERT_TRUE(result.effect == PairingController::Effect::removePairing);
-    TEST_ASSERT_EQUAL_STRING("gc/1 unpaired id=a1b2c3 hub=1a2b3c4d\n", result.reply);
+    TEST_ASSERT_EQUAL_STRING("gc/1 unpaired id=a1b2c3 hub=1a2b3c4d key=886532c4c183298c\n", result.reply);
     TEST_ASSERT_FALSE(controller.pairing().paired);
     TEST_ASSERT_EQUAL_STRING("", controller.crewPassword());
     // sent again: the tally is no longer paired
@@ -1337,6 +1346,7 @@ int main() {
     RUN_TEST(test_settings_without_hub_ip_are_valid);
     RUN_TEST(test_controller_says_it_looks_for_the_hub);
     RUN_TEST(test_hub_id_from_host_name);
+    RUN_TEST(test_paired_tally_uses_only_its_own_hub);
     RUN_TEST(test_choose_hub);
     RUN_TEST(test_hub_finder_searches_after_ip_and_backs_off);
     RUN_TEST(test_hub_finder_searches_again_when_the_hub_is_silent);

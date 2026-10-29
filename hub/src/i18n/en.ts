@@ -121,6 +121,7 @@ const en: Record<keyof typeof pl, string> = {
   "devices.error.pairedElsewhere": "The tally is paired with another Hub. Unpair it there or on its setup page.",
   "devices.error.alreadyPaired": "The tally is already paired with this Hub.",
   "devices.error.noAnswer": "The tally did not answer. Check that it is on the network and try again.",
+  "devices.staleTokenHelp": "The tally says it is no longer paired with this Hub. The Hub keeps its key until you pair it again or click Forget.",
   "devices.error.storage": "The tally could not save it to its memory. Try again; if it keeps failing, flash the tally again.",
   "devices.error.other": "The tally refused ({reason}).",
   "devices.crew.title": "Crew password",

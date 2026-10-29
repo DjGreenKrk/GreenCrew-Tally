@@ -119,6 +119,7 @@ const pl = {
   "devices.error.pairedElsewhere": "Lampka jest sparowana z innym Hubem. Odparuj ją tam albo na jej stronie konfiguracji.",
   "devices.error.alreadyPaired": "Lampka jest już sparowana z tym Hubem.",
   "devices.error.noAnswer": "Lampka nie odpowiedziała. Sprawdź, czy jest w sieci, i spróbuj ponownie.",
+  "devices.staleTokenHelp": "Lampka mówi, że nie jest już sparowana z tym Hubem. Hub trzyma jej klucz, dopóki nie sparujesz jej ponownie albo nie klikniesz „Zapomnij”.",
   "devices.error.storage": "Lampka nie mogła tego zapisać w pamięci. Spróbuj ponownie; jeśli to się powtarza, wgraj firmware od nowa.",
   "devices.error.other": "Lampka odmówiła ({reason}).",
   "devices.crew.title": "Hasło ekipy",

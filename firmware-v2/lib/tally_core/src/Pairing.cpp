@@ -255,7 +255,12 @@ PairingController::Result PairingController::handle(const char* data, size_t len
     }
 
     if (unpair) {
-        snprintf(result.reply, sizeof(result.reply), "gc/1 unpaired id=%s hub=%s\n", deviceId, hub);
+        // signed, so nobody else can make the Hub drop the token
+        char label[sizeof("unpaired ") + sizeof(challengeText)];
+        snprintf(label, sizeof(label), "unpaired %s", challengeText);
+        char key[2 * fingerprintSize + 1];
+        fingerprint(current.token, label, key);
+        snprintf(result.reply, sizeof(result.reply), "gc/1 unpaired id=%s hub=%s key=%s\n", deviceId, hub, key);
         current = Pairing();
         crew[0] = '\0';
         newChallenge();

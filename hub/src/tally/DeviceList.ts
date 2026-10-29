@@ -27,6 +27,10 @@ export type DeviceView = {
   crewPassword: 'synced' | 'pending' | 'none'
   // another online tally has the same name
   duplicateName: boolean
+  // the Hub still has a token, but the tally says it is no longer paired
+  // with this Hub (unpaired on its setup page, or the Hub's answer was lost);
+  // only pairing again or "forget" removes the token
+  staleToken: boolean
   // the last refusal of the tally, e.g. "paired-elsewhere"
   lastError?: string
 }

@@ -58,6 +58,12 @@ export function pairedKey(token: Buffer) {
   return fingerprint(token, 'paired')
 }
 
+// Signs the tally's "unpaired" answer, so nobody else can make the Hub drop
+// the token. challenge: the one in the "unpair" the tally took.
+export function unpairedKey(token: Buffer, challenge: string) {
+  return fingerprint(token, `unpaired ${challenge}`)
+}
+
 // Names the crew password in the tally's "crew-password-set" answer, so an
 // answer to an older password is not taken for the current one.
 export function crewPasswordFingerprint(token: Buffer, password: string) {
@@ -68,7 +74,7 @@ export { isCrewPassword } from './DeviceList'
 
 export type ManagementReply =
   | { kind: 'paired', id: string, hub: string, key: string }
-  | { kind: 'unpaired', id: string, hub: string }
+  | { kind: 'unpaired', id: string, hub: string, key: string }
   | { kind: 'crew-password-set', id: string, hub: string, crew: string }
   | { kind: 'refused', id: string, to: string, why: string }
 
@@ -86,7 +92,7 @@ export function parseManagementReply(line: string): ManagementReply | undefined 
     return fields.hub && fields.key ? { kind, id: fields.id, hub: fields.hub, key: fields.key } : undefined
   }
   if (kind === 'unpaired') {
-    return fields.hub ? { kind, id: fields.id, hub: fields.hub } : undefined
+    return fields.hub && fields.key ? { kind, id: fields.id, hub: fields.hub, key: fields.key } : undefined
   }
   if (kind === 'crew-password-set') {
     return fields.hub && fields.crew ? { kind, id: fields.id, hub: fields.hub, crew: fields.crew } : undefined

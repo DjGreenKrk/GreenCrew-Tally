@@ -78,13 +78,16 @@ WiFiUDP udp;
 // are sent as given; LightOutput already puts them in GRB or RGB order.
 NeoPixelBus<NeoRgbFeature, NeoEsp8266Uart1Ws2812xMethod>* strip;
 
+uint32_t hardwareRandom() { return ESP.random(); }
+PairingController pairing(deviceId, hardwareRandom);
+
 class EspPlatform : public Platform {
 public:
     void sendToHub(const char* text) override {
         int ready;
         if (settings->hasHubAddress()) {
             ready = udp.beginPacket(settings->hubAddress(), settings->hubUdpPort());
-        } else if (hubFinder.hasHub()) {
+        } else if (hubFinder.hasHub() && isUsableHub(foundHubId, pairing.pairing().hubId)) {
             ready = udp.beginPacket(foundHubIp, foundHubPort);
         } else {
             return;  // still looking; logs stay in the buffer
@@ -98,8 +101,6 @@ public:
 };
 EspPlatform platform;
 TallyController* controller;
-uint32_t hardwareRandom() { return ESP.random(); }
-PairingController pairing(deviceId, hardwareRandom);
 
 // Wi-Fi events arrive from the SDK; they are only recorded here and handled
 // in loop().
@@ -538,7 +539,7 @@ void loop() {
     if (mdnsStarted) MDNS.update();
     // Talking to another Hub than the paired one (it was the only one
     // around when the tally was paired elsewhere) counts as not connected.
-    bool pairedHubOrAny = !pairing.pairing().paired || strcmp(foundHubId, pairing.pairing().hubId) == 0;
+    bool pairedHubOrAny = isUsableHub(foundHubId, pairing.pairing().hubId);
     if (!settings->hasHubAddress() && hubFinder.searchDue(now, controller->isHubConnected(now) && pairedHubOrAny)) {
         searchHub();
         now = millis();  // the search takes a second

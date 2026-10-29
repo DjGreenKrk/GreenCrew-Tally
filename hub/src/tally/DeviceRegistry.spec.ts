@@ -2,7 +2,7 @@ import { EventEmitter } from 'events'
 import { AppConfiguration } from '../lib/AppConfiguration'
 import ServerEventEmitter from '../lib/ServerEventEmitter'
 import DeviceRegistry from './DeviceRegistry'
-import { crewPasswordFingerprint, crewPasswordMessage, pairedKey, unpairMessage } from './ManagementMessages'
+import { crewPasswordFingerprint, crewPasswordMessage, pairedKey, unpairedKey, unpairMessage } from './ManagementMessages'
 
 const challenge1 = '0123456789abcdef'
 const challenge2 = 'fedcba9876543210'
@@ -40,7 +40,7 @@ describe('DeviceRegistry', () => {
     hello(null)
     expect(registry.getState().devices).toEqual([{
       id: 'a1b2c3', name: 'CAM1', firmware: '2.0.0', address: '10.0.0.5', online: true, via: ['udp'],
-      status: 'unpaired', pairedHub: undefined, crewPassword: 'none', duplicateName: false, lastError: undefined,
+      status: 'unpaired', pairedHub: undefined, crewPassword: 'none', duplicateName: false, staleToken: false, lastError: undefined,
     }])
   })
 
@@ -162,7 +162,11 @@ describe('DeviceRegistry', () => {
     hello('1a2b3c4d', challenge2)
     expect(sent[1].text).toEqual(unpairMessage('1a2b3c4d', token, challenge2))
 
-    registry.replyReceived({ kind: 'unpaired', id: 'a1b2c3', hub: '1a2b3c4d' })
+    // not signed with the token and a challenge sent: someone else
+    registry.replyReceived({ kind: 'unpaired', id: 'a1b2c3', hub: '1a2b3c4d', key: unpairedKey(Buffer.alloc(16), challenge2) })
+    expect(configuration.getPairedDevices()).toHaveLength(1)
+    // signed with one of the challenges the unpairing went with
+    registry.replyReceived({ kind: 'unpaired', id: 'a1b2c3', hub: '1a2b3c4d', key: unpairedKey(token, challenge1) })
     expect(configuration.getPairedDevices()).toEqual([])
     expect(registry.getState().devices[0].status).toBe('unpaired')
   })
@@ -185,12 +189,29 @@ describe('DeviceRegistry', () => {
     expect(registry.getState().devices[0].lastError).toBeUndefined()
   })
 
-  test('follows a tally unpaired on its setup page', () => {
-    const { registry, hello, configuration, advance } = pairedSetup()
+  test('a tally that says it is no longer paired keeps its token until paired again or forgotten', () => {
+    // unpaired on its setup page, or a forged "tally-ho": not signed
+    const { registry, sent, hello, configuration, advance, paired } = pairedSetup()
+    const oldToken = configuration.getPairedDevice('a1b2c3')!.token
     advance(11000)
     hello(null)
+    expect(configuration.getPairedDevice('a1b2c3')!.token).toEqual(oldToken)
+    expect(registry.getState().devices[0]).toMatchObject({ status: 'unpaired', staleToken: true })
+    // the real tally again
+    hello('1a2b3c4d')
+    expect(registry.getState().devices[0]).toMatchObject({ status: 'paired', staleToken: false })
+    // a refusal no unpairing asked for changes nothing
+    registry.replyReceived({ kind: 'refused', id: 'a1b2c3', to: 'unpair', why: 'not-paired' })
+    expect(configuration.getPairedDevice('a1b2c3')).toBeDefined()
+
+    hello(null)
+    expect(registry.pair('a1b2c3')).toBe(true)
+    paired(sent.at(-1)!.text)
+    expect(configuration.getPairedDevice('a1b2c3')!.token).not.toEqual(oldToken)
+    advance(11000)
+    hello(null)
+    registry.forget('a1b2c3')
     expect(configuration.getPairedDevices()).toEqual([])
-    expect(registry.getState().devices[0].status).toBe('unpaired')
   })
 
   test('forget keeps no token; the tally then reports a lost pairing', () => {

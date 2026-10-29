@@ -42,6 +42,7 @@ function DeviceRow({ device, actions }: { device: DeviceView, actions: DeviceAct
       {device.status === 'paired' && ' · ' + t(`devices.crew.${device.crewPassword}` as TranslationKey)}
     </Typography>
     {device.status === 'tokenLost' && <Alert severity="warning" sx={{ mt: 1 }}>{t('devices.tokenLostHelp')}</Alert>}
+    {device.staleToken && <Alert severity="info" sx={{ mt: 1 }} data-testid="device-stale">{t('devices.staleTokenHelp')}</Alert>}
     {device.lastError && <Alert severity="error" sx={{ mt: 1 }} data-testid="device-error">
       {ERRORS[device.lastError] ? t(ERRORS[device.lastError]) : t('devices.error.other', { reason: device.lastError })}
     </Alert>}
@@ -60,7 +61,7 @@ function DeviceRow({ device, actions }: { device: DeviceView, actions: DeviceAct
         <Button size="small" variant="contained" onClick={startPairing} data-testid="device-pair">{t('devices.pair')}</Button>}
       {device.online && device.status === 'paired' &&
         <Button size="small" onClick={() => actions.unpair(device.id)} data-testid="device-unpair">{t('devices.unpair')}</Button>}
-      {!device.online && device.status === 'paired' &&
+      {((!device.online && device.status === 'paired') || device.staleToken) &&
         <Button size="small" onClick={() => actions.forget(device.id)} data-testid="device-forget">{t('devices.forget')}</Button>}
     </Stack>
   </Box>

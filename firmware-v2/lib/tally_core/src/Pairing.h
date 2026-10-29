@@ -38,7 +38,7 @@ struct Pairing {
 //
 // The tally answers to the sender:
 //   gc/1 paired id=<device> hub=<id> key=<fingerprint of "paired">
-//   gc/1 unpaired id=<device> hub=<id>
+//   gc/1 unpaired id=<device> hub=<id> key=<fingerprint of "unpaired <challenge>">
 //   gc/1 crew-password-set id=<device> hub=<id> crew=<fingerprint of "crew-password-set <password>">
 //   gc/1 refused id=<device> to=<verb> why=<reason>
 // The fingerprints tell the Hub which token and which password the tally

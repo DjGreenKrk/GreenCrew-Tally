@@ -198,7 +198,7 @@ Hub → tally   gc/1 pair hub=<id> token=<32 hex>
 Hub → tally   gc/1 unpair hub=<id> ch=<challenge> mac=<hmac>
 Hub → tally   gc/1 crew-password hub=<id> ch=<challenge> pw=<hex> mac=<hmac>
 tally → Hub   gc/1 paired id=<device> hub=<id> key=<fingerprint>
-tally → Hub   gc/1 unpaired id=<device> hub=<id>
+tally → Hub   gc/1 unpaired id=<device> hub=<id> key=<fingerprint>
 tally → Hub   gc/1 crew-password-set id=<device> hub=<id> crew=<fingerprint>
 tally → Hub   gc/1 refused id=<device> to=<message> why=<reason>
 ```
@@ -211,7 +211,13 @@ message, so a recorded message cannot be sent again. The Hub sends a message aga
 `crew-password-set <password>`) tell the Hub which token and which password the tally took. When
 the answers to pairing were lost but the tally says it is paired with this Hub, the Hub sends
 the tokens it tried again and keeps the one the tally names. When the tally cannot write the
-change to its flash it keeps the state from before and answers `refused ... why=storage`. The crew password travels XORed with a key
+change to its flash it keeps the state from before and answers `refused ... why=storage`.
+
+The Hub drops a token only after a signed `unpaired` (`key` over `unpaired <challenge>`), when the
+operator pairs the tally again or clicks Forget, or when the tally answers `not-paired` while the
+operator unpairs it. A `tally-ho` saying the tally is not paired (unpaired on its setup page, or
+forged) only shows it so. A paired tally sends to its own Hub only: one found over mDNS before it
+was paired is not used, even when the next search finds nothing. The crew password travels XORed with a key
 stream from the token and the challenge. The token itself crosses the network once, in plain
 text, when pairing. Colour messages stay unsigned as in v1.
 
