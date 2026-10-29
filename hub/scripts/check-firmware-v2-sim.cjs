@@ -21,6 +21,14 @@ const settingsFile = path.join(tmp, 'tally-settings.ini')
 fs.writeFileSync(configFile, JSON.stringify({ mixer: 'companion' }))
 fs.writeFileSync(settingsFile, 'station.ssid=Simulated\nhub.ip=127.0.0.1\nhub.port=7411\ntally.name=SimCam\noperator.ws2812=16 grb\n')
 
+// The Hub may be writing the file just then: read again on the next poll
+const pairedInConfig = () => {
+  try {
+    return JSON.parse(fs.readFileSync(configFile, 'utf8')).pairedDevices || []
+  } catch {
+    return undefined
+  }
+}
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 const waitFor = async (fn, ms, name) => {
   const end = Date.now() + ms
@@ -166,7 +174,7 @@ async function run() {
   client.emit('device.pair', 'c0ffee')
   await waitFor(() => simOutput.includes(`pairing paired hub=${hubId} crew=`), 4000, 'tally paired')
   await waitFor(() => devices.devices.find(d => d.id === 'c0ffee')?.status === 'paired', 4000, 'paired in the device list')
-  await waitFor(() => (JSON.parse(fs.readFileSync(configFile, 'utf8')).pairedDevices || []).some(d => d.id === 'c0ffee'), 4000, 'pairing saved by the Hub')
+  await waitFor(() => pairedInConfig()?.some(d => d.id === 'c0ffee'), 4000, 'pairing saved by the Hub')
 
   // 12. the crew password reaches the paired tally, signed and hidden
   client.emit('crewPassword.set', 'crew pass 1!')
@@ -190,7 +198,7 @@ async function run() {
   client.emit('device.unpair', 'c0ffee')
   await waitFor(() => simOutput.includes('pairing unpaired hub= crew='), 4000, 'tally unpaired')
   await waitFor(() => devices.devices.find(d => d.id === 'c0ffee')?.status === 'unpaired', 4000, 'unpaired in the device list')
-  await waitFor(() => !(JSON.parse(fs.readFileSync(configFile, 'utf8')).pairedDevices || []).length, 4000, 'pairing removed by the Hub')
+  await waitFor(() => pairedInConfig()?.length === 0, 4000, 'pairing removed by the Hub')
 
   console.log(`PASS firmware v2 ${firmwareVersion} (simulated) with the real Hub: v2 hello, UNKNOWN, Program, Preview, AUX, highlight, lost Hub, reconnect, device list, identify, pairing, crew password, duplicate name, unpairing`)
   console.log(`Frames seen: ${frames.length}`)
