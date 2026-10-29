@@ -146,6 +146,11 @@ io.on('connection', (socket: ServerSideSocket) => {
     // @TODO: not used yet
     mixerEvents.forEach(pipe => pipe.unregister())
   })
+  // Manually restart the current mixer connection, e.g. after a vMix/OBS
+  // connector gave up retrying on its own (#4).
+  socket.on('mixer.reconnect', () => {
+    void myMixerDriver.reconnect()
+  })
 
   const programEvents = [
     new SocketAwareEvent(myEmitter, 'program.changed', socket, (socket, {programs, previews, auxes}) => {

@@ -55,6 +55,7 @@ export interface ServerSentEvents {
 export interface ClientSentEvents {
     'events.mixer.subscribe': () => void
     'events.mixer.unsubscribe': () => void
+    'mixer.reconnect': () => void
     'events.program.subscribe': () => void
     'events.program.unsubscribe': () => void
     'events.config.subscribe': () => void
