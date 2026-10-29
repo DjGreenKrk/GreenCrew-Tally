@@ -69,6 +69,15 @@ export class MixerDriver {
     }
 
     async changeMixer(newMixerId) {
+        // Guard changeMixer itself, not just its callers: reconnect() (#4)
+        // can be triggered repeatedly in quick succession (e.g. two Reconnect
+        // clicks), and running two changeMixer calls concurrently would
+        // disconnect/replace the same connector twice, orphaning one of them.
+        if (this.isChangingMixer) {
+            console.warn(`Ignoring request to switch to mixer "${newMixerId}": a mixer change is already in progress.`)
+            return
+        }
+
         if(!MixerDriver.getAllowedMixers(this.configuration.isDev(), this.configuration.isTest()).includes(newMixerId)) {
             console.error(`Can not switch to unknown mixer with id ${newMixerId}`)
             return
