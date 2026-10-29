@@ -55,4 +55,25 @@ private:
     uint8_t failuresInRow = 0;
 };
 
+// On some networks (notably Android phone hotspots) multicast is filtered,
+// so mDNS never gets an answer even though the Hub is reachable: a phone
+// hotspot's gateway is the phone itself, which is where the Hub usually runs
+// (see #22, stage 2 of #19). After this many *consecutive* HubSearch::none
+// results (not "several"/"pinnedMissing": those mean multicast does work),
+// the tally guesses the Wi-Fi gateway as the Hub's address, while mDNS
+// search keeps retrying in the background and can still replace the guess
+// with a confirmed Hub.
+class GatewayFallback {
+public:
+    static const uint8_t afterFailures = 3;
+
+    // Call after every finished mDNS search. True the moment the guess
+    // should be (re)applied: exactly when the streak first reaches
+    // afterFailures, so the caller logs/applies it once, not every search.
+    bool searchDone(HubSearch result);
+
+private:
+    uint8_t noneInRow = 0;
+};
+
 }  // namespace gctally

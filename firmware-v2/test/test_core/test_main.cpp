@@ -982,6 +982,38 @@ void test_hub_finder_searches_again_when_the_hub_is_silent() {
     TEST_ASSERT_FALSE(finder.searchDue(80000, false));
 }
 
+void test_gateway_fallback_after_three_none_in_a_row() {
+    GatewayFallback fallback;
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
+    TEST_ASSERT_TRUE(fallback.searchDone(HubSearch::none));
+    // stays applied already; does not re-fire every search after that
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
+}
+
+void test_gateway_fallback_resets_when_mdns_actually_works() {
+    GatewayFallback fallback;
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
+    // a Hub (or several) answered: multicast is not blocked here, so the
+    // guess is irrelevant and the streak starts over
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::several));
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
+    TEST_ASSERT_TRUE(fallback.searchDone(HubSearch::none));
+}
+
+void test_gateway_fallback_resets_once_a_hub_is_found() {
+    GatewayFallback fallback;
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::found));
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
+    TEST_ASSERT_FALSE(fallback.searchDone(HubSearch::none));
+    TEST_ASSERT_TRUE(fallback.searchDone(HubSearch::none));
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_parses_a_static_program_message);
@@ -1052,5 +1084,8 @@ int main() {
     RUN_TEST(test_choose_hub);
     RUN_TEST(test_hub_finder_searches_after_ip_and_backs_off);
     RUN_TEST(test_hub_finder_searches_again_when_the_hub_is_silent);
+    RUN_TEST(test_gateway_fallback_after_three_none_in_a_row);
+    RUN_TEST(test_gateway_fallback_resets_when_mdns_actually_works);
+    RUN_TEST(test_gateway_fallback_resets_once_a_hub_is_found);
     return UNITY_END();
 }

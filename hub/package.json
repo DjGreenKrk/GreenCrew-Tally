@@ -92,7 +92,8 @@
   ],
   "cpu": [
     "x64",
-    "arm"
+    "arm",
+    "arm64"
   ],
   "build": {
     "extends": null,

@@ -159,6 +159,12 @@ from DHCP is found again without touching the tally.
   `hub.id` it uses only that Hub.
 - Nothing found: the tally asks again after 3 s, doubling up to 30 s, and logs why (Hub not
   running, or multicast blocked by client isolation or a multicast filter: then set `hub.ip`).
+- After 3 searches in a row with no answer at all (not "several Hubs"/"wrong hub.id", where
+  multicast clearly does work), the tally also guesses the network's default gateway as the
+  Hub's address and logs it once — useful on a phone hotspot (#22, stage 2 of #19), where the
+  Hub-running device is usually also the only router, and some phones filter multicast so mDNS
+  never gets an answer even though the Hub is reachable. mDNS keeps retrying in the background
+  and replaces the guess the moment it actually finds a Hub.
 - A Hub that stays silent for 10 s is looked up again (new address, restarted Hub). A search
   takes about a second and only runs while no Hub is connected.
 - The address found is kept in RAM only; nothing is written to flash.
@@ -250,7 +256,8 @@ in use (`esptool flash_id`).
   - `LogBuffer`: logs kept until the Hub can receive them
   - `TallyController`: Wi-Fi events, Hub timeout, `tally-ho` and logs
   - `WifiSupervisor`: reconnect backoff, recovery access point, trial of new settings
-  - `HubFinder`: which Hub to use and when to look for it
+  - `HubFinder`: which Hub to use and when to look for it; `GatewayFallback`: when to guess the
+    default gateway as the Hub after mDNS keeps finding nothing
   - `SetupForm`: checks the setup page and writes the settings file
   - `SetupPage`: the setup page (HTML, Polish and English)
 - `src/main.cpp`: ESP8266 hardware (Wi-Fi, UDP, mDNS, pins), setup mode, double reset

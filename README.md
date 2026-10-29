@@ -36,6 +36,14 @@ to a working show:
 4. patch tallies to camera channels;
 5. import the Companion module from `companion\` and connect it to the Hub.
 
+## Getting started (phone, no laptop)
+
+No laptop, mini PC or Raspberry Pi needed either: the Hub can run on an Android phone in
+[Termux](https://termux.dev/), with the phone itself as the Wi-Fi hotspot, or on a small
+always-on device connected to an iPhone's Personal Hotspot. See
+[hub/MOBILE-HUB.md](hub/MOBILE-HUB.md) for setup steps, keeping the Hub alive in the
+background, and how tallies find the Hub on a hotspot.
+
 ## Tally colours
 
 | Light | Meaning |
