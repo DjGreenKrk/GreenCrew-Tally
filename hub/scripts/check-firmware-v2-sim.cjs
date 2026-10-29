@@ -1,6 +1,7 @@
 // Firmware v2 against the real Hub: the tally logic of firmware-v2 runs on
 // the computer (firmware-v2/sim) and talks UDP to dist/server.js. Checks the
-// v2 hello, the colours, highlight, a lost Hub and the reconnect.
+// v2 hello, the colours, highlight, a lost Hub and the reconnect, then the
+// device list, pairing, the crew password, a duplicate name and unpairing (#28).
 // Build first: npm run build:backend && make -C ../firmware-v2/sim
 'use strict'
 const assert = require('node:assert/strict')
@@ -20,6 +21,14 @@ const settingsFile = path.join(tmp, 'tally-settings.ini')
 fs.writeFileSync(configFile, JSON.stringify({ mixer: 'companion' }))
 fs.writeFileSync(settingsFile, 'station.ssid=Simulated\nhub.ip=127.0.0.1\nhub.port=7411\ntally.name=SimCam\noperator.ws2812=16 grb\n')
 
+// The Hub may be writing the file just then: read again on the next poll
+const pairedInConfig = () => {
+  try {
+    return JSON.parse(fs.readFileSync(configFile, 'utf8')).pairedDevices || []
+  } catch {
+    return undefined
+  }
+}
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 const waitFor = async (fn, ms, name) => {
   const end = Date.now() + ms
@@ -31,7 +40,7 @@ const waitFor = async (fn, ms, name) => {
   throw new Error('Timed out waiting for ' + name)
 }
 
-let hub, sim, client
+let hub, sim, client, twin
 let hubOutput = ''
 const frames = [] // {at, text}
 const simOutput = []
@@ -142,18 +151,63 @@ async function run() {
   await startHub(port)
   client.close()
   client = io(base, { transports: ['websocket'], reconnection: false })
+  client.on('tally.state', state => { tallies = state.tallies })
   await new Promise((resolve, reject) => { client.once('connect', resolve); client.once('connect_error', reject) })
+  client.emit('events.tally.subscribe')
   offset = frames.length
   await companion(base, { programs: ['1'], previews: [] })
   await waitFor(() => frames.at(-1)?.text === 'O255/000/000 S255/000/000', 5000, 'Program red after the Hub restart')
 
-  console.log(`PASS firmware v2 ${firmwareVersion} (simulated) with the real Hub: v2 hello, UNKNOWN, Program, Preview, AUX, highlight, lost Hub, reconnect`)
+  // 9. the device list shows the tally, not paired
+  let devices
+  client.on('devices.state', state => { devices = state })
+  client.emit('devices.get')
+  await waitFor(() => devices?.devices.find(d => d.id === 'c0ffee' && d.status === 'unpaired' && d.online), 4000, 'unpaired tally in the device list')
+  const hubId = devices.hubId
+
+  // 10. identify: white on the operator light only
+  offset = frames.length
+  client.emit('device.identify', 'c0ffee')
+  await waitFor(() => sawFrame(offset, 'O255/255/255 S000/000/000'), 3000, 'identify blink')
+
+  // 11. pairing: the tally keeps the Hub, the Hub keeps the token
+  client.emit('device.pair', 'c0ffee')
+  await waitFor(() => simOutput.includes(`pairing paired hub=${hubId} crew=`), 4000, 'tally paired')
+  await waitFor(() => devices.devices.find(d => d.id === 'c0ffee')?.status === 'paired', 4000, 'paired in the device list')
+  await waitFor(() => pairedInConfig()?.some(d => d.id === 'c0ffee'), 4000, 'pairing saved by the Hub')
+
+  // 12. the crew password reaches the paired tally, signed and hidden
+  client.emit('crewPassword.set', 'crew pass 1!')
+  await waitFor(() => simOutput.includes(`pairing paired hub=${hubId} crew=crew pass 1!`), 6000, 'crew password on the tally')
+  await waitFor(() => devices.devices.find(d => d.id === 'c0ffee')?.crewPassword === 'synced', 4000, 'crew password confirmed')
+  assert.ok(!simOutput.some(line => line.startsWith('reply') && line.includes('refused')), 'no refusals: ' + simOutput.filter(l => l.startsWith('reply')))
+
+  // 13. a second tally with the same name does not take the lights over
+  const twinFrames = []
+  twin = spawn(simBinary, [settingsFile, 'bad123'], { stdio: ['ignore', 'pipe', 'pipe'] })
+  twin.stdout.on('data', data => twinFrames.push(...data.toString().split('\n').filter(l => l.startsWith('frame '))))
+  await waitFor(() => devices.devices.filter(d => d.name === 'SimCam' && d.duplicateName).length === 2, 5000, 'duplicate name in the device list')
+  await delay(1500)
+  const bound = tallies.find(t => t.name === 'SimCam' && t.type === 'udp')
+  assert.equal(bound.device.id, 'c0ffee', 'the first tally keeps its name')
+  assert.ok(!twinFrames.includes('frame O255/000/000 S255/000/000'), 'the twin must not get the program colour')
+  twin.kill('SIGKILL')
+  twin = undefined
+
+  // 14. unpairing, signed with the current challenge
+  client.emit('device.unpair', 'c0ffee')
+  await waitFor(() => simOutput.includes('pairing unpaired hub= crew='), 4000, 'tally unpaired')
+  await waitFor(() => devices.devices.find(d => d.id === 'c0ffee')?.status === 'unpaired', 4000, 'unpaired in the device list')
+  await waitFor(() => pairedInConfig()?.length === 0, 4000, 'pairing removed by the Hub')
+
+  console.log(`PASS firmware v2 ${firmwareVersion} (simulated) with the real Hub: v2 hello, UNKNOWN, Program, Preview, AUX, highlight, lost Hub, reconnect, device list, identify, pairing, crew password, duplicate name, unpairing`)
   console.log(`Frames seen: ${frames.length}`)
 }
 
 async function cleanup() {
   if (client) client.close()
   if (sim) sim.kill('SIGKILL')
+  if (twin) twin.kill('SIGKILL')
   if (hub && hub.exitCode === null) hub.kill('SIGKILL')
   fs.rmSync(tmp, { recursive: true, force: true })
 }

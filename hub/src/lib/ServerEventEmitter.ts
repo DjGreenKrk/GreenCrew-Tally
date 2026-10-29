@@ -17,6 +17,7 @@ import { AppConfiguration } from "./AppConfiguration";
 import { ChannelList } from "./MixerCommunicator";
 import { VmixProjectState } from "./VmixProjectManager";
 import { HubDiscoveryState } from "./HubDiscoveryState";
+import { DeviceListState } from "../tally/DeviceList";
 
 /* events that are send around on the server */
 
@@ -38,6 +39,7 @@ export interface EventHandlersDataMap {
     'config.changed.mixer': (mixerName: string) => void
     'config.changed.companionLan': () => void
     'discovery.changed': (state: HubDiscoveryState) => void
+    'devices.changed': (state: Omit<DeviceListState, 'canChangeCrewPassword'>) => void
     'mixer.connected': () => void
     'mixer.disconnected': () => void
     'vmix.project.changed': (presetPath?: string) => void

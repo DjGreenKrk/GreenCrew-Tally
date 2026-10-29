@@ -23,6 +23,7 @@ struct Info {
     bool recovery;
     gctally::WifiFailure trialFailure;
     const char* trialSsid;
+    const char* pairedHubId;  // "" when not paired
 };
 
 void start(const char* apName, const char* password, const Info& info);

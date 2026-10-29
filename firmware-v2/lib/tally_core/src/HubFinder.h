@@ -26,6 +26,11 @@ enum class HubSearch : uint8_t {
 // Answers repeated for several network interfaces of the same Hub count once.
 HubSearch chooseHub(const HubAnswer* answers, size_t count, const char* pinnedId, size_t& chosen);
 
+// A paired tally talks only to its own Hub: one found before it was paired
+// (or before it was paired again elsewhere) is not used, even when the next
+// search finds nothing. pairedId is "" when not paired.
+bool isUsableHub(const char* foundId, const char* pairedId);
+
 // When to look for the Hub over mDNS (only without hub.ip). A search blocks
 // for about a second, so it runs only while no Hub is connected: right after
 // getting an IP, again 3 s after a failed search doubling up to 30 s, and

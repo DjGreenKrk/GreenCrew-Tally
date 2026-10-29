@@ -26,6 +26,10 @@ bool hubIdFromHostName(const char* hostName, char* id, size_t size) {
     return isHubId(id);
 }
 
+bool isUsableHub(const char* foundId, const char* pairedId) {
+    return pairedId == nullptr || pairedId[0] == '\0' || (foundId != nullptr && strcmp(foundId, pairedId) == 0);
+}
+
 HubSearch chooseHub(const HubAnswer* answers, size_t count, const char* pinnedId, size_t& chosen) {
     bool pinned = pinnedId != nullptr && pinnedId[0] != '\0';
     char firstId[9] = "";

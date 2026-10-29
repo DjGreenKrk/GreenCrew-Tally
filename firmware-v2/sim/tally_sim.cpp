@@ -3,6 +3,8 @@
 // the lights are printed instead of driven:
 //   frame O255/000/000 S255/000/000
 //   console [INFO]  Contacting hub on 127.0.0.1:7411
+//   pairing paired hub=1a2b3c4d crew=
+// Pairing is kept in RAM only.
 //
 // Build: make -C firmware-v2/sim
 // Run:   firmware-v2/sim/.build/gc-tally-sim tally-settings.ini [device-id]
@@ -17,10 +19,12 @@
 #include <unistd.h>
 
 #include <fstream>
+#include <random>
 #include <sstream>
 #include <string>
 
 #include "LedEngine.h"
+#include "Pairing.h"
 #include "Settings.h"
 #include "TallyController.h"
 
@@ -49,6 +53,9 @@ private:
     int socket;
     sockaddr_in hub;
 };
+
+std::random_device randomDevice;
+uint32_t simRandom() { return randomDevice(); }
 
 void printFrame(const Frame& frame) {
     const Color& o = frame.operatorColor;
@@ -95,6 +102,9 @@ int main(int argc, char** argv) {
     SimPlatform platform(sock, hub);
     LedEngine leds;
     TallyController controller(settings, deviceId, leds, platform);
+    PairingController pairing(deviceId, simRandom);
+    pairing.begin(Pairing(), "");
+    controller.setPairing(&pairing);
     for (size_t i = 0; i < settings.warningCount(); i++) controller.log(Severity::warning, settings.warning(i));
     controller.begin(millis());
     if (!settings.isValid()) {
@@ -108,9 +118,24 @@ int main(int argc, char** argv) {
     while (true) {
         pollfd fd = {sock, POLLIN, 0};
         if (poll(&fd, 1, 5) > 0) {
-            char packet[64];
-            ssize_t length = recv(sock, packet, sizeof(packet) - 1, 0);
-            if (length > 0) controller.packetReceived(packet, length, millis());
+            char packet[336];
+            sockaddr_in sender = {};
+            socklen_t senderSize = sizeof(sender);
+            ssize_t length = recvfrom(sock, packet, sizeof(packet) - 1, 0, reinterpret_cast<sockaddr*>(&sender), &senderSize);
+            if (length > 0 && PairingController::isManagementMessage(packet, length)) {
+                PairingController::Result result = pairing.handle(packet, length);
+                if (result.effect == PairingController::Effect::identify) controller.identify(millis());
+                if (result.effect != PairingController::Effect::none && result.effect != PairingController::Effect::identify) {
+                    printf("pairing %s hub=%s crew=%s\n", pairing.pairing().paired ? "paired" : "unpaired", pairing.pairing().hubId, pairing.crewPassword());
+                }
+                if (result.reply[0] != '\0') {
+                    printf("reply %s", result.reply);
+                    sendto(sock, result.reply, strlen(result.reply), 0, reinterpret_cast<sockaddr*>(&sender), senderSize);
+                }
+                fflush(stdout);
+            } else if (length > 0) {
+                controller.packetReceived(packet, length, millis());
+            }
         }
         uint32_t now = millis();
         controller.tick(now);

@@ -1,5 +1,5 @@
 import CommandParser from './CommandParser'
-import { LogCommand, TallyHoCommand } from './CommandParser'
+import { LogCommand, ManagementCommand, TallyHoCommand } from './CommandParser'
 
 
 test('fails if command is invalid #1', () => {
@@ -44,6 +44,24 @@ describe('tally-ho command', () => {
         const result = CommandParser.parse('tally-ho "CAM1" something else') as TallyHoCommand
         expect(result.tallyName).toBe("CAM1")
         expect(result.device).toBeUndefined()
+    })
+    test('reads the pairing and the challenge apart from the device', () => {
+        const unpaired = CommandParser.parse('tally-ho "CAM1" gc/1 id=a1b2c3 fw=2.0.0 hw=esp8266 caps=ws2812,pwm pair=- ch=0123456789abcdef') as TallyHoCommand
+        expect(unpaired.pairing).toEqual({ hub: null, challenge: '0123456789abcdef' })
+        expect(unpaired.device).toEqual({ protocol: 1, id: "a1b2c3", firmware: "2.0.0", hardware: "esp8266", capabilities: ["ws2812", "pwm"] })
+        const paired = CommandParser.parse('tally-ho "CAM1" gc/1 id=a1b2c3 pair=1a2b3c4d ch=fedcba9876543210') as TallyHoCommand
+        expect(paired.pairing).toEqual({ hub: '1a2b3c4d', challenge: 'fedcba9876543210' })
+        const older = CommandParser.parse('tally-ho "CAM1" gc/1 id=a1b2c3') as TallyHoCommand
+        expect(older.pairing).toBeUndefined()
+    })
+})
+describe('management replies', () => {
+    test('parses the answer of a v2 tally', () => {
+        const result = CommandParser.parse('gc/1 paired id=a1b2c3 hub=1a2b3c4d key=fdbdef57e8036737') as ManagementCommand
+        expect(result).toEqual({ command: 'management', reply: { kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d', key: 'fdbdef57e8036737' } })
+    })
+    test('fails for unknown management lines', () => {
+        expect(() => CommandParser.parse('gc/1 pair hub=1a2b3c4d')).toThrow('Received an invalid command')
     })
 })
 describe('log command', () => {

@@ -37,6 +37,9 @@ struct Texts {
     const char* modeWifi;
     const char* save;
     const char* restart;
+    const char* paired;
+    const char* unpair;
+    const char* unpairHint;
     const char* saved;
     const char* savedNext;
     const char* errors[10];
@@ -71,6 +74,9 @@ const Texts english = {
     "Wi-Fi + UDP (ESP-NOW in a later version)",
     "Save and connect",
     "Restart without changes",
+    "Paired with Hub",
+    "Unpair",
+    "For a tally whose Hub is gone: afterwards any Hub can pair it again. The crew password set by the Hub is removed too.",
     "Saved. The tally restarts and connects to",
     "If it does not get a connection within 40 seconds, it comes back to this access point and shows what went wrong. The stored settings change only after a working connection.",
     {
@@ -116,6 +122,9 @@ const Texts polish = {
     "Wi-Fi + UDP (ESP-NOW w późniejszej wersji)",
     "Zapisz i połącz",
     "Uruchom ponownie bez zmian",
+    "Sparowana z Hubem",
+    "Odparuj",
+    "Dla lampki, której Hub zniknął: potem każdy Hub może ją sparować ponownie. Hasło ekipy ustawione przez Hub też zostanie usunięte.",
     "Zapisano. Lampka uruchamia się ponownie i łączy z siecią",
     "Jeśli w ciągu 40 sekund nie uzyska połączenia, wróci do tego punktu dostępu i pokaże, co poszło nie tak. Zapisane ustawienia zmieniają się dopiero po udanym połączeniu.",
     {
@@ -302,7 +311,18 @@ void renderSetupPage(const SetupPageModel& model, TextSink& sink) {
     sink.write(texts.modeWifi);
     sink.write("</option></select></label><button class=\"main\">");
     sink.write(texts.save);
-    sink.write("</button></form><form method=\"post\" action=\"/restart\"><button class=\"main\">");
+    sink.write("</button></form>");
+    if (model.pairedHubId[0] != '\0') {
+        sink.write("<p>");
+        sink.write(texts.paired);
+        sink.write(" <b>");
+        writeEscaped(sink, model.pairedHubId);
+        sink.write("</b>.</p><form method=\"post\" action=\"/unpair\"><button class=\"main\">");
+        sink.write(texts.unpair);
+        sink.write("</button></form>");
+        writeHint(sink, texts.unpairHint);
+    }
+    sink.write("<form method=\"post\" action=\"/restart\"><button class=\"main\">");
     sink.write(texts.restart);
     sink.write("</button></form></body></html>");
 }

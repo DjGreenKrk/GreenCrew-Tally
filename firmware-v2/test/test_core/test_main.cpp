@@ -16,6 +16,8 @@
 #include "SetupPage.h"
 #include "StateMessage.h"
 #include "HubFinder.h"
+#include "Pairing.h"
+#include "Sha256.h"
 #include "TallyController.h"
 #include "WifiSupervisor.h"
 
@@ -570,11 +572,12 @@ void test_setup_password_is_printable_ascii() {
     TEST_ASSERT_FALSE(isSetupPassword("hasło-ekipy"));
 }
 
-void test_setup_password_from_settings_then_crew_then_generated() {
-    TEST_ASSERT_TRUE(pickSetupPassword("lamp-key-1", "crew-key-1") == SetupPasswordSource::settings);
-    TEST_ASSERT_TRUE(pickSetupPassword("", "crew-key-1") == SetupPasswordSource::crew);
-    TEST_ASSERT_TRUE(pickSetupPassword("", "") == SetupPasswordSource::generated);
-    TEST_ASSERT_TRUE(pickSetupPassword("", "short") == SetupPasswordSource::generated);
+void test_setup_password_from_settings_then_hub_then_crew_then_generated() {
+    TEST_ASSERT_TRUE(pickSetupPassword("lamp-key-1", "hub-key-1", "crew-key-1") == SetupPasswordSource::settings);
+    TEST_ASSERT_TRUE(pickSetupPassword("", "hub-key-1", "crew-key-1") == SetupPasswordSource::hub);
+    TEST_ASSERT_TRUE(pickSetupPassword("", "", "crew-key-1") == SetupPasswordSource::crew);
+    TEST_ASSERT_TRUE(pickSetupPassword("", "", "") == SetupPasswordSource::generated);
+    TEST_ASSERT_TRUE(pickSetupPassword("", "", "short") == SetupPasswordSource::generated);
 }
 
 void test_setup_led_pattern_is_purple() {
@@ -873,6 +876,16 @@ void test_setup_page_shows_settings_but_never_the_password() {
     TEST_ASSERT_TRUE(sink.contains("Puste pole zachowuje zapisane hasło."));
     TEST_ASSERT_TRUE(sink.contains("<input name=\"password\" type=\"password\" maxlength=\"64\" autocomplete=\"off\">"));
     TEST_ASSERT_FALSE(sink.contains("Lampka nie może połączyć się ze swoją siecią"));
+    TEST_ASSERT_FALSE(sink.contains("action=\"/unpair\""));
+}
+
+void test_setup_page_offers_unpairing_when_paired() {
+    SetupPageModel model;
+    model.pairedHubId = "1a2b3c4d";
+    StringSink sink;
+    renderSetupPage(model, sink);
+    TEST_ASSERT_TRUE(sink.contains("Paired with Hub <b>1a2b3c4d</b>."));
+    TEST_ASSERT_TRUE(sink.contains("<form method=\"post\" action=\"/unpair\"><button class=\"main\">Unpair</button></form>"));
 }
 
 void test_recovery_page_explains_itself() {
@@ -950,6 +963,15 @@ void test_choose_hub() {
     TEST_ASSERT_TRUE(chooseHub(other, 2, "", chosen) == HubSearch::none);
 }
 
+void test_paired_tally_uses_only_its_own_hub() {
+    TEST_ASSERT_TRUE(isUsableHub("1a2b3c4d", ""));
+    TEST_ASSERT_TRUE(isUsableHub("", ""));
+    TEST_ASSERT_TRUE(isUsableHub("1a2b3c4d", "1a2b3c4d"));
+    // found before it was paired with another Hub
+    TEST_ASSERT_FALSE(isUsableHub("99999999", "1a2b3c4d"));
+    TEST_ASSERT_FALSE(isUsableHub("", "1a2b3c4d"));
+}
+
 void test_hub_finder_searches_after_ip_and_backs_off() {
     HubFinder finder;
     TEST_ASSERT_FALSE(finder.searchDue(0, false));  // no Wi-Fi
@@ -980,6 +1002,267 @@ void test_hub_finder_searches_again_when_the_hub_is_silent() {
     TEST_ASSERT_TRUE(finder.searchDue(70001, false));
     finder.wifiDown();
     TEST_ASSERT_FALSE(finder.searchDue(80000, false));
+}
+
+// --- pairing (#28) ----------------------------------------------------------
+
+std::string hexOf(const uint8_t* bytes, size_t length) {
+    char text[2 * 64 + 1];
+    toHex(bytes, length, text);
+    return text;
+}
+
+std::string sha256Of(const std::string& text) {
+    Sha256 hash;
+    hash.update(text.data(), text.size());
+    uint8_t digest[Sha256::digestSize];
+    hash.finish(digest);
+    return hexOf(digest, sizeof(digest));
+}
+
+void test_sha256_known_answers() {
+    TEST_ASSERT_EQUAL_STRING("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", sha256Of("").c_str());
+    TEST_ASSERT_EQUAL_STRING("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", sha256Of("abc").c_str());
+    TEST_ASSERT_EQUAL_STRING("248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1",
+                             sha256Of("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq").c_str());
+    // fed in pieces across the block boundary
+    Sha256 hash;
+    std::string text(130, 'a');
+    hash.update(text.data(), 63);
+    hash.update(text.data() + 63, 67);
+    uint8_t digest[Sha256::digestSize];
+    hash.finish(digest);
+    TEST_ASSERT_EQUAL_STRING(sha256Of(text).c_str(), hexOf(digest, sizeof(digest)).c_str());
+}
+
+void test_hmac_sha256_rfc4231() {
+    uint8_t mac[Sha256::digestSize];
+    const char* data = "what do ya want for nothing?";
+    hmacSha256(reinterpret_cast<const uint8_t*>("Jefe"), 4, data, strlen(data), mac);
+    TEST_ASSERT_EQUAL_STRING("5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843", hexOf(mac, sizeof(mac)).c_str());
+    // a key longer than a block is hashed first (test case 6)
+    uint8_t key[131];
+    memset(key, 0xaa, sizeof(key));
+    const char* large = "Test Using Larger Than Block-Size Key - Hash Key First";
+    hmacSha256(key, sizeof(key), large, strlen(large), mac);
+    TEST_ASSERT_EQUAL_STRING("60e431591ee0b67f0d8a26aacbf5b77f8e0bc6213728c5140546040f0ee37f54", hexOf(mac, sizeof(mac)).c_str());
+}
+
+const uint32_t* randomValues;
+uint32_t nextRandom() { return *randomValues++; }
+// challenge "0123456789abcdef", then "fedcba9876543210"
+const uint32_t challenges[] = {0x01234567, 0x89abcdef, 0xfedcba98, 0x76543210, 0, 0, 0, 0};
+
+Pairing testPairing() {
+    Pairing pairing;
+    TEST_ASSERT_TRUE(pairing.parse("hub=1a2b3c4d\ntoken=000102030405060708090a0b0c0d0e0f\n"));
+    return pairing;
+}
+
+PairingController::Result send(PairingController& controller, const char* line) { return controller.handle(line, strlen(line)); }
+
+// The lines below come from the Hub's code (hub/src/tally/ManagementMessages.ts)
+// for token 00..0f, so both sides agree on the format and the mac.
+const char* hubUnpair = "gc/1 unpair hub=1a2b3c4d ch=0123456789abcdef mac=116021f9dac5f24818c91e757fdf61337d3eb235faedaec61e299456fbec5a57\n";
+const char* hubCrewPassword =
+    "gc/1 crew-password hub=1a2b3c4d ch=0123456789abcdef pw=d505288317e7f77461e09333 "
+    "mac=42f41681e373057a823deb4bc51c979644bada6df62e77ac3160ca83d1e5d980";
+const char* hubLongCrewPassword =
+    "gc/1 crew-password hub=1a2b3c4d ch=0123456789abcdef "
+    "pw=ce0f358c4fefee7f6ab8da6a8a82c68f36855629d4e8f6000e60477e35b031ce41fc8985d178474b "
+    "mac=84f3588744b3eb4a7bae7b65146aa2c143afe33ff94e323f349525b7ae0c0bbc";
+
+void test_pairing_file_round_trip() {
+    Pairing pairing = testPairing();
+    TEST_ASSERT_TRUE(pairing.paired);
+    TEST_ASSERT_EQUAL_STRING("1a2b3c4d", pairing.hubId);
+    char text[80];
+    pairing.write(text, sizeof(text));
+    TEST_ASSERT_EQUAL_STRING("hub=1a2b3c4d\ntoken=000102030405060708090a0b0c0d0e0f\n", text);
+    TEST_ASSERT_FALSE(pairing.parse("hub=1a2b3c4d\ntoken=0001\n"));
+    TEST_ASSERT_FALSE(pairing.paired);
+    TEST_ASSERT_FALSE(pairing.parse("hub=XYZ\ntoken=000102030405060708090a0b0c0d0e0f\n"));
+    TEST_ASSERT_FALSE(pairing.parse(""));
+}
+
+void test_unpaired_tally_identifies_and_pairs() {
+    randomValues = challenges;
+    PairingController controller("a1b2c3", nextRandom);
+    controller.begin(Pairing(), "");
+    TEST_ASSERT_EQUAL_STRING("0123456789abcdef", controller.challenge());
+    TEST_ASSERT_TRUE(PairingController::isManagementMessage("gc/1 identify hub=1a2b3c4d", 26));
+    TEST_ASSERT_FALSE(PairingController::isManagementMessage("O255/000/000 S255/000/000", 25));
+
+    TEST_ASSERT_TRUE(send(controller, "gc/1 identify hub=1a2b3c4d\n").effect == PairingController::Effect::identify);
+
+    PairingController::Result result = send(controller, "gc/1 pair hub=1a2b3c4d token=000102030405060708090a0b0c0d0e0f\n");
+    TEST_ASSERT_TRUE(result.effect == PairingController::Effect::savePairing);
+    TEST_ASSERT_EQUAL_STRING("gc/1 paired id=a1b2c3 hub=1a2b3c4d key=fdbdef57e8036737\n", result.reply);
+    TEST_ASSERT_TRUE(controller.pairing().paired);
+    TEST_ASSERT_EQUAL_STRING("1a2b3c4d", controller.pairing().hubId);
+    TEST_ASSERT_EQUAL_STRING("fedcba9876543210", controller.challenge());
+}
+
+void test_paired_tally_refuses_another_pairing() {
+    randomValues = challenges;
+    PairingController controller("a1b2c3", nextRandom);
+    controller.begin(testPairing(), "");
+    PairingController::Result result = send(controller, "gc/1 pair hub=99999999 token=ffffffffffffffffffffffffffffffff");
+    TEST_ASSERT_TRUE(result.effect == PairingController::Effect::none);
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=pair why=paired-elsewhere\n", result.reply);
+    result = send(controller, "gc/1 pair hub=1a2b3c4d token=ffffffffffffffffffffffffffffffff");
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=pair why=already-paired\n", result.reply);
+    TEST_ASSERT_EQUAL_UINT8(0x00, controller.pairing().token[0]);
+}
+
+void test_same_pairing_again_is_answered() {
+    // the Hub sends the pairing again when the answer was lost
+    randomValues = challenges;
+    PairingController controller("a1b2c3", nextRandom);
+    controller.begin(testPairing(), "hub-pass-1");
+    PairingController::Result result = send(controller, "gc/1 pair hub=1a2b3c4d token=000102030405060708090a0b0c0d0e0f\n");
+    TEST_ASSERT_TRUE(result.effect == PairingController::Effect::none);
+    TEST_ASSERT_EQUAL_STRING("gc/1 paired id=a1b2c3 hub=1a2b3c4d key=fdbdef57e8036737\n", result.reply);
+    TEST_ASSERT_EQUAL_STRING("hub-pass-1", controller.crewPassword());
+    TEST_ASSERT_EQUAL_STRING("0123456789abcdef", controller.challenge());
+}
+
+void test_paired_hub_unpairs_with_the_challenge_once() {
+    randomValues = challenges;
+    PairingController controller("a1b2c3", nextRandom);
+    controller.begin(testPairing(), "hub-pass-1");
+    PairingController::Result result = send(controller, hubUnpair);
+    TEST_ASSERT_TRUE(result.effect == PairingController::Effect::removePairing);
+    TEST_ASSERT_EQUAL_STRING("gc/1 unpaired id=a1b2c3 hub=1a2b3c4d key=886532c4c183298c\n", result.reply);
+    TEST_ASSERT_FALSE(controller.pairing().paired);
+    TEST_ASSERT_EQUAL_STRING("", controller.crewPassword());
+    // sent again: the tally is no longer paired
+    result = send(controller, hubUnpair);
+    TEST_ASSERT_TRUE(result.effect == PairingController::Effect::none);
+}
+
+void test_management_needs_the_mac_and_a_fresh_challenge() {
+    randomValues = challenges;
+    PairingController controller("a1b2c3", nextRandom);
+    controller.begin(testPairing(), "");
+    std::string wrongMac = hubUnpair;
+    wrongMac[wrongMac.size() - 3] = wrongMac[wrongMac.size() - 3] == '0' ? '1' : '0';
+    PairingController::Result result = send(controller, wrongMac.c_str());
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=unpair why=mac\n", result.reply);
+    result = send(controller, "gc/1 unpair hub=1a2b3c4d ch=0123456789abcdef");
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=unpair why=mac\n", result.reply);
+    result = send(controller, "gc/1 unpair hub=99999999 ch=0123456789abcdef mac=00");
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=unpair why=not-paired\n", result.reply);
+    TEST_ASSERT_TRUE(controller.pairing().paired);
+
+    // a replay after an accepted message has an old challenge
+    TEST_ASSERT_TRUE(send(controller, hubCrewPassword).effect == PairingController::Effect::saveCrewPassword);
+    result = send(controller, hubUnpair);
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=unpair why=challenge\n", result.reply);
+    TEST_ASSERT_TRUE(controller.pairing().paired);
+}
+
+void test_failed_flash_write_is_refused_and_undone() {
+    randomValues = challenges;
+    PairingController controller("a1b2c3", nextRandom);
+    controller.begin(Pairing(), "");
+    PairingController::Result result = send(controller, "gc/1 pair hub=1a2b3c4d token=000102030405060708090a0b0c0d0e0f\n");
+    controller.storageFailed(result);
+    TEST_ASSERT_TRUE(result.effect == PairingController::Effect::none);
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=pair why=storage\n", result.reply);
+    TEST_ASSERT_FALSE(controller.pairing().paired);
+
+    randomValues = challenges;
+    controller.begin(testPairing(), "hub-pass-1");
+    result = send(controller, hubCrewPassword);
+    controller.storageFailed(result);
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=crew-password why=storage\n", result.reply);
+    TEST_ASSERT_EQUAL_STRING("hub-pass-1", controller.crewPassword());
+
+    randomValues = challenges;
+    controller.begin(testPairing(), "hub-pass-1");
+    result = send(controller, hubUnpair);
+    controller.storageFailed(result);
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=unpair why=storage\n", result.reply);
+    TEST_ASSERT_TRUE(controller.pairing().paired);
+    TEST_ASSERT_EQUAL_STRING("hub-pass-1", controller.crewPassword());
+}
+
+void test_paired_hub_sets_the_crew_password() {
+    randomValues = challenges;
+    PairingController controller("a1b2c3", nextRandom);
+    controller.begin(testPairing(), "");
+    PairingController::Result result = send(controller, hubCrewPassword);
+    TEST_ASSERT_TRUE(result.effect == PairingController::Effect::saveCrewPassword);
+    // the Hub checks which password the tally took (ManagementMessages.spec.ts)
+    TEST_ASSERT_EQUAL_STRING("gc/1 crew-password-set id=a1b2c3 hub=1a2b3c4d crew=db920b6aae174b52\n", result.reply);
+    TEST_ASSERT_EQUAL_STRING("crew pass 1!", controller.crewPassword());
+
+    // 40 characters need the second block of the key stream
+    randomValues = challenges;
+    controller.begin(testPairing(), "");
+    TEST_ASSERT_TRUE(send(controller, hubLongCrewPassword).effect == PairingController::Effect::saveCrewPassword);
+    TEST_ASSERT_EQUAL_STRING(std::string(40, 'x').c_str(), controller.crewPassword());
+
+    char fingerprint[17];
+    crewPasswordFingerprint(testPairing().token, std::string(40, 'x').c_str(), fingerprint);
+    TEST_ASSERT_EQUAL_STRING("781693d3e3d94b59", fingerprint);
+    crewPasswordFingerprint(testPairing().token, "", fingerprint);
+    TEST_ASSERT_EQUAL_STRING("088970114d5c5f56", fingerprint);
+    gctally::fingerprint(testPairing().token, "paired", fingerprint);
+    TEST_ASSERT_EQUAL_STRING("fdbdef57e8036737", fingerprint);
+}
+
+void test_crew_password_is_dropped_when_not_paired() {
+    randomValues = challenges;
+    PairingController controller("a1b2c3", nextRandom);
+    controller.begin(Pairing(), "hub-pass-1");
+    TEST_ASSERT_EQUAL_STRING("", controller.crewPassword());
+    controller.begin(testPairing(), "short");
+    TEST_ASSERT_EQUAL_STRING("", controller.crewPassword());
+}
+
+void test_hello_tells_the_pairing_and_the_challenge() {
+    Settings settings = validSettings();
+    LedEngine leds;
+    FakePlatform platform;
+    TallyController controller(settings, "a1b2c3", leds, platform);
+    randomValues = challenges;
+    PairingController pairing("a1b2c3", nextRandom);
+    pairing.begin(Pairing(), "");
+    controller.setPairing(&pairing);
+    char hello[192];
+    controller.helloMessage(hello, sizeof(hello));
+    TEST_ASSERT_EQUAL_STRING("tally-ho \"CAM1\" gc/1 id=a1b2c3 fw=" GC_FIRMWARE_VERSION " hw=esp8266 caps=ws2812,pwm pair=- ch=0123456789abcdef", hello);
+    pairing.begin(testPairing(), "");
+    controller.helloMessage(hello, sizeof(hello));
+    TEST_ASSERT_NOT_NULL(strstr(hello, " pair=1a2b3c4d ch=fedcba9876543210"));
+}
+
+void test_identify_blinks_white_then_shows_the_hub_state() {
+    Settings settings = validSettings();
+    LedEngine leds;
+    FakePlatform platform;
+    TallyController controller(settings, "a1b2c3", leds, platform);
+    controller.begin(0);
+    controller.wifiGotIp(0);
+    const char* red_ = "O255/000/000 S255/000/000";
+    controller.packetReceived(red_, strlen(red_), 10);
+    controller.identify(20);
+    leds.tick(20);
+    assertColor({255, 255, 255}, leds.frame().operatorColor);
+    assertColor(black, leds.frame().stageColor);
+    // keep-alives of the Hub do not stop it
+    controller.packetReceived(red_, strlen(red_), 500);
+    controller.tick(500);
+    leds.tick(520);
+    assertColor({77, 77, 77}, leds.frame().operatorColor);
+    for (uint32_t now = 1000; now <= 10500; now += 500) {
+        controller.packetReceived(red_, strlen(red_), now);
+        controller.tick(now);
+    }
+    leds.tick(10500);
+    assertColor(red, leds.frame().operatorColor);
 }
 
 int main() {
@@ -1023,7 +1306,20 @@ int main() {
     RUN_TEST(test_settings_setup_keys);
     RUN_TEST(test_settings_rejects_a_short_setup_password);
     RUN_TEST(test_setup_password_is_printable_ascii);
-    RUN_TEST(test_setup_password_from_settings_then_crew_then_generated);
+    RUN_TEST(test_sha256_known_answers);
+    RUN_TEST(test_hmac_sha256_rfc4231);
+    RUN_TEST(test_pairing_file_round_trip);
+    RUN_TEST(test_unpaired_tally_identifies_and_pairs);
+    RUN_TEST(test_paired_tally_refuses_another_pairing);
+    RUN_TEST(test_same_pairing_again_is_answered);
+    RUN_TEST(test_paired_hub_unpairs_with_the_challenge_once);
+    RUN_TEST(test_management_needs_the_mac_and_a_fresh_challenge);
+    RUN_TEST(test_failed_flash_write_is_refused_and_undone);
+    RUN_TEST(test_paired_hub_sets_the_crew_password);
+    RUN_TEST(test_crew_password_is_dropped_when_not_paired);
+    RUN_TEST(test_hello_tells_the_pairing_and_the_challenge);
+    RUN_TEST(test_identify_blinks_white_then_shows_the_hub_state);
+    RUN_TEST(test_setup_password_from_settings_then_hub_then_crew_then_generated);
     RUN_TEST(test_setup_led_pattern_is_purple);
     RUN_TEST(test_form_accepts_valid_input);
     RUN_TEST(test_form_rejects_invalid_input);
@@ -1044,11 +1340,13 @@ int main() {
     RUN_TEST(test_picks_the_page_language);
     RUN_TEST(test_escapes_html);
     RUN_TEST(test_setup_page_shows_settings_but_never_the_password);
+    RUN_TEST(test_setup_page_offers_unpairing_when_paired);
     RUN_TEST(test_recovery_page_explains_itself);
     RUN_TEST(test_saved_page_names_the_network);
     RUN_TEST(test_settings_without_hub_ip_are_valid);
     RUN_TEST(test_controller_says_it_looks_for_the_hub);
     RUN_TEST(test_hub_id_from_host_name);
+    RUN_TEST(test_paired_tally_uses_only_its_own_hub);
     RUN_TEST(test_choose_hub);
     RUN_TEST(test_hub_finder_searches_after_ip_and_backs_off);
     RUN_TEST(test_hub_finder_searches_again_when_the_hub_is_silent);
