@@ -1,4 +1,4 @@
-import { crewPasswordMessage, identifyMessage, isCrewPassword, pairMessage, parseManagementReply, unpairMessage } from './ManagementMessages'
+import { crewPasswordFingerprint, crewPasswordMessage, identifyMessage, isCrewPassword, pairMessage, parseManagementReply, unpairMessage } from './ManagementMessages'
 
 // The same lines are checked by the firmware (firmware-v2/test/test_core/test_main.cpp).
 const token = Buffer.from('000102030405060708090a0b0c0d0e0f', 'hex')
@@ -27,6 +27,12 @@ describe('ManagementMessages', () => {
     expect(crewPasswordMessage('1a2b3c4d', token, challenge, '')).toMatch(/^gc\/1 crew-password hub=1a2b3c4d ch=0123456789abcdef pw= mac=[0-9a-f]{64}\n$/)
   })
 
+  test('the tally names the crew password it took like the Hub expects', () => {
+    expect(crewPasswordFingerprint(token, 'crew pass 1!')).toBe('db920b6aae174b52')
+    expect(crewPasswordFingerprint(token, 'x'.repeat(40))).toBe('781693d3e3d94b59')
+    expect(crewPasswordFingerprint(token, '')).toBe('088970114d5c5f56')
+  })
+
   test('crew passwords are WPA2 passphrases', () => {
     expect(isCrewPassword('crew pass 1!')).toBe(true)
     expect(isCrewPassword('short')).toBe(false)
@@ -37,7 +43,9 @@ describe('ManagementMessages', () => {
   test('replies of the tally', () => {
     expect(parseManagementReply('gc/1 paired id=a1b2c3 hub=1a2b3c4d\n')).toEqual({ kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d' })
     expect(parseManagementReply('gc/1 unpaired id=a1b2c3 hub=1a2b3c4d')).toEqual({ kind: 'unpaired', id: 'a1b2c3', hub: '1a2b3c4d' })
-    expect(parseManagementReply('gc/1 crew-password-set id=a1b2c3 hub=1a2b3c4d')).toEqual({ kind: 'crew-password-set', id: 'a1b2c3', hub: '1a2b3c4d' })
+    expect(parseManagementReply('gc/1 crew-password-set id=a1b2c3 hub=1a2b3c4d crew=db920b6aae174b52')).toEqual(
+      { kind: 'crew-password-set', id: 'a1b2c3', hub: '1a2b3c4d', crew: 'db920b6aae174b52' })
+    expect(parseManagementReply('gc/1 crew-password-set id=a1b2c3 hub=1a2b3c4d')).toBeUndefined()
     expect(parseManagementReply('gc/1 refused id=a1b2c3 to=pair why=paired-elsewhere\n')).toEqual({ kind: 'refused', id: 'a1b2c3', to: 'pair', why: 'paired-elsewhere' })
     expect(parseManagementReply('gc/1 paired hub=1a2b3c4d')).toBeUndefined()
     expect(parseManagementReply('gc/1 something id=a1b2c3')).toBeUndefined()

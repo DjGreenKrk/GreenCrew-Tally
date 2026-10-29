@@ -1106,6 +1106,18 @@ void test_paired_tally_refuses_another_pairing() {
     TEST_ASSERT_EQUAL_UINT8(0x00, controller.pairing().token[0]);
 }
 
+void test_same_pairing_again_is_answered() {
+    // the Hub sends the pairing again when the answer was lost
+    randomValues = challenges;
+    PairingController controller("a1b2c3", nextRandom);
+    controller.begin(testPairing(), "hub-pass-1");
+    PairingController::Result result = send(controller, "gc/1 pair hub=1a2b3c4d token=000102030405060708090a0b0c0d0e0f\n");
+    TEST_ASSERT_TRUE(result.effect == PairingController::Effect::none);
+    TEST_ASSERT_EQUAL_STRING("gc/1 paired id=a1b2c3 hub=1a2b3c4d\n", result.reply);
+    TEST_ASSERT_EQUAL_STRING("hub-pass-1", controller.crewPassword());
+    TEST_ASSERT_EQUAL_STRING("0123456789abcdef", controller.challenge());
+}
+
 void test_paired_hub_unpairs_with_the_challenge_once() {
     randomValues = challenges;
     PairingController controller("a1b2c3", nextRandom);
@@ -1147,7 +1159,8 @@ void test_paired_hub_sets_the_crew_password() {
     controller.begin(testPairing(), "");
     PairingController::Result result = send(controller, hubCrewPassword);
     TEST_ASSERT_TRUE(result.effect == PairingController::Effect::saveCrewPassword);
-    TEST_ASSERT_EQUAL_STRING("gc/1 crew-password-set id=a1b2c3 hub=1a2b3c4d\n", result.reply);
+    // the Hub checks which password the tally took (ManagementMessages.spec.ts)
+    TEST_ASSERT_EQUAL_STRING("gc/1 crew-password-set id=a1b2c3 hub=1a2b3c4d crew=db920b6aae174b52\n", result.reply);
     TEST_ASSERT_EQUAL_STRING("crew pass 1!", controller.crewPassword());
 
     // 40 characters need the second block of the key stream
@@ -1155,6 +1168,12 @@ void test_paired_hub_sets_the_crew_password() {
     controller.begin(testPairing(), "");
     TEST_ASSERT_TRUE(send(controller, hubLongCrewPassword).effect == PairingController::Effect::saveCrewPassword);
     TEST_ASSERT_EQUAL_STRING(std::string(40, 'x').c_str(), controller.crewPassword());
+
+    char fingerprint[17];
+    crewPasswordFingerprint(testPairing().token, std::string(40, 'x').c_str(), fingerprint);
+    TEST_ASSERT_EQUAL_STRING("781693d3e3d94b59", fingerprint);
+    crewPasswordFingerprint(testPairing().token, "", fingerprint);
+    TEST_ASSERT_EQUAL_STRING("088970114d5c5f56", fingerprint);
 }
 
 void test_crew_password_is_dropped_when_not_paired() {
@@ -1255,6 +1274,7 @@ int main() {
     RUN_TEST(test_pairing_file_round_trip);
     RUN_TEST(test_unpaired_tally_identifies_and_pairs);
     RUN_TEST(test_paired_tally_refuses_another_pairing);
+    RUN_TEST(test_same_pairing_again_is_answered);
     RUN_TEST(test_paired_hub_unpairs_with_the_challenge_once);
     RUN_TEST(test_management_needs_the_mac_and_a_fresh_challenge);
     RUN_TEST(test_paired_hub_sets_the_crew_password);

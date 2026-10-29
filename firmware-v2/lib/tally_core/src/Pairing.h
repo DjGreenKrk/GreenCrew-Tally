@@ -24,7 +24,8 @@ struct Pairing {
 // from the state packets (see README.md, Pairing):
 //
 //   gc/1 identify hub=<id>                          blink white for 10 s
-//   gc/1 pair hub=<id> token=<32 hex>               only when unpaired
+//   gc/1 pair hub=<id> token=<32 hex>               only when unpaired, or
+//                                                   the same pairing again
 //   gc/1 unpair hub=<id> ch=<challenge> mac=<hmac>
 //   gc/1 crew-password hub=<id> ch=<challenge> pw=<hex> mac=<hmac>
 //
@@ -32,12 +33,13 @@ struct Pairing {
 // ch is the challenge the tally sends in "tally-ho"; it changes after every
 // accepted message, so a recorded message cannot be sent again. pw is the
 // crew password XOR HMAC-SHA256(token, "crew-password <ch> <block>") for
-// blocks 0 and 1, as hex; empty clears it.
+// blocks 0 and 1, as hex; empty clears it. The answer names the password
+// the tally took, so the Hub cannot mistake it for a newer one it sent.
 //
 // The tally answers to the sender:
 //   gc/1 paired id=<device> hub=<id>
 //   gc/1 unpaired id=<device> hub=<id>
-//   gc/1 crew-password-set id=<device> hub=<id>
+//   gc/1 crew-password-set id=<device> hub=<id> crew=<fingerprint>
 //   gc/1 refused id=<device> to=<verb> why=<reason>
 class PairingController {
 public:
@@ -82,6 +84,11 @@ private:
     char crew[maxCrewPassword + 1] = "";
     char challengeText[17] = "";
 };
+
+// The first 8 bytes of HMAC-SHA256(token, "crew-password-set <password>")
+// as 16 hex; out needs 17 bytes.
+static const size_t crewFingerprintSize = 8;
+void crewPasswordFingerprint(const uint8_t* token, const char* password, char* out);
 
 // Lowercase hex of the bytes; out needs 2 * length + 1 bytes.
 void toHex(const uint8_t* bytes, size_t length, char* out);

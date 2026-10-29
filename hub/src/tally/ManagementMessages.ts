@@ -48,10 +48,17 @@ export function crewPasswordMessage(hubId: string, token: Buffer, challenge: str
   return signed(token, `gc/1 crew-password hub=${hubId} ch=${challenge} pw=${hidden}`)
 }
 
+// Names the crew password in the tally's "crew-password-set" answer, so an
+// answer to an older password is not taken for the current one.
+export function crewPasswordFingerprint(token: Buffer, password: string) {
+  return createHmac('sha256', token).update(Buffer.from(`crew-password-set ${password}`, 'latin1')).digest('hex').slice(0, 16)
+}
+
 export { isCrewPassword } from './DeviceList'
 
 export type ManagementReply =
-  | { kind: 'paired' | 'unpaired' | 'crew-password-set', id: string, hub: string }
+  | { kind: 'paired' | 'unpaired', id: string, hub: string }
+  | { kind: 'crew-password-set', id: string, hub: string, crew: string }
   | { kind: 'refused', id: string, to: string, why: string }
 
 export function parseManagementReply(line: string): ManagementReply | undefined {
@@ -64,8 +71,11 @@ export function parseManagementReply(line: string): ManagementReply | undefined 
   }
   const kind = words[1]
   if (!fields.id) return undefined
-  if (kind === 'paired' || kind === 'unpaired' || kind === 'crew-password-set') {
+  if (kind === 'paired' || kind === 'unpaired') {
     return fields.hub ? { kind, id: fields.id, hub: fields.hub } : undefined
+  }
+  if (kind === 'crew-password-set') {
+    return fields.hub && fields.crew ? { kind, id: fields.id, hub: fields.hub, crew: fields.crew } : undefined
   }
   if (kind === 'refused') return { kind, id: fields.id, to: fields.to || '', why: fields.why || '' }
   return undefined

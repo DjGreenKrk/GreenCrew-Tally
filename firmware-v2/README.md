@@ -197,13 +197,17 @@ Hub → tally   gc/1 identify hub=<id>
 Hub → tally   gc/1 pair hub=<id> token=<32 hex>
 Hub → tally   gc/1 unpair hub=<id> ch=<challenge> mac=<hmac>
 Hub → tally   gc/1 crew-password hub=<id> ch=<challenge> pw=<hex> mac=<hmac>
-tally → Hub   gc/1 paired | unpaired | crew-password-set id=<device> hub=<id>
+tally → Hub   gc/1 paired | unpaired id=<device> hub=<id>
+tally → Hub   gc/1 crew-password-set id=<device> hub=<id> crew=<fingerprint>
 tally → Hub   gc/1 refused id=<device> to=<message> why=<reason>
 ```
 
 `mac` is HMAC-SHA256 with the token over the line before ` mac=`. `ch` is the challenge the tally
 sends in its `tally-ho` (`pair=<hub id or -> ch=<16 hex>`); it changes after every accepted
-message, so a recorded message cannot be sent again. The crew password travels XORed with a key
+message, so a recorded message cannot be sent again. The Hub sends a message again when no answer comes
+(lost UDP packets): a tally already paired with the same Hub and token answers `paired` again,
+and `crew` (the first 8 bytes of HMAC-SHA256 with the token over `crew-password-set <password>`)
+tells the Hub which password the tally took. The crew password travels XORed with a key
 stream from the token and the challenge. The token itself crosses the network once, in plain
 text, when pairing. Colour messages stay unsigned as in v1.
 

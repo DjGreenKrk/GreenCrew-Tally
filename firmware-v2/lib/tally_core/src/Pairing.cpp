@@ -86,6 +86,14 @@ void crewKeyStream(const uint8_t* token, const char* challenge, uint8_t* out, si
 
 }  // namespace
 
+void crewPasswordFingerprint(const uint8_t* token, const char* password, char* out) {
+    char label[sizeof("crew-password-set ") + PairingController::maxCrewPassword];
+    snprintf(label, sizeof(label), "crew-password-set %s", password);
+    uint8_t mac[Sha256::digestSize];
+    hmacSha256(token, Pairing::tokenSize, label, strlen(label), mac);
+    toHex(mac, crewFingerprintSize, out);
+}
+
 void toHex(const uint8_t* bytes, size_t length, char* out) {
     const char* digits = "0123456789abcdef";
     for (size_t i = 0; i < length; i++) {
@@ -167,6 +175,16 @@ PairingController::Result PairingController::handle(const char* data, size_t len
     }
 
     if (strcmp(verb, "pair") == 0) {
+        uint8_t token[Pairing::tokenSize];
+        if (!fromHex(message.get("token"), token, sizeof(token))) {
+            refuse(result, verb, "format");
+            return result;
+        }
+        // The same pairing again: the Hub did not get the answer
+        if (current.paired && strcmp(current.hubId, hub) == 0 && sameBytes(current.token, token, sizeof(token))) {
+            snprintf(result.reply, sizeof(result.reply), "gc/1 paired id=%s hub=%s\n", deviceId, hub);
+            return result;
+        }
         if (current.paired) {
             // Unpairing first, by the paired Hub or on the setup page,
             // keeps another Hub from taking the tally over.
@@ -174,10 +192,7 @@ PairingController::Result PairingController::handle(const char* data, size_t len
             return result;
         }
         Pairing next;
-        if (!fromHex(message.get("token"), next.token, Pairing::tokenSize)) {
-            refuse(result, verb, "format");
-            return result;
-        }
+        memcpy(next.token, token, sizeof(token));
         strcpy(next.hubId, hub);
         next.paired = true;
         current = next;
@@ -248,7 +263,9 @@ PairingController::Result PairingController::handle(const char* data, size_t len
     strcpy(crew, text);
     newChallenge();
     result.effect = Effect::saveCrewPassword;
-    snprintf(result.reply, sizeof(result.reply), "gc/1 crew-password-set id=%s hub=%s\n", deviceId, hub);
+    char fingerprint[2 * crewFingerprintSize + 1];
+    crewPasswordFingerprint(current.token, crew, fingerprint);
+    snprintf(result.reply, sizeof(result.reply), "gc/1 crew-password-set id=%s hub=%s crew=%s\n", deviceId, hub, fingerprint);
     return result;
 }
 

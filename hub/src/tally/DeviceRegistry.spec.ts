@@ -2,7 +2,7 @@ import { EventEmitter } from 'events'
 import { AppConfiguration } from '../lib/AppConfiguration'
 import ServerEventEmitter from '../lib/ServerEventEmitter'
 import DeviceRegistry from './DeviceRegistry'
-import { crewPasswordMessage, unpairMessage } from './ManagementMessages'
+import { crewPasswordFingerprint, crewPasswordMessage, unpairMessage } from './ManagementMessages'
 
 const challenge1 = '0123456789abcdef'
 const challenge2 = 'fedcba9876543210'
@@ -109,6 +109,24 @@ describe('DeviceRegistry', () => {
     expect(registry.getState().devices[0].status).toBe('unpaired')
   })
 
+  test('unpairing is sent again when the message or the answer is lost', () => {
+    const { registry, sent, hello, configuration, advance } = pairedSetup()
+    const token = Buffer.from(configuration.getPairedDevice('a1b2c3')!.token, 'hex')
+    hello('1a2b3c4d', challenge1)
+    registry.unpair('a1b2c3')
+    // lost: the tally keeps its challenge, the Hub sends again after a second
+    advance(500)
+    registry.tick()
+    expect(sent).toHaveLength(1)
+    advance(500)
+    registry.tick()
+    expect(sent.map(s => s.text)).toEqual([unpairMessage('1a2b3c4d', token, challenge1), unpairMessage('1a2b3c4d', token, challenge1)])
+    // taken, but the answer lost: the tally says it is no longer paired
+    registry.replyReceived({ kind: 'refused', id: 'a1b2c3', to: 'unpair', why: 'not-paired' })
+    expect(configuration.getPairedDevices()).toEqual([])
+    expect(registry.getState().devices[0].lastError).toBeUndefined()
+  })
+
   test('follows a tally unpaired on its setup page', () => {
     const { registry, hello, configuration, advance } = pairedSetup()
     advance(11000)
@@ -146,7 +164,7 @@ describe('DeviceRegistry', () => {
     registry.tick()
     expect(sent).toHaveLength(1)
 
-    registry.replyReceived({ kind: 'crew-password-set', id: 'a1b2c3', hub: '1a2b3c4d' })
+    registry.replyReceived({ kind: 'crew-password-set', id: 'a1b2c3', hub: '1a2b3c4d', crew: crewPasswordFingerprint(token, 'crew pass 1!') })
     expect(configuration.getPairedDevice('a1b2c3')!.crewPasswordVersion).toEqual(configuration.getCrewPassword().version)
     expect(registry.getState().devices[0].crewPassword).toBe('synced')
     expect(registry.getState().crewPasswordSet).toBe(true)
@@ -159,6 +177,31 @@ describe('DeviceRegistry', () => {
     hello('1a2b3c4d', challenge2)
     registry.tick()
     expect(sent[1].text).toEqual(crewPasswordMessage('1a2b3c4d', token, challenge2, ''))
+  })
+
+  test('an answer to an older crew password does not count for the current one', () => {
+    const { registry, sent, hello, configuration, advance } = pairedSetup()
+    const token = Buffer.from(configuration.getPairedDevice('a1b2c3')!.token, 'hex')
+    hello('1a2b3c4d', challenge1)
+    configuration.setCrewPassword('crew pass 1!')
+    registry.tick()
+    // changed before the tally answered: sent with the same challenge, the tally refuses it
+    configuration.setCrewPassword('crew pass 2!')
+    registry.tick()
+    expect(sent.map(s => s.text)).toEqual([
+      crewPasswordMessage('1a2b3c4d', token, challenge1, 'crew pass 1!'),
+      crewPasswordMessage('1a2b3c4d', token, challenge1, 'crew pass 2!'),
+    ])
+    registry.replyReceived({ kind: 'crew-password-set', id: 'a1b2c3', hub: '1a2b3c4d', crew: crewPasswordFingerprint(token, 'crew pass 1!') })
+    registry.replyReceived({ kind: 'refused', id: 'a1b2c3', to: 'crew-password', why: 'challenge' })
+    expect(registry.getState().devices[0].crewPassword).toBe('pending')
+
+    advance(1000)
+    hello('1a2b3c4d', challenge2)
+    registry.tick()
+    expect(sent[2].text).toEqual(crewPasswordMessage('1a2b3c4d', token, challenge2, 'crew pass 2!'))
+    registry.replyReceived({ kind: 'crew-password-set', id: 'a1b2c3', hub: '1a2b3c4d', crew: crewPasswordFingerprint(token, 'crew pass 2!') })
+    expect(registry.getState().devices[0].crewPassword).toBe('synced')
   })
 
   test('marks online tallies with the same name', () => {

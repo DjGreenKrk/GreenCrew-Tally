@@ -2,7 +2,7 @@ import { randomBytes } from 'crypto'
 import { AppConfiguration } from '../lib/AppConfiguration'
 import { TallyPairing } from './CommandParser'
 import { DeviceListState, DeviceView } from './DeviceList'
-import { crewPasswordMessage, identifyMessage, ManagementReply, pairMessage, TOKEN_BYTES, unpairMessage } from './ManagementMessages'
+import { crewPasswordFingerprint, crewPasswordMessage, identifyMessage, ManagementReply, pairMessage, TOKEN_BYTES, unpairMessage } from './ManagementMessages'
 
 // Firmware v2 tallies the Hub knows of, from their "tally-ho" and from mDNS
 // (_gctally-device._udp), keyed by the device id so duplicate names and new
@@ -23,7 +23,7 @@ type Entry = {
   reportedHub?: string | null
   challenge?: string
   pendingPair?: { token: Buffer, since: number, sentAt: number }
-  pendingUnpair?: { since: number, sentWith: string }
+  pendingUnpair?: { since: number, sentWith: string, sentAt: number }
   crewSent?: { challenge: string, at: number, version: string }
   pairedAt?: number
   lastError?: string
@@ -123,10 +123,15 @@ export default class DeviceRegistry {
       entry.pendingUnpair = undefined
       entry.reportedHub = null
       console.info(`Unpaired tally ${entry.name} (${entry.id})`)
-    } else if (reply.kind === 'crew-password-set' && reply.hub === hubId && entry.crewSent) {
+    } else if (reply.kind === 'crew-password-set' && reply.hub === hubId) {
+      // only an answer to the current password counts; for an older one it
+      // is sent again with the next challenge
       const paired = this.configuration.getPairedDevice(entry.id)
-      if (paired) this.configuration.setPairedDevice({ ...paired, crewPasswordVersion: entry.crewSent.version })
-      entry.crewSent = undefined
+      const crew = this.configuration.getCrewPassword()
+      if (paired && reply.crew === crewPasswordFingerprint(Buffer.from(paired.token, 'hex'), crew.password)) {
+        this.configuration.setPairedDevice({ ...paired, crewPasswordVersion: crew.version })
+        entry.crewSent = undefined
+      }
     } else if (reply.kind === 'refused') {
       if (reply.why === 'challenge') return  // sent again with the next "tally-ho"
       if (reply.to === 'unpair' && reply.why === 'not-paired') {
@@ -168,7 +173,7 @@ export default class DeviceRegistry {
   unpair(id: string) {
     const entry = this.entries.get(id)
     if (!entry || !this.configuration.getPairedDevice(id) || !this.isUdpOnline(entry)) return false
-    entry.pendingUnpair = { since: this.now(), sentWith: '' }
+    entry.pendingUnpair = { since: this.now(), sentWith: '', sentAt: 0 }
     entry.lastError = undefined
     this.retryUnpair(entry)
     this.emitIfChanged()
@@ -204,6 +209,7 @@ export default class DeviceRegistry {
         entry.pendingUnpair = undefined
         entry.lastError = 'no-answer'
       }
+      this.retryUnpair(entry)
       this.syncCrewPassword(entry)
     }
     this.emitIfChanged()
@@ -240,8 +246,11 @@ export default class DeviceRegistry {
   private retryUnpair(entry: Entry) {
     const paired = this.configuration.getPairedDevice(entry.id)
     if (!entry.pendingUnpair || !paired || !entry.challenge || !entry.address || !entry.port) return
-    if (entry.pendingUnpair.sentWith === entry.challenge) return
+    // at once with a new challenge, else again in case the packet was lost
+    const now = this.now()
+    if (entry.pendingUnpair.sentWith === entry.challenge && now - entry.pendingUnpair.sentAt < PAIR_RETRY_MS) return
     entry.pendingUnpair.sentWith = entry.challenge
+    entry.pendingUnpair.sentAt = now
     this.send(unpairMessage(this.hubId(), Buffer.from(paired.token, 'hex'), entry.challenge), entry.address, entry.port)
   }
 
