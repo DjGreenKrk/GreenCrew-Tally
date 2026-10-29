@@ -86,6 +86,13 @@ export interface NodeMcuTool {
 // rejection (which we can recover from) always comes first.
 const checkTimeoutMs = 2500
 
+// How long a job waits for a previous one's quarantined native operation to
+// settle before giving up. Generous enough for a full program() (connect,
+// two hard resets, 8 file uploads) to finish normally; still finite, so a
+// native call that never truly settles fails every later job with a clear
+// error instead of queuing them behind it forever (see #16).
+const mutexAcquireTimeoutMs = 90000
+
 class NodeMcuConnector {
   nodemcu: NodeMcuTool
   // Native operations may finish AFTER their public timeout; the transport
@@ -98,7 +105,11 @@ class NodeMcuConnector {
     }
     // Serialport is a singleton in the current NodeMCU tool: never start a
     // second job while a timed-out native operation may still complete.
+    const acquireDeadline = Date.now() + mutexAcquireTimeoutMs
     while (!tryToAquireMutex()) {
+      if (Date.now() >= acquireDeadline) {
+        throw new Error('NodeMCU serial transport is still busy with a previous operation that has not completed. Try again in a moment.')
+      }
       await this.sleep(100)
     }
     try {
@@ -288,7 +299,7 @@ class NodeMcuConnector {
 
     try {
       return await this.withMutex(async () => {
-        const ports = await this.nodemcu.listDevices(true)
+        const ports = await this.withTimeout(() => this.nodemcu.listDevices(true), 5000, 'NodeMCU list devices timed out')
         tallyDevice.ports = ports.map((port): SerialPortChoice => ({
           path: port.path,
           vendorId: port.vendorId,
@@ -304,22 +315,31 @@ class NodeMcuConnector {
           tallyDevice.productId = device.productId
 
           await this.connect(device.path)
-          const deviceInfo = await this.nodemcu.deviceInfo()
+          const deviceInfo = await this.withTimeout(() => this.nodemcu.deviceInfo(), 5000, 'NodeMCU device info timed out')
 
           tallyDevice.chipId = deviceInfo.chipID
           tallyDevice.flashId = deviceInfo.flashID
           tallyDevice.nodeMcuVersion = deviceInfo.version
           tallyDevice.nodeMcuModules = deviceInfo.modules
 
-          const fsinfo = await this.nodemcu.fsinfo()
+          let fsinfo = await this.withTimeout(() => this.nodemcu.fsinfo(), 5000, 'NodeMCU file system info timed out')
           if (updatePossible) {
             tallyDevice.update = await NodeMcuConnector.doFilesNeedUpdate(fsinfo.files) ? "updateable" : "up-to-date"
+            if (tallyDevice.update === "updateable") {
+              // A tally that just restarted (e.g. right after Save) can still
+              // be logging to the same lines this reply is read from, which
+              // can drop a file from the listing. Confirm with one more,
+              // settled read before reporting the tally as out of date (#16).
+              await this.sleep(300)
+              fsinfo = await this.withTimeout(() => this.nodemcu.fsinfo(), 5000, 'NodeMCU file system info timed out')
+              tallyDevice.update = await NodeMcuConnector.doFilesNeedUpdate(fsinfo.files) ? "updateable" : "up-to-date"
+            }
           }
 
           const settingsFileExists = fsinfo.files.some(file => file.name === fileName)
 
           if (settingsFileExists) {
-            const res = await this.nodemcu.download(fileName)
+            const res = await this.withTimeout(() => this.nodemcu.download(fileName), 10000, 'NodeMCU file download timed out')
             tallyDevice.tallySettings = new TallySettingsIni(res.toString())
           }
         }
