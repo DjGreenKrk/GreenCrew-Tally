@@ -1,4 +1,4 @@
-import { crewPasswordFingerprint, crewPasswordMessage, identifyMessage, isCrewPassword, pairMessage, parseManagementReply, unpairMessage } from './ManagementMessages'
+import { crewPasswordFingerprint, pairedKey, crewPasswordMessage, identifyMessage, isCrewPassword, pairMessage, parseManagementReply, unpairMessage } from './ManagementMessages'
 
 // The same lines are checked by the firmware (firmware-v2/test/test_core/test_main.cpp).
 const token = Buffer.from('000102030405060708090a0b0c0d0e0f', 'hex')
@@ -31,6 +31,7 @@ describe('ManagementMessages', () => {
     expect(crewPasswordFingerprint(token, 'crew pass 1!')).toBe('db920b6aae174b52')
     expect(crewPasswordFingerprint(token, 'x'.repeat(40))).toBe('781693d3e3d94b59')
     expect(crewPasswordFingerprint(token, '')).toBe('088970114d5c5f56')
+    expect(pairedKey(token)).toBe('fdbdef57e8036737')
   })
 
   test('crew passwords are WPA2 passphrases', () => {
@@ -41,7 +42,8 @@ describe('ManagementMessages', () => {
   })
 
   test('replies of the tally', () => {
-    expect(parseManagementReply('gc/1 paired id=a1b2c3 hub=1a2b3c4d\n')).toEqual({ kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d' })
+    expect(parseManagementReply('gc/1 paired id=a1b2c3 hub=1a2b3c4d key=fdbdef57e8036737\n')).toEqual(
+      { kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d', key: 'fdbdef57e8036737' })
     expect(parseManagementReply('gc/1 unpaired id=a1b2c3 hub=1a2b3c4d')).toEqual({ kind: 'unpaired', id: 'a1b2c3', hub: '1a2b3c4d' })
     expect(parseManagementReply('gc/1 crew-password-set id=a1b2c3 hub=1a2b3c4d crew=db920b6aae174b52')).toEqual(
       { kind: 'crew-password-set', id: 'a1b2c3', hub: '1a2b3c4d', crew: 'db920b6aae174b52' })

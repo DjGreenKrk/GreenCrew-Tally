@@ -37,10 +37,12 @@ struct Pairing {
 // the tally took, so the Hub cannot mistake it for a newer one it sent.
 //
 // The tally answers to the sender:
-//   gc/1 paired id=<device> hub=<id>
+//   gc/1 paired id=<device> hub=<id> key=<fingerprint of "paired">
 //   gc/1 unpaired id=<device> hub=<id>
-//   gc/1 crew-password-set id=<device> hub=<id> crew=<fingerprint>
+//   gc/1 crew-password-set id=<device> hub=<id> crew=<fingerprint of "crew-password-set <password>">
 //   gc/1 refused id=<device> to=<verb> why=<reason>
+// The fingerprints tell the Hub which token and which password the tally
+// took, when it sent several (lost answers, quick changes).
 class PairingController {
 public:
     static const size_t maxCrewPassword = 63;
@@ -67,6 +69,9 @@ public:
 
     static bool isManagementMessage(const char* data, size_t length);
     Result handle(const char* data, size_t length);
+    // The effect of handle() could not be written to the flash: back to the
+    // state before, and the reply becomes "refused ... why=storage".
+    void storageFailed(Result& result);
 
     const Pairing& pairing() const { return current; }
     // "" when the paired Hub has set none
@@ -77,17 +82,21 @@ public:
 private:
     void newChallenge();
     void refuse(Result& result, const char* verb, const char* why) const;
+    void pairedReply(Result& result) const;
 
     const char* deviceId;
     uint32_t (*random)();
     Pairing current;
     char crew[maxCrewPassword + 1] = "";
+    Pairing previous;
+    char previousCrew[maxCrewPassword + 1] = "";
     char challengeText[17] = "";
 };
 
-// The first 8 bytes of HMAC-SHA256(token, "crew-password-set <password>")
-// as 16 hex; out needs 17 bytes.
-static const size_t crewFingerprintSize = 8;
+// The first 8 bytes of HMAC-SHA256(token, text) as 16 hex; out needs 17 bytes.
+static const size_t fingerprintSize = 8;
+void fingerprint(const uint8_t* token, const char* text, char* out);
+// fingerprint of "crew-password-set <password>"
 void crewPasswordFingerprint(const uint8_t* token, const char* password, char* out);
 
 // Lowercase hex of the bytes; out needs 2 * length + 1 bytes.

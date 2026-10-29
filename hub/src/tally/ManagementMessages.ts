@@ -48,16 +48,27 @@ export function crewPasswordMessage(hubId: string, token: Buffer, challenge: str
   return signed(token, `gc/1 crew-password hub=${hubId} ch=${challenge} pw=${hidden}`)
 }
 
+function fingerprint(token: Buffer, text: string) {
+  return createHmac('sha256', token).update(Buffer.from(text, 'latin1')).digest('hex').slice(0, 16)
+}
+
+// Names the token in the tally's "paired" answer, so the Hub knows which of
+// the tokens it sent the tally took.
+export function pairedKey(token: Buffer) {
+  return fingerprint(token, 'paired')
+}
+
 // Names the crew password in the tally's "crew-password-set" answer, so an
 // answer to an older password is not taken for the current one.
 export function crewPasswordFingerprint(token: Buffer, password: string) {
-  return createHmac('sha256', token).update(Buffer.from(`crew-password-set ${password}`, 'latin1')).digest('hex').slice(0, 16)
+  return fingerprint(token, `crew-password-set ${password}`)
 }
 
 export { isCrewPassword } from './DeviceList'
 
 export type ManagementReply =
-  | { kind: 'paired' | 'unpaired', id: string, hub: string }
+  | { kind: 'paired', id: string, hub: string, key: string }
+  | { kind: 'unpaired', id: string, hub: string }
   | { kind: 'crew-password-set', id: string, hub: string, crew: string }
   | { kind: 'refused', id: string, to: string, why: string }
 
@@ -71,7 +82,10 @@ export function parseManagementReply(line: string): ManagementReply | undefined 
   }
   const kind = words[1]
   if (!fields.id) return undefined
-  if (kind === 'paired' || kind === 'unpaired') {
+  if (kind === 'paired') {
+    return fields.hub && fields.key ? { kind, id: fields.id, hub: fields.hub, key: fields.key } : undefined
+  }
+  if (kind === 'unpaired') {
     return fields.hub ? { kind, id: fields.id, hub: fields.hub } : undefined
   }
   if (kind === 'crew-password-set') {

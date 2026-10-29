@@ -394,19 +394,31 @@ void handleManagement(const char* data, size_t length, uint32_t now) {
         case PairingController::Effect::savePairing: {
             char file[64];
             pairing.pairing().write(file, sizeof(file));
-            if (!ConfigStore::writePairing(String(file))) controller->log(Severity::error, "Could not save the pairing");
+            if (!ConfigStore::writePairing(String(file))) {
+                controller->log(Severity::error, "Could not save the pairing");
+                pairing.storageFailed(result);
+                break;
+            }
             snprintf(text, sizeof(text), "Paired with hub %s", pairing.pairing().hubId);
             controller->log(Severity::info, text);
             chooseSetupPassword();
             break;
         }
         case PairingController::Effect::removePairing:
-            ConfigStore::removePairing();
+            if (!ConfigStore::removePairing()) {
+                controller->log(Severity::error, "Could not remove the pairing");
+                pairing.storageFailed(result);
+                break;
+            }
             controller->log(Severity::info, "Unpaired by the hub");
             chooseSetupPassword();
             break;
         case PairingController::Effect::saveCrewPassword:
-            if (!ConfigStore::writeHubCrewPassword(String(pairing.crewPassword()))) controller->log(Severity::error, "Could not save the crew password");
+            if (!ConfigStore::writeHubCrewPassword(String(pairing.crewPassword()))) {
+                controller->log(Severity::error, "Could not save the crew password");
+                pairing.storageFailed(result);
+                break;
+            }
             controller->log(Severity::info, pairing.crewPassword()[0] != '\0' ? "The hub set the crew password" : "The hub cleared the crew password");
             chooseSetupPassword();
             break;

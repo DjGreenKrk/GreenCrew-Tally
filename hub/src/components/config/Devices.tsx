@@ -17,6 +17,7 @@ const ERRORS: Record<string, TranslationKey> = {
   'paired-elsewhere': 'devices.error.pairedElsewhere',
   'already-paired': 'devices.error.alreadyPaired',
   'no-answer': 'devices.error.noAnswer',
+  'storage': 'devices.error.storage',
 }
 
 function DeviceRow({ device, actions }: { device: DeviceView, actions: DeviceActions }) {

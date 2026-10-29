@@ -194,7 +194,11 @@ void handleRestart() {
 // For a tally whose Hub is gone; the Hub can unpair it too.
 void handleUnpair() {
     if (!fromAccessPoint()) return;
-    ConfigStore::removePairing();
+    if (!ConfigStore::removePairing()) {
+        Serial.println("[ERROR] Could not remove the pairing");
+        server->send(500, "text/plain", "Could not remove the pairing");
+        return;
+    }
     Serial.println("[INFO]  Unpaired on the setup page");
     server->send(200, "text/plain; charset=utf-8", "Unpaired. Restarting.");
     restarting = true;

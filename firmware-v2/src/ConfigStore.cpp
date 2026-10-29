@@ -71,9 +71,10 @@ String readPairing() { return readFile(pairingPath); }
 
 bool writePairing(const String& text) { return writeFile(pairingPath, text); }
 
-void removePairing() {
-    LittleFS.remove(pairingPath);
-    LittleFS.remove(hubCrewPasswordPath);
+bool removePairing() {
+    // the crew password first: it is used only while paired
+    if (LittleFS.exists(hubCrewPasswordPath) && !LittleFS.remove(hubCrewPasswordPath)) return false;
+    return !LittleFS.exists(pairingPath) || LittleFS.remove(pairingPath);
 }
 
 String readHubCrewPassword() { return readFile(hubCrewPasswordPath); }

@@ -57,8 +57,8 @@ describe('tally-ho command', () => {
 })
 describe('management replies', () => {
     test('parses the answer of a v2 tally', () => {
-        const result = CommandParser.parse('gc/1 paired id=a1b2c3 hub=1a2b3c4d') as ManagementCommand
-        expect(result).toEqual({ command: 'management', reply: { kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d' } })
+        const result = CommandParser.parse('gc/1 paired id=a1b2c3 hub=1a2b3c4d key=fdbdef57e8036737') as ManagementCommand
+        expect(result).toEqual({ command: 'management', reply: { kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d', key: 'fdbdef57e8036737' } })
     })
     test('fails for unknown management lines', () => {
         expect(() => CommandParser.parse('gc/1 pair hub=1a2b3c4d')).toThrow('Received an invalid command')

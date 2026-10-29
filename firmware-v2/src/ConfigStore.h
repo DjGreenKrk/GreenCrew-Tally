@@ -45,7 +45,7 @@ String setupKey();
 String readPairing();
 bool writePairing(const String& text);
 // Removes the pairing and the crew password that came with it.
-void removePairing();
+bool removePairing();
 String readHubCrewPassword();
 // An empty password removes the file.
 bool writeHubCrewPassword(const String& password);

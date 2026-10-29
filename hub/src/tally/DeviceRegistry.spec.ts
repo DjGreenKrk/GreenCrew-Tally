@@ -2,7 +2,7 @@ import { EventEmitter } from 'events'
 import { AppConfiguration } from '../lib/AppConfiguration'
 import ServerEventEmitter from '../lib/ServerEventEmitter'
 import DeviceRegistry from './DeviceRegistry'
-import { crewPasswordFingerprint, crewPasswordMessage, unpairMessage } from './ManagementMessages'
+import { crewPasswordFingerprint, crewPasswordMessage, pairedKey, unpairMessage } from './ManagementMessages'
 
 const challenge1 = '0123456789abcdef'
 const challenge2 = 'fedcba9876543210'
@@ -17,14 +17,19 @@ function setup() {
   const advance = (ms: number) => { now += ms }
   const hello = (hub: string | null, challenge = challenge1, name = 'CAM1', id = 'a1b2c3', address = '10.0.0.5') =>
     registry.helloReceived(id, name, '2.0.0', address, 7411, { hub, challenge })
-  return { configuration, registry, sent, states, advance, hello }
+  // the "paired" answer of the tally that took the token of this "pair"
+  const paired = (pairText: string) => {
+    const token = Buffer.from(pairText.match(/token=([0-9a-f]{32})/)![1], 'hex')
+    registry.replyReceived({ kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d', key: pairedKey(token) })
+  }
+  return { configuration, registry, sent, states, advance, hello, paired }
 }
 
 function pairedSetup() {
   const context = setup()
   context.hello(null)
   context.registry.pair('a1b2c3')
-  context.registry.replyReceived({ kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d' })
+  context.paired(context.sent[0].text)
   context.sent.length = 0
   return context
 }
@@ -57,7 +62,7 @@ describe('DeviceRegistry', () => {
   })
 
   test('pairs once the tally answers and keeps the token', () => {
-    const { registry, sent, hello, configuration, advance } = setup()
+    const { registry, sent, hello, configuration, advance, paired } = setup()
     hello(null)
     expect(registry.pair('a1b2c3')).toBe(true)
     expect(sent[0].text).toMatch(/^gc\/1 pair hub=1a2b3c4d token=[0-9a-f]{32}\n$/)
@@ -68,13 +73,66 @@ describe('DeviceRegistry', () => {
     expect(sent).toHaveLength(2)
     expect(sent[1].text).toEqual(sent[0].text)
 
-    registry.replyReceived({ kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d' })
+    paired(sent[1].text)
     const token = sent[0].text.match(/token=([0-9a-f]{32})/)![1]
     expect(configuration.getPairedDevices()).toEqual([{ id: 'a1b2c3', name: 'CAM1', token, crewPasswordVersion: '' }])
     expect(registry.getState().devices[0].status).toBe('paired')
     // an older hello still saying "not paired" does not undo it
     hello(null)
     expect(configuration.getPairedDevice('a1b2c3')).toBeDefined()
+  })
+
+  test('a second click while pairing keeps the token', () => {
+    const { registry, sent, hello } = setup()
+    hello(null)
+    registry.pair('a1b2c3')
+    expect(registry.pair('a1b2c3')).toBe(true)
+    expect(sent).toHaveLength(1)
+  })
+
+  test('finds the token the tally took when all its answers were lost', () => {
+    const { registry, sent, hello, configuration, advance, paired } = setup()
+    hello(null)
+    registry.pair('a1b2c3')
+    advance(11000)
+    registry.tick()
+    expect(registry.getState().devices[0].lastError).toBe('no-answer')
+    // tried again before the tally said it is paired: another token
+    registry.pair('a1b2c3')
+    const firstToken = sent[0].text
+    expect(sent.at(-1)!.text).not.toEqual(firstToken)
+    registry.replyReceived({ kind: 'refused', id: 'a1b2c3', to: 'pair', why: 'already-paired' })
+
+    // the tally says it is paired with this Hub: both tokens are sent again
+    sent.length = 0
+    advance(1000)
+    hello('1a2b3c4d', challenge2)
+    registry.tick()
+    expect(sent.map(s => s.text)).toEqual([firstToken, expect.stringMatching(/ pair /)])
+    advance(500)
+    registry.tick()
+    expect(sent).toHaveLength(2)
+    // the answer to the right one
+    paired(firstToken)
+    expect(configuration.getPairedDevice('a1b2c3')!.token).toEqual(firstToken.match(/token=([0-9a-f]{32})/)![1])
+    expect(registry.getState().devices[0]).toMatchObject({ status: 'paired', lastError: undefined })
+    advance(1000)
+    registry.tick()
+    expect(sent).toHaveLength(2)
+  })
+
+  test('does not pair again a tally unpaired meanwhile', () => {
+    const { registry, sent, hello, advance } = setup()
+    hello(null)
+    registry.pair('a1b2c3')
+    advance(11000)
+    registry.tick()
+    hello(null, challenge2)
+    sent.length = 0
+    hello('1a2b3c4d', challenge1)
+    advance(1000)
+    registry.tick()
+    expect(sent).toEqual([])
   })
 
   test('gives up pairing without an answer and shows a refusal', () => {

@@ -86,12 +86,16 @@ void crewKeyStream(const uint8_t* token, const char* challenge, uint8_t* out, si
 
 }  // namespace
 
+void fingerprint(const uint8_t* token, const char* text, char* out) {
+    uint8_t mac[Sha256::digestSize];
+    hmacSha256(token, Pairing::tokenSize, text, strlen(text), mac);
+    toHex(mac, fingerprintSize, out);
+}
+
 void crewPasswordFingerprint(const uint8_t* token, const char* password, char* out) {
     char label[sizeof("crew-password-set ") + PairingController::maxCrewPassword];
     snprintf(label, sizeof(label), "crew-password-set %s", password);
-    uint8_t mac[Sha256::digestSize];
-    hmacSha256(token, Pairing::tokenSize, label, strlen(label), mac);
-    toHex(mac, crewFingerprintSize, out);
+    fingerprint(token, label, out);
 }
 
 void toHex(const uint8_t* bytes, size_t length, char* out) {
@@ -155,8 +159,24 @@ void PairingController::refuse(Result& result, const char* verb, const char* why
     snprintf(result.reply, sizeof(result.reply), "gc/1 refused id=%s to=%.16s why=%s\n", deviceId, verb, why);
 }
 
+void PairingController::pairedReply(Result& result) const {
+    char key[2 * fingerprintSize + 1];
+    fingerprint(current.token, "paired", key);
+    snprintf(result.reply, sizeof(result.reply), "gc/1 paired id=%s hub=%s key=%s\n", deviceId, current.hubId, key);
+}
+
+void PairingController::storageFailed(Result& result) {
+    const char* verb = result.effect == Effect::savePairing ? "pair" : result.effect == Effect::removePairing ? "unpair" : "crew-password";
+    current = previous;
+    strcpy(crew, previousCrew);
+    result.effect = Effect::none;
+    refuse(result, verb, "storage");
+}
+
 PairingController::Result PairingController::handle(const char* data, size_t length) {
     Result result;
+    previous = current;
+    strcpy(previousCrew, crew);
     Message message;
     if (!message.parse(data, length)) {
         refuse(result, "?", "format");
@@ -182,7 +202,7 @@ PairingController::Result PairingController::handle(const char* data, size_t len
         }
         // The same pairing again: the Hub did not get the answer
         if (current.paired && strcmp(current.hubId, hub) == 0 && sameBytes(current.token, token, sizeof(token))) {
-            snprintf(result.reply, sizeof(result.reply), "gc/1 paired id=%s hub=%s\n", deviceId, hub);
+            pairedReply(result);
             return result;
         }
         if (current.paired) {
@@ -199,7 +219,7 @@ PairingController::Result PairingController::handle(const char* data, size_t len
         crew[0] = '\0';
         newChallenge();
         result.effect = Effect::savePairing;
-        snprintf(result.reply, sizeof(result.reply), "gc/1 paired id=%s hub=%s\n", deviceId, hub);
+        pairedReply(result);
         return result;
     }
 
@@ -263,9 +283,9 @@ PairingController::Result PairingController::handle(const char* data, size_t len
     strcpy(crew, text);
     newChallenge();
     result.effect = Effect::saveCrewPassword;
-    char fingerprint[2 * crewFingerprintSize + 1];
-    crewPasswordFingerprint(current.token, crew, fingerprint);
-    snprintf(result.reply, sizeof(result.reply), "gc/1 crew-password-set id=%s hub=%s crew=%s\n", deviceId, hub, fingerprint);
+    char crewText[2 * fingerprintSize + 1];
+    crewPasswordFingerprint(current.token, crew, crewText);
+    snprintf(result.reply, sizeof(result.reply), "gc/1 crew-password-set id=%s hub=%s crew=%s\n", deviceId, hub, crewText);
     return result;
 }
 

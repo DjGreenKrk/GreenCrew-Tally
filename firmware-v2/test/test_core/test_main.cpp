@@ -1088,7 +1088,7 @@ void test_unpaired_tally_identifies_and_pairs() {
 
     PairingController::Result result = send(controller, "gc/1 pair hub=1a2b3c4d token=000102030405060708090a0b0c0d0e0f\n");
     TEST_ASSERT_TRUE(result.effect == PairingController::Effect::savePairing);
-    TEST_ASSERT_EQUAL_STRING("gc/1 paired id=a1b2c3 hub=1a2b3c4d\n", result.reply);
+    TEST_ASSERT_EQUAL_STRING("gc/1 paired id=a1b2c3 hub=1a2b3c4d key=fdbdef57e8036737\n", result.reply);
     TEST_ASSERT_TRUE(controller.pairing().paired);
     TEST_ASSERT_EQUAL_STRING("1a2b3c4d", controller.pairing().hubId);
     TEST_ASSERT_EQUAL_STRING("fedcba9876543210", controller.challenge());
@@ -1113,7 +1113,7 @@ void test_same_pairing_again_is_answered() {
     controller.begin(testPairing(), "hub-pass-1");
     PairingController::Result result = send(controller, "gc/1 pair hub=1a2b3c4d token=000102030405060708090a0b0c0d0e0f\n");
     TEST_ASSERT_TRUE(result.effect == PairingController::Effect::none);
-    TEST_ASSERT_EQUAL_STRING("gc/1 paired id=a1b2c3 hub=1a2b3c4d\n", result.reply);
+    TEST_ASSERT_EQUAL_STRING("gc/1 paired id=a1b2c3 hub=1a2b3c4d key=fdbdef57e8036737\n", result.reply);
     TEST_ASSERT_EQUAL_STRING("hub-pass-1", controller.crewPassword());
     TEST_ASSERT_EQUAL_STRING("0123456789abcdef", controller.challenge());
 }
@@ -1153,6 +1153,32 @@ void test_management_needs_the_mac_and_a_fresh_challenge() {
     TEST_ASSERT_TRUE(controller.pairing().paired);
 }
 
+void test_failed_flash_write_is_refused_and_undone() {
+    randomValues = challenges;
+    PairingController controller("a1b2c3", nextRandom);
+    controller.begin(Pairing(), "");
+    PairingController::Result result = send(controller, "gc/1 pair hub=1a2b3c4d token=000102030405060708090a0b0c0d0e0f\n");
+    controller.storageFailed(result);
+    TEST_ASSERT_TRUE(result.effect == PairingController::Effect::none);
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=pair why=storage\n", result.reply);
+    TEST_ASSERT_FALSE(controller.pairing().paired);
+
+    randomValues = challenges;
+    controller.begin(testPairing(), "hub-pass-1");
+    result = send(controller, hubCrewPassword);
+    controller.storageFailed(result);
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=crew-password why=storage\n", result.reply);
+    TEST_ASSERT_EQUAL_STRING("hub-pass-1", controller.crewPassword());
+
+    randomValues = challenges;
+    controller.begin(testPairing(), "hub-pass-1");
+    result = send(controller, hubUnpair);
+    controller.storageFailed(result);
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=unpair why=storage\n", result.reply);
+    TEST_ASSERT_TRUE(controller.pairing().paired);
+    TEST_ASSERT_EQUAL_STRING("hub-pass-1", controller.crewPassword());
+}
+
 void test_paired_hub_sets_the_crew_password() {
     randomValues = challenges;
     PairingController controller("a1b2c3", nextRandom);
@@ -1174,6 +1200,8 @@ void test_paired_hub_sets_the_crew_password() {
     TEST_ASSERT_EQUAL_STRING("781693d3e3d94b59", fingerprint);
     crewPasswordFingerprint(testPairing().token, "", fingerprint);
     TEST_ASSERT_EQUAL_STRING("088970114d5c5f56", fingerprint);
+    gctally::fingerprint(testPairing().token, "paired", fingerprint);
+    TEST_ASSERT_EQUAL_STRING("fdbdef57e8036737", fingerprint);
 }
 
 void test_crew_password_is_dropped_when_not_paired() {
@@ -1277,6 +1305,7 @@ int main() {
     RUN_TEST(test_same_pairing_again_is_answered);
     RUN_TEST(test_paired_hub_unpairs_with_the_challenge_once);
     RUN_TEST(test_management_needs_the_mac_and_a_fresh_challenge);
+    RUN_TEST(test_failed_flash_write_is_refused_and_undone);
     RUN_TEST(test_paired_hub_sets_the_crew_password);
     RUN_TEST(test_crew_password_is_dropped_when_not_paired);
     RUN_TEST(test_hello_tells_the_pairing_and_the_challenge);

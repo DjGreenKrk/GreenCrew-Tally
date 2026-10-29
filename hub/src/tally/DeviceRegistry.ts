@@ -2,7 +2,7 @@ import { randomBytes } from 'crypto'
 import { AppConfiguration } from '../lib/AppConfiguration'
 import { TallyPairing } from './CommandParser'
 import { DeviceListState, DeviceView } from './DeviceList'
-import { crewPasswordFingerprint, crewPasswordMessage, identifyMessage, ManagementReply, pairMessage, TOKEN_BYTES, unpairMessage } from './ManagementMessages'
+import { crewPasswordFingerprint, crewPasswordMessage, identifyMessage, ManagementReply, pairedKey, pairMessage, TOKEN_BYTES, unpairMessage } from './ManagementMessages'
 
 // Firmware v2 tallies the Hub knows of, from their "tally-ho" and from mDNS
 // (_gctally-device._udp), keyed by the device id so duplicate names and new
@@ -23,6 +23,11 @@ type Entry = {
   reportedHub?: string | null
   challenge?: string
   pendingPair?: { token: Buffer, since: number, sentAt: number }
+  // tokens sent in "pair" that the tally may have taken although its answer
+  // was lost; while it says it is paired with this Hub and the Hub has no
+  // token, they are sent again and its answer names the right one
+  pairTokens: Buffer[]
+  recoverSentAt?: number
   pendingUnpair?: { since: number, sentWith: string, sentAt: number }
   crewSent?: { challenge: string, at: number, version: string }
   pairedAt?: number
@@ -35,6 +40,7 @@ const GIVE_UP_MS = 10000
 const CREW_RETRY_MS = 5000
 // a "tally-ho" sent just before the pairing must not undo it
 const PAIRING_SETTLE_MS = 10000
+const MAX_PAIR_TOKENS = 4
 
 export default class DeviceRegistry {
   private entries = new Map<string, Entry>()
@@ -50,7 +56,7 @@ export default class DeviceRegistry {
   private entry(id: string, name: string): Entry {
     let entry = this.entries.get(id)
     if (!entry) {
-      entry = { id, name, mdnsUp: false }
+      entry = { id, name, mdnsUp: false, pairTokens: [] }
       this.entries.set(id, entry)
     }
     return entry
@@ -66,6 +72,8 @@ export default class DeviceRegistry {
     if (pairing) {
       entry.reportedHub = pairing.hub
       entry.challenge = pairing.challenge
+      // not paired with this Hub: none of the tokens is in use
+      if (pairing.hub !== this.hubId() && !entry.pendingPair) entry.pairTokens = []
     }
     const paired = this.configuration.getPairedDevice(id)
     // unpaired on the tally's setup page: the Hub follows
@@ -104,16 +112,19 @@ export default class DeviceRegistry {
     const hubId = this.hubId()
     // an accepted message changes the challenge: wait for the next "tally-ho"
     if (reply.kind !== 'refused') entry.challenge = undefined
-    if (reply.kind === 'paired' && reply.hub === hubId && entry.pendingPair) {
+    const pairedToken = reply.kind === 'paired' && reply.hub === hubId && !this.configuration.getPairedDevice(entry.id) ?
+      entry.pairTokens.find(token => pairedKey(token) === reply.key) : undefined
+    if (pairedToken) {
       const crew = this.configuration.getCrewPassword()
       this.configuration.setPairedDevice({
         id: entry.id,
         name: entry.name,
-        token: entry.pendingPair.token.toString('hex'),
+        token: pairedToken.toString('hex'),
         // the tally drops a crew password from before; nothing to send for none
         crewPasswordVersion: crew.password === '' ? crew.version : '',
       })
       entry.pendingPair = undefined
+      entry.pairTokens = []
       entry.pairedAt = this.now()
       entry.reportedHub = hubId
       entry.lastError = undefined
@@ -160,8 +171,11 @@ export default class DeviceRegistry {
   pair(id: string) {
     const entry = this.entries.get(id)
     if (!entry?.address || !entry.port || this.configuration.getPairedDevice(id)) return false
+    // a second click (or another browser) keeps the token already sent
+    if (entry.pendingPair) return true
     const now = this.now()
     entry.pendingPair = { token: randomBytes(TOKEN_BYTES), since: now, sentAt: now }
+    entry.pairTokens = [...entry.pairTokens, entry.pendingPair.token].slice(-MAX_PAIR_TOKENS)
     entry.lastError = undefined
     this.send(pairMessage(this.hubId(), entry.pendingPair.token), entry.address, entry.port)
     this.emitIfChanged()
@@ -205,6 +219,7 @@ export default class DeviceRegistry {
           this.send(pairMessage(this.hubId(), entry.pendingPair.token), entry.address, entry.port)
         }
       }
+      this.recoverPairing(entry)
       if (entry.pendingUnpair && now - entry.pendingUnpair.since > GIVE_UP_MS) {
         entry.pendingUnpair = undefined
         entry.lastError = 'no-answer'
@@ -241,6 +256,16 @@ export default class DeviceRegistry {
 
   private isOnline(entry: Entry) {
     return this.isUdpOnline(entry) || entry.mdnsUp
+  }
+
+  // The tally took one of the tokens but its answers were lost
+  private recoverPairing(entry: Entry) {
+    const now = this.now()
+    if (entry.pendingPair || entry.pairTokens.length === 0 || entry.reportedHub !== this.hubId() ||
+        this.configuration.getPairedDevice(entry.id) || !this.isUdpOnline(entry) || !entry.address || !entry.port) return
+    if (entry.recoverSentAt !== undefined && now - entry.recoverSentAt < PAIR_RETRY_MS) return
+    entry.recoverSentAt = now
+    for (const token of entry.pairTokens) this.send(pairMessage(this.hubId(), token), entry.address, entry.port)
   }
 
   private retryUnpair(entry: Entry) {
