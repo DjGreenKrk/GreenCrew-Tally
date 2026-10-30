@@ -147,10 +147,14 @@ class NodeMcuConnector {
       try {
         // Keep the require literal so pkg can discover and include the
         // NodeMCU flasher and its serialport dependency in gc-tally.exe.
-        const tool = require('nodemcu-tool')
-        // nodemcu-tool only purges inside connect() with a connect delay; the
+        // Vendored from nodemcu-tool (see vendor/nodemcu-tool/README.md):
+        // the wifi-tally/NodeMCU-Tool fork pins serialport 8, long
+        // unmaintained; this copy runs on our own direct serialport 13
+        // dependency instead.
+        const tool = require('./vendor/nodemcu-tool/nodemcu-connector')
+        // The connector only purges inside connect() with a connect delay; the
         // Hub needs it after every open, so take it from its terminal module.
-        const terminal = require('nodemcu-tool/lib/transport/scriptable-serial-terminal')
+        const terminal = require('./vendor/nodemcu-tool/transport/scriptable-serial-terminal')
         this.nodemcu = { ...tool, purge: terminal.purge, write: terminal.write } as NodeMcuTool
       } catch (error) {
         console.error(`Could not load the NodeMCU tool: ${error}`)

@@ -1,0 +1,53 @@
+const _virtualTerminal = require('../transport/scriptable-serial-terminal');
+const _luaCommandBuilder = require('../lua/command-builder');
+const _logger = require('logging-facility').getLogger('connector');
+
+// download a file from NodeMCU
+async function download(remoteName){
+
+    let response;
+    let data;
+
+    // transfer helper function to encode hex data
+    try{
+        ({response} = await _virtualTerminal.executeCommand(_luaCommandBuilder.command.transferReadHelper));
+    }catch(e){
+        _logger.debug(e);
+        throw new Error('Cannot transfer hex.encode helper function', {cause: e});
+    }
+
+    // open remote file for read
+    try{
+        ({response} = await _virtualTerminal.executeCommand(_luaCommandBuilder.prepare('fileOpen', [remoteName, 'r'])));
+    }catch(e){
+        _logger.debug(e);
+        throw new Error('Cannot open remote file "' + remoteName + '" for read', {cause: e});
+    }
+
+    // read content
+    try{
+        ({response} = await _virtualTerminal.executeCommand(_luaCommandBuilder.command.fileRead));
+
+        // encoding
+        const tEncoding = response.match(/^[0-9A-F]+$/gi) ? 'hex' : 'base64';
+        _logger.log('Transfer-Encoding: ' + tEncoding);
+
+        // decode file content + detect encoding
+        data = new Buffer(response, tEncoding);
+    }catch(e){
+        _logger.debug(e);
+        throw new Error('Cannot read remote file content', {cause: e});
+    }
+
+    // close remote file for read
+    try{
+        ({response} = await _virtualTerminal.executeCommand(_luaCommandBuilder.command.fileClose));
+    }catch(e){
+        _logger.debug(e);
+        throw new Error('Cannot close remote file "' + remoteName + '"', {cause: e});
+    }
+
+    return data;
+}
+
+module.exports = download;

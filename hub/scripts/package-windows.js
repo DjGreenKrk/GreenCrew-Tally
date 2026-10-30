@@ -33,9 +33,11 @@ for (const name of modules) {
 }
 console.log('Bundled complete ESP8266 firmware: init.lua + precompiled .lc in ' + firmwareDir)
 
-// nodemcu-tool depends on the native serialport bindings addon. pkg follows
-// JS requires but needs a separate hint for dynamically resolved .node files.
-const serialportBindings = path.join(projectDir, 'node_modules', '@serialport', 'bindings')
+// The NodeMCU flasher depends on the native serialport bindings addon. pkg
+// follows JS requires but needs a separate hint for dynamically resolved
+// .node files. serialport 13 ships them as @serialport/bindings-cpp
+// (renamed from @serialport/bindings on serialport 8).
+const serialportBindings = path.join(projectDir, 'node_modules', '@serialport', 'bindings-cpp')
 function findNativeAddons(directory) {
   if (!fs.existsSync(directory)) return []
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
