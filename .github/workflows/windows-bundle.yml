@@ -46,7 +46,7 @@ jobs:
         run: npm ci --foreground-scripts --no-audit --no-fund
       - name: Native serialport and MIDI addons load on Node 24
         run: |
-          node -e "require('@serialport/bindings'); const midi = require('midi'); console.log('native OK', typeof midi.Input)"
+          node -e "require('@serialport/bindings-cpp'); const midi = require('midi'); console.log('native OK', typeof midi.Input)"
       - name: Run firmware and Hub unit tests
         env:
           CI: 'true'
