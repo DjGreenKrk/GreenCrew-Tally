@@ -46,7 +46,7 @@ jobs:
         run: npm ci --foreground-scripts --no-audit --no-fund
       - name: Native serialport and MIDI addons load on Node 24
         run: |
-          node -e "require('@serialport/bindings'); const midi = require('midi'); console.log('native OK', typeof midi.Input)"
+          node -e "require('@serialport/bindings-cpp'); const midi = require('midi'); console.log('native OK', typeof midi.Input)"
       - name: Run firmware and Hub unit tests
         env:
           CI: 'true'
@@ -89,7 +89,8 @@ jobs:
             }
             if (-not $ready) { throw 'Packaged Hub did not start on port 3000' }
             # Ask the USB flasher to enumerate serial devices. No ESP is required;
-            # this loads nodemcu-tool and native serialport from inside pkg.
+            # this loads the vendored NodeMCU connector and native serialport
+            # from inside pkg.
             node -e "const s = require('socket.io-client')('http://127.0.0.1:3000'); const t = setTimeout(() => { console.error('flasher probe timeout'); process.exit(1) }, 10000); s.on('connect', () => s.emit('flasher.device.get')); s.on('flasher.device', d => { clearTimeout(t); console.log('flasher probe response', JSON.stringify(d)); s.disconnect(); process.exit(0) });"
             if ($LASTEXITCODE -ne 0) { throw 'Serial flasher did not respond' }
             Start-Sleep -Milliseconds 500
