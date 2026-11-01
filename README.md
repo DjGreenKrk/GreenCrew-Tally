@@ -36,6 +36,24 @@ to a working show:
 4. patch tallies to camera channels;
 5. import the Companion module from `companion\` and connect it to the Hub.
 
+## Event networks
+
+Lessons from running GC Tally on event Wi-Fi, not GC Tally bugs:
+
+* **WPA3:** the ESP8266 (NodeMCU firmware) cannot join WPA3-only networks. Ask the venue for
+  WPA2/WPA3 transition mode, or bring a WPA2 network for equipment.
+* **2.4 GHz only:** the ESP8266 does not see 5 GHz networks; make sure the SSID you give it
+  actually broadcasts on 2.4 GHz.
+* **Client isolation** on event Wi-Fi can block tally ↔ Hub traffic even though the tally gets
+  an IP address. Best options: bring your own router (WPA2, 2.4 GHz), or use the Windows mobile
+  hotspot on the Hub laptop (2.4 GHz, WPA2; Hub usually at `192.168.137.1`; max ~8 devices).
+* **Windows firewall:** an unrecognised network is classified *Public*, and `gc-tally.exe` is
+  often allowed only on *Private* networks, so UDP 7411 from the tallies gets blocked (tally
+  blinks blue twice: Wi-Fi is fine, it just can't reach the Hub). Set the network to Private, or
+  allow `gc-tally.exe` on public networks in Windows Defender Firewall.
+* **Changing Wi-Fi on a tally:** USB → Hub's Flash page → edit the settings form → Save.
+  "Update now" is only needed when the tally application itself changes.
+
 ## Tally colours
 
 | Light | Meaning |

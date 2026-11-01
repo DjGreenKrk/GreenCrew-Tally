@@ -94,6 +94,30 @@ Kanal = numer kamery wysylany przez Companion.
    na zmiane zmiennych Program/Preview Twojego miksera.
 
 
+6. Siec Wi-Fi na evencie
+------------------------
+Czeste problemy na sieci eventowej (nie sa winne ustawienia Huba/lampki):
+
+- WPA3: ESP8266 (firmware NodeMCU) nie polaczy sie z siecia WPA3-only.
+  Pros organizatora o siec WPA2/WPA3 (tranzycyjna) albo osobna siec WPA2
+  dla sprzetu.
+- Tylko 2.4 GHz: ESP8266 nie widzi sieci 5 GHz - sprawdz, czy podawane
+  SSID faktycznie dziala na 2.4 GHz.
+- Izolacja klientow (client isolation) na sieci eventowej blokuje ruch
+  lampka <-> Hub, nawet gdy lampka dostanie adres IP. Najlepiej uzyj
+  wlasnego routera (WPA2, 2.4 GHz) albo hotspotu Windows na laptopie z
+  Hubem (2.4 GHz, WPA2; Hub zwykle na 192.168.137.1; limit ok. 8 urzadzen).
+- Zapora Windows: nieznana siec jest traktowana jako Publiczna, a
+  gc-tally.exe bywa dopuszczony tylko w sieciach Prywatnych - wtedy UDP
+  7411 od lampek jest blokowany (lampka miga niebiesko dwa razy: Wi-Fi
+  jest, Huba nie widzi). Ustaw siec jako Prywatna albo zezwol na
+  gc-tally.exe w sieciach publicznych w Zaporze Windows (Windows
+  Defender Firewall).
+- Zmiana Wi-Fi na lampce: USB -> strona Flash w Hubie -> popraw formularz
+  -> Save. "Update now" potrzebne jest tylko przy zmianie samej aplikacji
+  lampki.
+
+
 Kolory lampki
 -------------
   czerwony             PROGRAM (na wizji)
