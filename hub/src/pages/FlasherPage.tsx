@@ -78,6 +78,7 @@ const FlasherPage = () => {
   const handleSettingsIniSave = (tallySettings: TallySettingsIni) => {
     setUploadProgress(undefined)
     setProgramProgress(undefined)
+    setBaseFirmwareProgress(undefined)
     setIsUploading(true)
     setUploadingOpen(true)
     const fnc = (progress: TallySettingsIniProgressType) => {
@@ -95,6 +96,7 @@ const FlasherPage = () => {
   const handleProgram = () => {
     setUploadProgress(undefined)
     setProgramProgress(undefined)
+    setBaseFirmwareProgress(undefined)
     setIsUploading(true)
     setUploadingOpen(true)
     const fnc = (progress: TallyProgramProgressType) => {
