@@ -8,12 +8,14 @@ import MiniPage from '../components/layout/MiniPage';
 import Spinner from '../components/layout/Spinner';
 import TallySettingsIniProgress from '../components/flasher/TallySettingsProgress';
 import { TallyProgramProgressType, TallySettingsIniProgressType } from '../flasher/NodeMcuConnector';
+import { BaseFirmwareProgressType } from '../flasher/EsptoolFlasher';
 import TallyDevice, { TallyDeviceObjectType } from '../flasher/TallyDevice';
 import TallySettingsIni from '../flasher/TallySettingsIni';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { socket } from '../hooks/useSocket';
 import Help from '../components/flasher/Help';
 import ProgramProgress from '../components/flasher/ProgramProgress';
+import BaseFirmwareProgress from '../components/flasher/BaseFirmwareProgress';
 import PortSelect, { needsPortChoice } from '../components/flasher/PortSelect';
 import { useTranslation } from '../i18n';
 
@@ -60,6 +62,7 @@ const FlasherPage = () => {
   const [uploadingOpen, setUploadingOpen] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<TallySettingsIniProgressType>(undefined)
   const [programProgress, setProgramProgress] = useState<TallyProgramProgressType>(undefined)
+  const [baseFirmwareProgress, setBaseFirmwareProgress] = useState<BaseFirmwareProgressType>(undefined)
   // undefined: let the Hub pick the first known ESP USB adapter
   const [requestedPath, setRequestedPath] = useState<string>(undefined)
   const tallyDevice = useTallyDevice(increment, requestedPath)
@@ -106,6 +109,24 @@ const FlasherPage = () => {
     socket.emit('flasher.program', tallyDevice.path)
   }
 
+  const handleFlashBaseFirmware = () => {
+    setUploadProgress(undefined)
+    setProgramProgress(undefined)
+    setBaseFirmwareProgress(undefined)
+    setIsUploading(true)
+    setUploadingOpen(true)
+    const fnc = (progress: BaseFirmwareProgressType) => {
+      if (progress.allDone || progress.error) {
+        socket.off('flasher.baseFirmware.progress', fnc)
+        setIsUploading(false)
+        if(!progress.error) { handleReload() }
+      }
+      setBaseFirmwareProgress(progress)
+    }
+    socket.on('flasher.baseFirmware.progress', fnc)
+    socket.emit('flasher.baseFirmware', tallyDevice.path)
+  }
+
   return (
     <Layout testId="flasher">
       <Dialog
@@ -116,6 +137,7 @@ const FlasherPage = () => {
         <DialogContent>
           { uploadProgress && <TallySettingsIniProgress progress={uploadProgress} /> }
           { programProgress && <ProgramProgress progress={programProgress} /> }
+          { baseFirmwareProgress && <BaseFirmwareProgress progress={baseFirmwareProgress} /> }
         </DialogContent>
         <DialogActions>
           <Button data-testid="progress-close" disabled={isUploading} onClick={() => setUploadingOpen(false)}>{t('common.close')}</Button>
@@ -134,7 +156,7 @@ const FlasherPage = () => {
             disabled={isUploading}
             onChange={setRequestedPath}
           /> }
-          <Help tallyDevice={tallyDevice} onReload={handleReload} />
+          <Help tallyDevice={tallyDevice} onReload={handleReload} onFlashBaseFirmware={handleFlashBaseFirmware} />
         </>)}
       </MiniPage>
       { (tallyDevice?.update === "updateable" || tallyDevice?.update === "up-to-date") && <MiniPage testId="update-software" title={t('flasher.update.title')}>

@@ -22,6 +22,7 @@ export interface TallyDeviceObjectType {
   errorMessage?: string
   update?: UpdateType
   ports?: SerialPortChoice[]
+  baseFirmwareAvailable?: boolean
 }
 
 class TallyDevice{
@@ -36,6 +37,7 @@ class TallyDevice{
   tallySettings?: TallySettingsIni
   errorMessage?: string
   ports: SerialPortChoice[] = []
+  baseFirmwareAvailable?: boolean
 
   toJson(): TallyDeviceObjectType {
     return {
@@ -50,6 +52,7 @@ class TallyDevice{
       errorMessage: this.errorMessage,
       update: this.update,
       ports: this.ports,
+      baseFirmwareAvailable: this.baseFirmwareAvailable,
     }
   }
 
@@ -66,6 +69,7 @@ class TallyDevice{
     device.errorMessage = data.errorMessage
     device.update = data.update
     device.ports = data.ports || []
+    device.baseFirmwareAvailable = data.baseFirmwareAvailable
 
     return device
   }

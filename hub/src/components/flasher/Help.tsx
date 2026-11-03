@@ -1,6 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { makeStyles } from "tss-react/mui"
-import { Button, } from '@mui/material'
+import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material'
 import TallyDevice from '../../flasher/TallyDevice'
 import { Alert, AlertTitle } from '@mui/material'
 import ExternalLink from '../ExternalLink'
@@ -23,12 +23,20 @@ const useStyles = makeStyles()(theme => {
 type Props = {
   tallyDevice: TallyDevice
   onReload: () => void
+  onFlashBaseFirmware?: () => void
 }
 
-function Help({tallyDevice, onReload}: Props) {
+function Help({tallyDevice, onReload, onFlashBaseFirmware}: Props) {
   const { classes } = useStyles()
   const { t } = useTranslation()
-  
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const handleConfirmFlashBaseFirmware = () => {
+    setConfirmOpen(false)
+    onFlashBaseFirmware?.()
+  }
+
+
   if (tallyDevice.path === undefined) {
     const isLocalhost = (() => {
       const hostName = window.location.hostname
@@ -78,6 +86,29 @@ function Help({tallyDevice, onReload}: Props) {
           <li>{t('flasher.help.fixReset')}</li>
         </ul>
       </Alert>
+      { tallyDevice.baseFirmwareAvailable && onFlashBaseFirmware && <>
+        <Alert variant="outlined" className={classes.info} severity="info"
+          action={
+            <Button data-testid="flash-base-firmware" color="inherit" size="small" onClick={() => setConfirmOpen(true)}>
+              {t('flasher.baseFirmware.action')}
+            </Button>
+          }
+        >
+          {t('flasher.baseFirmware.hint')}
+        </Alert>
+        <Dialog data-testid="flash-base-firmware-dialog" maxWidth="xs" open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+          <DialogTitle>{t('flasher.baseFirmware.confirmTitle')}</DialogTitle>
+          <DialogContent>
+            <DialogContentText>{t('flasher.baseFirmware.confirmText')}</DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button data-testid="flash-base-firmware-cancel" onClick={() => setConfirmOpen(false)}>{t('common.cancel')}</Button>
+            <Button data-testid="flash-base-firmware-confirm" color="error" variant="contained" onClick={handleConfirmFlashBaseFirmware}>
+              {t('flasher.baseFirmware.confirm')}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </> }
     </>
   }
   return <></>

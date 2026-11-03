@@ -30,8 +30,9 @@ folder and follow **`START-TUTAJ.txt`** inside. It covers everything from a bran
 to a working show:
 
 1. start `gc-tally.exe` (Hub on http://localhost:3000, tallies on UDP 7411);
-2. flash the base NodeMCU firmware onto each new ESP8266 with `flash-nodemcu.cmd`
-   (esptool and the firmware image are included);
+2. flash the base NodeMCU firmware onto each new ESP8266 - either run `flash-nodemcu.cmd`
+   by hand (esptool and the firmware image are included), or connect the board and click
+   "Flash base firmware" on the Hub's Flash page, which does the same erase-and-write;
 3. install the tally application and settings from the Hub's **Flash** page;
 4. patch tallies to camera channels;
 5. import the Companion module from `companion\` and connect it to the Hub.

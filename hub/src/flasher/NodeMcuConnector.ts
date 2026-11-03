@@ -3,6 +3,7 @@ import TallySettingsIni from './TallySettingsIni'
 import tmp from 'tmp-promise'
 import { promises as fs } from 'fs'
 import { findFirmwareFiles, FirmwareFile } from './FirmwareAssets'
+import { findEsptoolAssets } from './EsptoolAssets'
 
 const baudRate = 115200
 const fileName = "tally-settings.ini"
@@ -32,6 +33,11 @@ const tryToAquireMutex = () => {
     return false
   }
 }
+
+// Shared with EsptoolFlasher.ts: esptool.exe and nodemcu-tool must never
+// address the same serial port at the same time.
+export const tryToAcquireSerialPortMutex = tryToAquireMutex
+export const releaseSerialPortMutex = () => { mutex = false }
 
 export interface TallySettingsIniProgressType {
   tallyName: string
@@ -284,6 +290,14 @@ class NodeMcuConnector {
     }
     if (!updatePossible) {
       tallyDevice.update = "not-available"
+    }
+
+    try {
+      await findEsptoolAssets()
+      tallyDevice.baseFirmwareAvailable = true
+    } catch (error) {
+      tallyDevice.baseFirmwareAvailable = false
+      console.warn('esptool base-firmware flasher not available: ' + String(error))
     }
 
     try {
