@@ -18,6 +18,7 @@ import { StateCommand } from "../tally/CommandCreator";
 import { TallyConfigurationObjectType } from "../tally/TallyConfiguration";
 import { TallyDeviceObjectType } from "../flasher/TallyDevice";
 import { TallyProgramProgressType, TallySettingsIniProgressType } from "../flasher/NodeMcuConnector";
+import { BaseFirmwareProgressType } from "../flasher/EsptoolFlasher";
 import { VmixProjectState } from "./VmixProjectManager";
 
 // events the server sends to the client
@@ -49,6 +50,7 @@ export interface ServerSentEvents {
     'flasher.device': (tallyDevice: TallyDeviceObjectType) => void
     'flasher.settingsIni.progress': (state: TallySettingsIniProgressType) => void
     'flasher.program.progress': (state: TallyProgramProgressType) => void
+    'flasher.baseFirmware.progress': (state: BaseFirmwareProgressType) => void
 }
 
 // events the client sends to the server
@@ -99,6 +101,7 @@ export interface ClientSentEvents {
     'flasher.device.get': (path?: string) => void
     'flasher.settingsIni': (path: string, settingsIniString: string) => void
     'flasher.program': (path: string) => void
+    'flasher.baseFirmware': (path: string) => void
 }
 
 export interface ServerSideSocket {

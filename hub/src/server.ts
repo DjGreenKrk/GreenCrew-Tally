@@ -30,6 +30,7 @@ import TestConfiguration from './mixer/test/TestConfiguration'
 import WebTallyDriver from './tally/WebTallyDriver'
 import { DefaultTallyConfiguration, TallyConfiguration } from './tally/TallyConfiguration'
 import NodeMcuConnector from './flasher/NodeMcuConnector'
+import { flashBaseFirmware } from './flasher/EsptoolFlasher'
 import VmixProjectManager from './lib/VmixProjectManager'
 import registerCompanionApi, { isLoopbackAddress } from './mixer/companion/CompanionApi'
 import { companionLanState, effectiveCompanionToken, generateCompanionToken, hubLanAddresses } from './mixer/companion/CompanionLanAccess'
@@ -457,6 +458,12 @@ io.on('connection', (socket: ServerSideSocket) => {
   socket.on('flasher.program', (path) => {
     myNodeMcuConnector.program(path, (state) => {
       socket.emit('flasher.program.progress', state)
+    })
+  })
+
+  socket.on('flasher.baseFirmware', (path) => {
+    flashBaseFirmware(path, (state) => {
+      socket.emit('flasher.baseFirmware.progress', state)
     })
   })
 })
