@@ -52,6 +52,13 @@ void TallyController::wifiLost(uint32_t nowMs) {
     leds.showWaitForWifi(nowMs);
 }
 
+void TallyController::espNowReady(uint32_t nowMs) {
+    wifiUp = true;
+    leds.showWaitForHub(nowMs);
+    log(Severity::info, "ESP-NOW ready, waiting for the gateway");
+    sendHello();
+}
+
 void TallyController::packetReceived(const char* data, size_t length, uint32_t nowMs) {
     hasPacket = true;
     lastPacketMs = nowMs;

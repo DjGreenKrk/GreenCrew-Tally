@@ -28,6 +28,8 @@ import { isManualChannelState } from './mixer/manual/ManualState'
 import TestConnector from './mixer/test/TestConnector'
 import TestConfiguration from './mixer/test/TestConfiguration'
 import WebTallyDriver from './tally/WebTallyDriver'
+import EspNowGatewayTallyDriver from './tally/EspNowGatewayTallyDriver'
+import EspNowGatewayConfiguration from './tally/EspNowGatewayConfiguration'
 import { DefaultTallyConfiguration, TallyConfiguration } from './tally/TallyConfiguration'
 import NodeMcuConnector from './flasher/NodeMcuConnector'
 import VmixProjectManager from './lib/VmixProjectManager'
@@ -79,6 +81,8 @@ new UdpTallyDriver(myConfiguration, myTallyContainer, error => {
   exitWithStartupError(describeListenError(error, 'tally (UDP)', myConfiguration.getTallyPort()))
 })
 const myWebTallyDriver = new WebTallyDriver(myConfiguration, myTallyContainer)
+// ESP-NOW gateway (#25): off unless configured, see EspNowGatewayConfiguration
+new EspNowGatewayTallyDriver(myConfiguration, myTallyContainer)
 
 // Firmware v2 tallies find the Hub over mDNS (#28). GC_TALLY_MDNS=off turns
 // it off; the test environment only announces with GC_TALLY_MDNS=on.
@@ -197,6 +201,9 @@ io.on('connection', (socket: ServerSideSocket) => {
     new SocketAwareEvent(myEmitter, 'config.changed.tallyconfig', socket, (socket, tallyConfiguration) => {
       socket.emit('config.state.tallyconfig', tallyConfiguration.toJson())
     }),
+    new SocketAwareEvent(myEmitter, 'config.changed.espNowGateway', socket, (socket, espNowGatewayConfiguration) => {
+      socket.emit('config.state.espNowGateway', espNowGatewayConfiguration.toJson())
+    }),
     new SocketAwareEvent(myEmitter, 'config.changed.mixer', socket, (socket, mixerName) => {
       socket.emit('config.state.mixer', {mixerName, allowedMixers: MixerDriver.getAllowedMixers(myConfiguration.isDev(), myConfiguration.isTest())})
     }),
@@ -214,6 +221,7 @@ io.on('connection', (socket: ServerSideSocket) => {
     socket.emit('config.state.rolandV60HD', myConfiguration.getRolandV60HDConfiguration().toJson())
     socket.emit('config.state.vmix', myConfiguration.getVmixConfiguration().toJson())
     socket.emit('config.state.tallyconfig', myConfiguration.getTallyConfiguration().toJson())
+    socket.emit('config.state.espNowGateway', myConfiguration.getEspNowGatewayConfiguration().toJson())
   })
   socket.on('events.program.unsubscribe', () => {
     // @TODO: not used yet
@@ -440,6 +448,11 @@ io.on('connection', (socket: ServerSideSocket) => {
     const configuration = new DefaultTallyConfiguration()
     configuration.fromJson(conf)
     myConfiguration.setTallyConfiguration(configuration)
+  })
+  socket.on('config.change.espNowGateway', (conf) => {
+    const configuration = new EspNowGatewayConfiguration()
+    configuration.fromJson(conf)
+    myConfiguration.setEspNowGatewayConfiguration(configuration)
   })
 
   socket.on('flasher.device.get', (path) => {

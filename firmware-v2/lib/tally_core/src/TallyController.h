@@ -43,6 +43,10 @@ public:
     void wifiGotIp(uint32_t nowMs);
     void wifiLost(uint32_t nowMs);
 
+    // ESP-NOW transport (#25): no Wi-Fi association/IP to wait for, so this
+    // is the equivalent of wifiGotIp() once the radio is listening.
+    void espNowReady(uint32_t nowMs);
+
     void packetReceived(const char* data, size_t length, uint32_t nowMs);
     void tick(uint32_t nowMs);
 

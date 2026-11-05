@@ -36,6 +36,14 @@ export interface WebTallyObjectType extends TallyObjectType {
     connectedClients: ClientAddress[]
 }
 
+// An ESP-NOW tally (#25): no IP address, addressed by its MAC (12 lowercase
+// hex digits, no separators) through the Hub's EspNowGatewayTallyDriver.
+export interface EspNowTallyObjectType extends TallyObjectType {
+    mac?: string
+    device?: TallyDevice
+    state: ConnectionState
+}
+
 // Sent by firmware v2 after the name: 'gc/1 id=a1b2c3 fw=2.0.0 hw=esp8266 caps=ws2812,pwm'.
 // The NodeMCU firmware sends only the name; older Hubs ignore the rest.
 export type TallyDevice = {
@@ -46,7 +54,7 @@ export type TallyDevice = {
   capabilities: string[]
 }
 
-export type TallyType = "udp" | "web"
+export type TallyType = "udp" | "web" | "espnow"
 
 export abstract class Tally {
     name: string
@@ -90,6 +98,10 @@ export abstract class Tally {
         return this.type === "udp"
     }
 
+    isEspNowTally() : this is EspNowTally {
+        return this.type === "espnow"
+    }
+
     addLog(log: Log) {
         this.logs.push(log)
         return log
@@ -121,10 +133,10 @@ export abstract class Tally {
         }
     }
 
-    static fromJsonForSave(valueObject: TallySaveObjectType) : UdpTally | WebTally {
+    static fromJsonForSave(valueObject: TallySaveObjectType) : UdpTally | WebTally | EspNowTally {
         const channelIds = valueObject.channelIds || (valueObject.channelId ? [valueObject.channelId] : [])
-        const tally = valueObject.type === "web" ?
-            new WebTally(valueObject.name, channelIds):
+        const tally = valueObject.type === "web" ? new WebTally(valueObject.name, channelIds) :
+            valueObject.type === "espnow" ? new EspNowTally(valueObject.name, channelIds) :
             // UdpTally was the previous default. So if no type is set we also expect an Udp Tally
             new UdpTally(valueObject.name, channelIds)
 
@@ -146,6 +158,8 @@ export abstract class Tally {
     static fromJson(valueObject: TallyObjectType) {
         if (valueObject.type === "web") {
             return WebTally.fromJson(valueObject as WebTallyObjectType)
+        } else if (valueObject.type === "espnow") {
+            return EspNowTally.fromJson(valueObject as EspNowTallyObjectType)
         } else {
             return UdpTally.fromJson(valueObject as UdpTallyObjectType)
         }
@@ -202,6 +216,54 @@ export class UdpTally extends Tally {
         return tally
     }
 
+}
+
+export class EspNowTally extends Tally {
+    // 12 lowercase hex digits, no separators (same as the tally's "id" in
+    // tally-ho); undefined until the gateway relays its first message.
+    mac?: string
+    state: ConnectionState
+    device?: TallyDevice
+    readonly type = "espnow"
+
+    constructor(name: string, channelIds: string|string[] = [], mac?: string, state: ConnectionState = ConnectionState.DISCONNECTED) {
+        super(name, channelIds)
+        this.mac = mac
+        this.state = state
+    }
+
+    isConnected() : boolean {
+        return this.mac !== undefined && this.state === ConnectionState.CONNECTED
+    }
+    isDisconnected(): boolean {
+        return !this.isActive()
+    }
+    isActive() : boolean {
+        return this.mac !== undefined && this.state !== ConnectionState.DISCONNECTED
+    }
+    isMissing() : boolean {
+        return this.mac !== undefined && this.state === ConnectionState.MISSING
+    }
+
+    toJson(): EspNowTallyObjectType {
+        return {
+            ...super.toJson(),
+            mac: this.mac,
+            state: this.state,
+            device: this.device,
+        }
+    }
+    static fromJson(valueObject: EspNowTallyObjectType) {
+        const tally = new EspNowTally(
+            valueObject.name,
+            valueObject.channelIds || (valueObject.channelId ? [valueObject.channelId] : []),
+            valueObject.mac,
+            valueObject.state
+        )
+        tally.device = valueObject.device
+        tally.configuration.fromJson(valueObject)
+        return tally
+    }
 }
 
 export class WebTally extends Tally {

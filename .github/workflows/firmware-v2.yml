@@ -63,6 +63,15 @@ jobs:
             firmware-v2/.pio/build/d1_mini/firmware.bin
             firmware-v2/.pio/build/d1_mini/firmware.elf
           if-no-files-found: error
+      - name: Build the ESP-NOW gateway (#25)
+        run: pio run -e gateway_d1_mini
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gc-tally-firmware-v2-gateway-d1-mini
+          path: |
+            firmware-v2/.pio/build/gateway_d1_mini/firmware.bin
+            firmware-v2/.pio/build/gateway_d1_mini/firmware.elf
+          if-no-files-found: error
 
   hub-integration:
     runs-on: ubuntu-24.04

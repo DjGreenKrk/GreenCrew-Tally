@@ -67,6 +67,8 @@ New in v2 (v1 warns about them in its log and works on):
 | `hub.id` | none | Use only this Hub when looking for one: the 8 characters on the Hub's Configuration page |
 | `setup.password` | crew password | Password of the setup access point for this tally, 8 to 63 printable ASCII characters; overrides the crew password |
 | `setup.recovery-after` | `30` | Seconds without Wi-Fi before the recovery access point starts; `0` turns it off |
+| `transport.mode` | `wifi` | `wifi` (station + UDP, as above) or `espnow`: no Wi-Fi network at all, through a [USB gateway](#esp-now-gateway-25) (#25). `station.ssid` is then optional |
+| `transport.channel` | `1` | Wi-Fi channel 1-13 shared with the gateway in `espnow` mode. Ignored in `wifi` mode |
 
 Differences from v1:
 
@@ -142,6 +144,53 @@ but not a power loss, so they need no flash writes either.
 both use the station's channel, and every connection attempt to the show network scans other
 channels and briefly disturbs phones on the access point. So while someone is on the page, the
 tally tries its network only every 30 s. A future ESP-NOW mode shares the channel the same way.
+
+## ESP-NOW gateway (#25)
+
+For venues where the show network does not work for the ESP8266 (no Wi-Fi at all, WPA3-only,
+client isolation; see `../README.md`'s "Event networks"): `transport.mode=espnow` turns off Wi-Fi
+station mode entirely and instead listens on a fixed radio channel for an ESP8266/D1 Mini plugged
+into the Hub computer by USB, built as its own PlatformIO environment:
+
+```sh
+pio run -e gateway_d1_mini -t upload
+```
+
+The gateway needs no `tally-settings.ini` and no settings of its own beyond the channel (built in,
+must match every `espnow` tally's `transport.channel`). It is a plain bridge:
+
+- **Hub → tally**, at the Hub's normal keep-alive rate, one line per tally over the Hub's
+  configured serial port: `TO <mac> <state>\n`, `<mac>` the tally's 12 lowercase hex digit MAC
+  with no separators and `<state>` exactly the UDP colour-state text (`O255/000/000 S000/…` etc.);
+  the gateway turns this into one ESP-NOW unicast to that MAC.
+- **Tally → Hub**: a `espnow` tally broadcasts its own `tally-ho`/`log` text over ESP-NOW instead
+  of UDP (`EspPlatform::sendToHub` in `src/main.cpp`), unchanged otherwise; any gateway in range
+  (there is normally one) forwards it up the serial link as `FROM <mac> <text>\n`. The Hub's
+  `EspNowGatewayTallyDriver` parses this with the same `CommandParser` the UDP driver uses, so an
+  `espnow` tally shows up exactly like a UDP one once the gateway relays its first `tally-ho`.
+- The gateway itself announces `GATEWAY-HO gc-gateway/1\n` once at boot, so the Hub's log shows
+  when it is plugged in and talking.
+
+Line framing and MAC hex (de)coding are `lib/tally_core/src/GatewayLink.h`/`.cpp`, unit tested on
+a computer like the rest of `lib/tally_core`; `src/gateway_main.cpp` is only the thin Arduino/
+ESP-NOW glue around it (Serial line reading, `esp_now_*` calls), the same split as `src/main.cpp`.
+
+**Known limits of this first version**, left for later:
+
+- **No encryption or pairing.** ESP-NOW frames are sent in the clear and any `espnow` tally
+  accepts state from any sender on its channel; this matches v1/v2 Wi-Fi colour packets today
+  (also unsigned), but unlike pairing (#28) there is no per-device trust at all yet on this
+  transport.
+- **One-way presence only.** A tally's hello/log broadcasts are not acknowledged; if no gateway
+  is in range the tally has no way to know (same as UDP without a reachable Hub).
+- **The captive portal does not offer `transport.mode` yet** (#27's setup page always asks for a
+  Wi-Fi network first). Switching a tally to `espnow` today means writing `tally-settings.ini` by
+  hand and uploading it with `pio run -e d1_mini -t uploadfs`, not from the setup page. Extending
+  the portal for an ESP-NOW-only tally is a good follow-up, out of scope here since it touches the
+  provisioning UX validated in #27.
+- **Not tested on real radios.** `GatewayLink`'s framing is unit tested, but the ESP-NOW calls
+  themselves (`esp_now_init`/`_send`/`_register_recv_cb`, channel coexistence, range) are not — see
+  the Hub's `EspNowGatewayTallyDriver` for the same caveat on the serial side.
 
 ## Finding the Hub
 
@@ -253,9 +302,12 @@ in use (`esptool flash_id`).
   - `HubFinder`: which Hub to use and when to look for it
   - `SetupForm`: checks the setup page and writes the settings file
   - `SetupPage`: the setup page (HTML, Polish and English)
+  - `GatewayLink`: the serial line protocol between the Hub and an ESP-NOW gateway (#25)
 - `src/main.cpp`: ESP8266 hardware (Wi-Fi, UDP, mDNS, pins), setup mode, double reset
 - `src/ConfigStore.cpp`: the settings files on LittleFS
 - `src/Portal.cpp`: access point, DNS and web server of the setup page
+- `src/gateway_main.cpp`: the ESP-NOW gateway firmware (`env:gateway_d1_mini`), see
+  [ESP-NOW gateway](#esp-now-gateway-25)
 - `sim/`: the logic as a Linux program that talks UDP to a Hub
 - `test/test_core/`: unit tests
 
@@ -274,4 +326,6 @@ in use (`esptool flash_id`).
 
 Not covered without hardware: the pins, the WS2812 timing, Wi-Fi behaviour, the access point and
 the captive portal on real phones, power loss, the double reset, the mDNS query of the ESP8266
-on real networks (including multicast filtering and client isolation).
+on real networks (including multicast filtering and client isolation), and the ESP-NOW gateway's
+actual radio behaviour (channel coexistence, range, the `esp_now_*` calls themselves) — only its
+serial line framing (`GatewayLink`) is unit tested.

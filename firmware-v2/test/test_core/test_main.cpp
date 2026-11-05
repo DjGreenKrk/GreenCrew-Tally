@@ -8,6 +8,7 @@
 
 #include <unity.h>
 
+#include "GatewayLink.h"
 #include "LedEngine.h"
 #include "LightOutput.h"
 #include "LogBuffer.h"
@@ -464,6 +465,27 @@ void test_controller_connects_and_follows_the_hub() {
     assertColor(red, leds.frame().operatorColor);
 }
 
+void test_controller_espnow_ready_sends_hello_like_wifi() {
+    Settings settings("a1b2c3");
+    settings.parse("transport.mode=espnow\ntally.name=CAM1\n");
+    LedEngine leds;
+    FakePlatform platform;
+    TallyController controller(settings, "a1b2c3", leds, platform);
+    controller.begin(0);
+    TEST_ASSERT_FALSE(controller.isWifiUp());
+
+    controller.espNowReady(0);
+    TEST_ASSERT_TRUE(controller.isWifiUp());
+    // "ESP-NOW ready" log, then the first hello, same as wifiGotIp()
+    TEST_ASSERT_EQUAL_size_t(2, platform.sent.size());
+    TEST_ASSERT_EQUAL_STRING("log \"CAM1\" INFO \"ESP-NOW ready, waiting for the gateway\"\n", platform.sent[0].c_str());
+    TEST_ASSERT_EQUAL_size_t(0, platform.sent[1].find("tally-ho \"CAM1\" gc/1"));
+
+    const char* program = "O255/000/000 S255/000/000";
+    controller.packetReceived(program, strlen(program), 300);
+    TEST_ASSERT_TRUE(controller.isHubConnected(300));
+}
+
 void test_controller_shows_lost_hub_after_three_seconds() {
     Settings settings = validSettings();
     LedEngine leds;
@@ -906,6 +928,84 @@ void test_settings_without_hub_ip_are_valid() {
     TEST_ASSERT_EQUAL_size_t(1, wrong.warningCount());
 }
 
+void test_settings_transport_defaults_to_wifi() {
+    Settings settings("x");
+    settings.parse("station.ssid=Studio\n");
+    TEST_ASSERT_TRUE(settings.transportMode() == TransportMode::wifi);
+    TEST_ASSERT_EQUAL_UINT8(1, settings.espNowChannel());
+}
+
+void test_settings_transport_espnow_needs_no_ssid() {
+    Settings settings("x");
+    settings.parse("transport.mode=espnow\ntransport.channel=6\n");
+    TEST_ASSERT_TRUE(settings.transportMode() == TransportMode::espNow);
+    TEST_ASSERT_EQUAL_UINT8(6, settings.espNowChannel());
+    TEST_ASSERT_TRUE(settings.isValid());
+}
+
+void test_settings_transport_rejects_bad_values() {
+    Settings wrongMode("x");
+    wrongMode.parse("transport.mode=lora\n");
+    TEST_ASSERT_TRUE(wrongMode.transportMode() == TransportMode::wifi);
+    TEST_ASSERT_EQUAL_size_t(1, wrongMode.warningCount());
+
+    Settings wrongChannel("x");
+    wrongChannel.parse("transport.channel=14\n");
+    TEST_ASSERT_EQUAL_UINT8(1, wrongChannel.espNowChannel());
+    TEST_ASSERT_EQUAL_size_t(1, wrongChannel.warningCount());
+}
+
+void test_settings_wifi_without_ssid_is_invalid() {
+    Settings settings("x");
+    TEST_ASSERT_FALSE(settings.isValid());
+}
+
+void test_gateway_mac_hex_round_trips() {
+    const uint8_t mac[6] = {0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+    char hex[13];
+    formatMacHex(mac, hex);
+    TEST_ASSERT_EQUAL_STRING("aabbccddeeff", hex);
+
+    uint8_t parsed[6];
+    TEST_ASSERT_TRUE(parseMacHex("AABBCCDDEEFF", 12, parsed));
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(mac, parsed, 6);
+
+    TEST_ASSERT_FALSE(parseMacHex("aabbccddee", 10, parsed));    // too short
+    TEST_ASSERT_FALSE(parseMacHex("aabbccddeefg", 12, parsed));  // not hex
+}
+
+void test_gateway_parses_a_to_line() {
+    GatewaySendRequest request;
+    const char* line = "TO aabbccddeeff O255/000/000 S000/000/000\r\n";
+    TEST_ASSERT_TRUE(parseGatewaySendLine(line, strlen(line), request));
+    const uint8_t expectedMac[6] = {0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff};
+    TEST_ASSERT_EQUAL_UINT8_ARRAY(expectedMac, request.mac, 6);
+    TEST_ASSERT_EQUAL_size_t(strlen("O255/000/000 S000/000/000"), request.textLength);
+    TEST_ASSERT_EQUAL_STRING_LEN("O255/000/000 S000/000/000", request.text, request.textLength);
+}
+
+void test_gateway_rejects_malformed_to_lines() {
+    GatewaySendRequest request;
+    TEST_ASSERT_FALSE(parseGatewaySendLine("TO short O255\n", strlen("TO short O255\n"), request));
+    TEST_ASSERT_FALSE(parseGatewaySendLine("GO aabbccddeeff hi\n", strlen("GO aabbccddeeff hi\n"), request));
+    TEST_ASSERT_FALSE(parseGatewaySendLine("TO aabbccddeeff\n", strlen("TO aabbccddeeff\n"), request));
+    TEST_ASSERT_FALSE(parseGatewaySendLine("TO aabbccddeeff \n", strlen("TO aabbccddeeff \n"), request));
+}
+
+void test_gateway_formats_a_from_line() {
+    const uint8_t mac[6] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55};
+    const char* text = "tally-ho \"CAM1\" gc/1 id=001122334455";
+    char out[80];
+    TEST_ASSERT_TRUE(formatGatewayReceivedLine(mac, text, strlen(text), out, sizeof(out)));
+    TEST_ASSERT_EQUAL_STRING("FROM 001122334455 tally-ho \"CAM1\" gc/1 id=001122334455\n", out);
+}
+
+void test_gateway_from_line_reports_a_too_small_buffer() {
+    const uint8_t mac[6] = {0, 0, 0, 0, 0, 0};
+    char tiny[8];
+    TEST_ASSERT_FALSE(formatGatewayReceivedLine(mac, "hello", 5, tiny, sizeof(tiny)));
+}
+
 void test_controller_says_it_looks_for_the_hub() {
     Settings settings("x");
     settings.parse("station.ssid=Studio\ntally.name=CAM1\n");
@@ -1016,6 +1116,7 @@ int main() {
     RUN_TEST(test_invalid_settings_blink);
     RUN_TEST(test_hello_is_compatible_with_the_v1_parser);
     RUN_TEST(test_controller_connects_and_follows_the_hub);
+    RUN_TEST(test_controller_espnow_ready_sends_hello_like_wifi);
     RUN_TEST(test_controller_shows_lost_hub_after_three_seconds);
     RUN_TEST(test_controller_buffers_logs_until_the_hub_answers);
     RUN_TEST(test_controller_logs_invalid_packets);
@@ -1047,6 +1148,15 @@ int main() {
     RUN_TEST(test_recovery_page_explains_itself);
     RUN_TEST(test_saved_page_names_the_network);
     RUN_TEST(test_settings_without_hub_ip_are_valid);
+    RUN_TEST(test_settings_transport_defaults_to_wifi);
+    RUN_TEST(test_settings_transport_espnow_needs_no_ssid);
+    RUN_TEST(test_settings_transport_rejects_bad_values);
+    RUN_TEST(test_settings_wifi_without_ssid_is_invalid);
+    RUN_TEST(test_gateway_mac_hex_round_trips);
+    RUN_TEST(test_gateway_parses_a_to_line);
+    RUN_TEST(test_gateway_rejects_malformed_to_lines);
+    RUN_TEST(test_gateway_formats_a_from_line);
+    RUN_TEST(test_gateway_from_line_reports_a_too_small_buffer);
     RUN_TEST(test_controller_says_it_looks_for_the_hub);
     RUN_TEST(test_hub_id_from_host_name);
     RUN_TEST(test_choose_hub);

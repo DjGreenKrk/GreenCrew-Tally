@@ -1,9 +1,10 @@
 import Log from "../domain/Log"
-import Tally, { TallySaveObjectType, TallyType, UdpTally, WebTally } from "../domain/Tally"
+import Tally, { EspNowTally, TallySaveObjectType, TallyType, UdpTally, WebTally } from "../domain/Tally"
 import { AppConfiguration } from "../lib/AppConfiguration"
 import { ChannelList } from "../lib/MixerCommunicator"
 import ServerEventEmitter from "../lib/ServerEventEmitter"
 import { TallyConfiguration } from "./TallyConfiguration"
+import EspNowGatewayTallyDriver from "./EspNowGatewayTallyDriver"
 import UdpTallyDriver from "./UdpTallyDriver"
 import WebTallyDriver from "./WebTallyDriver"
 
@@ -16,6 +17,7 @@ class TallyContainer {
   configuration: AppConfiguration
   udpTallyDriver?: UdpTallyDriver
   webTallyDriver?: WebTallyDriver
+  espNowGatewayTallyDriver?: EspNowGatewayTallyDriver
 
   constructor(configuration: AppConfiguration, emitter: ServerEventEmitter) {
       this.configuration = configuration
@@ -44,6 +46,9 @@ class TallyContainer {
   }
   addWebTallyDriver(tallyDriver: WebTallyDriver) {
     this.webTallyDriver = tallyDriver
+  }
+  addEspNowGatewayTallyDriver(tallyDriver: EspNowGatewayTallyDriver) {
+    this.espNowGatewayTallyDriver = tallyDriver
   }
 
   private key(tallyName: string, tallyType: TallyType) {
@@ -86,6 +91,8 @@ class TallyContainer {
     if (!tally) {
       if (tallyType === "web") {
         tally = new WebTally(tallyName)
+      } else if (tallyType === "espnow") {
+        tally = new EspNowTally(tallyName)
       } else {
         tally = new UdpTally(tallyName)
       }
@@ -207,6 +214,12 @@ class TallyContainer {
             } else {
                 this.webTallyDriver.updateTallyState(tally, this.lastPrograms, this.lastPreviews, this.lastAuxes)
             }
+          } else if (tally.isEspNowTally()) {
+            if (!this.espNowGatewayTallyDriver) {
+                console.warn(`No ESP-NOW Gateway Tally Driver initialized. Can not update state of Tally "${tally.name}"`)
+            } else {
+                this.espNowGatewayTallyDriver.updateTallyState(tally, this.lastPrograms, this.lastPreviews, this.lastAuxes)
+            }
           }
       }
   }
@@ -225,6 +238,15 @@ class TallyContainer {
       }
       return results
     }, [] as UdpTally[])
+  }
+
+  getEspNowTallies() {
+    return this.getTallies().reduce((results, tally) => {
+      if(tally.isEspNowTally()) {
+        results.push(tally)
+      }
+      return results
+    }, [] as EspNowTally[])
   }
 
   getTalliesAsJson() {

@@ -8,6 +8,7 @@
 * [FEATURE] The tally card shows the firmware version of v2 tallies; NodeMCU tallies look as before (#26)
 * [FEATURE] A **Custom** color scheme in Configuration → Tally Defaults: pick Program, Preview, AUX, Highlight, No Mixer and Idle colors with color pickers, on top of Default and Yellow-Pink. Select it as the Operator or Stage scheme (for the defaults, or per tally as before); no firmware change is needed, since the Hub still just sends RGB values over the wire (#20)
 * [DEV] CI tests the firmware v2 logic, builds it for the D1 Mini with its size and runs it against a real Hub: colours, highlight, lost Hub and reconnect (#26), and the Hub's mDNS announcement (#28)
+* [FEATURE] ESP-NOW gateway: a v2 tally with `transport.mode=espnow` (`transport.channel` for the radio channel) needs no Wi-Fi network at all. A USB-attached ESP8266 gateway (`pio run -e gateway_d1_mini`) bridges the Hub's existing colour/tally-ho protocol onto ESP-NOW; a new Configuration → ESP-NOW gateway section picks the serial port. Off by default; no encryption or pairing yet, and the captive portal does not offer `transport.mode` yet either (#25)
 
 # GC Tally 1.0.0-rc.2
 

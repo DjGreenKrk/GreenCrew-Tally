@@ -7,6 +7,7 @@
 #include <ESP8266mDNS.h>
 #include <NeoPixelBus.h>
 #include <WiFiUdp.h>
+#include <espnow.h>
 
 #include "ConfigStore.h"
 #include "HubFinder.h"
@@ -72,6 +73,28 @@ uint16_t foundHubPort = 0;
 bool mdnsStarted = false;
 LedEngine leds;
 WiFiUDP udp;
+
+// ESP-NOW transport (#25): no Wi-Fi network, a USB gateway relays the same
+// text to/from the tally over ESP-NOW instead of UDP. Wi-Fi events, mDNS and
+// HubFinder above are all unused in this mode; "connected" still only means
+// "received a valid state packet recently" (TallyController::isHubConnected),
+// now fed from espNowPacketBuffer instead of the udp socket.
+bool espNowMode = false;
+uint8_t espNowBroadcastMac[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+// Single-slot, like udp.parsePacket(): a frame arriving before loop() reads
+// the previous one is dropped, same as a UDP datagram would be.
+volatile bool espNowPacketPending = false;
+char espNowPacketBuffer[64];
+volatile uint8_t espNowPacketLength = 0;
+
+void onEspNowReceived(uint8_t* mac, uint8_t* data, uint8_t length) {
+    (void)mac;
+    if (espNowPacketPending) return;
+    uint8_t copyLength = length < sizeof(espNowPacketBuffer) ? length : sizeof(espNowPacketBuffer);
+    memcpy(espNowPacketBuffer, data, copyLength);
+    espNowPacketLength = copyLength;
+    espNowPacketPending = true;
+}
 // WS2812 on D4 (GPIO2) through UART1, like NodeMCU's ws2812 module. Bytes
 // are sent as given; LightOutput already puts them in GRB or RGB order.
 NeoPixelBus<NeoRgbFeature, NeoEsp8266Uart1Ws2812xMethod>* strip;
@@ -79,6 +102,12 @@ NeoPixelBus<NeoRgbFeature, NeoEsp8266Uart1Ws2812xMethod>* strip;
 class EspPlatform : public Platform {
 public:
     void sendToHub(const char* text) override {
+        if (espNowMode) {
+            // Broadcast: any gateway in range forwards it to the Hub (#25).
+            // There is no ACK and no "connected to one gateway" concept.
+            esp_now_send(espNowBroadcastMac, reinterpret_cast<uint8_t*>(const_cast<char*>(text)), static_cast<uint8_t>(strlen(text)));
+            return;
+        }
         int ready;
         if (settings->hasHubAddress()) {
             ready = udp.beginPacket(settings->hubAddress(), settings->hubUdpPort());
@@ -240,6 +269,24 @@ void startStation() {
     supervisor->begin(millis());
 }
 
+// ESP-NOW mode (#25): no Wi-Fi network, so no association/DHCP/mDNS/recovery
+// AP - just a radio channel shared with the gateway. Settings::isValid()
+// already allows an empty station.ssid in this mode.
+void startEspNow() {
+    espNowMode = true;
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    wifi_set_channel(settings->espNowChannel());
+    if (esp_now_init() != 0) {
+        controller->log(Severity::error, "ESP-NOW could not start");
+        return;
+    }
+    esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
+    esp_now_register_recv_cb(onEspNowReceived);
+    esp_now_add_peer(espNowBroadcastMac, ESP_NOW_ROLE_COMBO, settings->espNowChannel(), nullptr, 0);
+    controller->espNowReady(millis());
+}
+
 // mDNS: the tally announces itself (_gctally-device._udp, for the Hub's device
 // list in a later step of #28) and, without hub.ip, looks for the Hub.
 void startMdns() {
@@ -395,6 +442,8 @@ void setup() {
     setupMode = !settings->isValid() || doubleReset || rtc.trialFailure != 0;
     if (setupMode) {
         startSetupMode();
+    } else if (settings->transportMode() == TransportMode::espNow) {
+        startEspNow();
     } else {
         startStation();
     }
@@ -413,6 +462,17 @@ void loop() {
 
     if (setupMode) {
         loopSetupMode(now);
+        if (leds.tick(now)) writeLights();
+        delay(1);
+        return;
+    }
+
+    if (espNowMode) {
+        if (espNowPacketPending) {
+            controller->packetReceived(espNowPacketBuffer, espNowPacketLength, now);
+            espNowPacketPending = false;
+        }
+        controller->tick(now);
         if (leds.tick(now)) writeLights();
         delay(1);
         return;

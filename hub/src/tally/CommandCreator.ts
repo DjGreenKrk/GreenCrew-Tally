@@ -1,4 +1,4 @@
-import Tally, { UdpTally } from "../domain/Tally";
+import Tally from "../domain/Tally";
 import { ChannelList } from "../lib/MixerCommunicator";
 import ColorSchemes, { Black, Color } from "./ColorScheme";
 import { DefaultTallyConfiguration } from "./TallyConfiguration";
@@ -24,7 +24,9 @@ class CommandCreator {
     return "release"
   }
 
-  createStateCommand(tally: UdpTally, programs: ChannelList, previews: ChannelList, defaultConfiguration: DefaultTallyConfiguration, auxes: string[] = []): string {
+  // UdpTally and EspNowTally only (both drive the same O.../S... wire text
+  // that the firmware's StateMessage parses); WebTally uses getState() instead.
+  createStateCommand(tally: Tally, programs: ChannelList, previews: ChannelList, defaultConfiguration: DefaultTallyConfiguration, auxes: string[] = []): string {
     let opColor: Color
     let stColor: Color
     let flashPattern: number = 0

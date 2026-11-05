@@ -15,6 +15,7 @@ import { Configuration } from '../mixer/interfaces'
 import Tally, { TallySaveObjectType } from '../domain/Tally'
 import TestConfiguration from '../mixer/test/TestConfiguration'
 import { DefaultTallyConfiguration } from '../tally/TallyConfiguration'
+import EspNowGatewayConfiguration from '../tally/EspNowGatewayConfiguration'
 
 type ConfigPayload<C extends { fromJson(data: never): void }> = Parameters<C['fromJson']>[0]
 
@@ -32,6 +33,7 @@ type AppConfigurationPayload = {
     test?: ConfigPayload<TestConfiguration>
     vmix?: ConfigPayload<VmixConfiguration>
     tallyDefaults?: ConfigPayload<DefaultTallyConfiguration>
+    espNowGateway?: ConfigPayload<EspNowGatewayConfiguration>
     [key: string]: unknown
 }
 
@@ -48,6 +50,7 @@ export class AppConfiguration extends Configuration {
     testConfiguration: TestConfiguration
     vmixConfiguration: VmixConfiguration
     tallyConfiguration: DefaultTallyConfiguration
+    espNowGatewayConfiguration: EspNowGatewayConfiguration
     vmixProjectProfiles: Record<string, { presetPath: string, savedAt: string, tallies: TallySaveObjectType[] }>
     tallies: Tally[]
     channels: Channel[]
@@ -77,6 +80,7 @@ export class AppConfiguration extends Configuration {
         this.testConfiguration = new TestConfiguration()
         this.vmixConfiguration = new VmixConfiguration()
         this.tallyConfiguration = new DefaultTallyConfiguration()
+        this.espNowGatewayConfiguration = new EspNowGatewayConfiguration()
         this.vmixProjectProfiles = {}
         this.tallies = []
         this.channels = MixerDriver.defaultChannels
@@ -164,6 +168,9 @@ export class AppConfiguration extends Configuration {
         if (data.tallyDefaults) {
             this.tallyConfiguration.fromJson(data.tallyDefaults)
         }
+        if (data.espNowGateway) {
+            this.espNowGatewayConfiguration.fromJson(data.espNowGateway)
+        }
         this.loadString("mixer", this.setMixerSelection.bind(this), data)
         this.loadChannelArray("channels", this.setChannels.bind(this), data)
         this.loadTallyArray("tallies", this.setTallies.bind(this), data)
@@ -189,6 +196,7 @@ export class AppConfiguration extends Configuration {
             test: this.testConfiguration.toJson(),
             vmix: this.vmixConfiguration.toJson(),
             tallyDefaults: this.tallyConfiguration.toJson(),
+            espNowGateway: this.espNowGatewayConfiguration.toJson(),
             tallies: this.tallies.map(tally => tally.toJsonForSave()),
             channels: this.channels.map(channel => channel.toJson()),
             vmixProjects: this.vmixProjectProfiles,
@@ -282,6 +290,16 @@ export class AppConfiguration extends Configuration {
         this.obsConfiguration = obsConfiguration.clone()
         this.emitter.emit("config.changed", this)
         this.emitter.emit("config.changed.obs", this.obsConfiguration)
+    }
+
+    getEspNowGatewayConfiguration() {
+        return this.espNowGatewayConfiguration.clone()
+    }
+
+    setEspNowGatewayConfiguration(espNowGatewayConfiguration: EspNowGatewayConfiguration) {
+        this.espNowGatewayConfiguration = espNowGatewayConfiguration.clone()
+        this.emitter.emit("config.changed", this)
+        this.emitter.emit("config.changed.espNowGateway", this.espNowGatewayConfiguration)
     }
 
     getRolandV8HDConfiguration() {
