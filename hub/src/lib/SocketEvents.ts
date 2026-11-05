@@ -19,6 +19,7 @@ import { TallyConfigurationObjectType } from "../tally/TallyConfiguration";
 import { TallyDeviceObjectType } from "../flasher/TallyDevice";
 import { TallyProgramProgressType, TallySettingsIniProgressType } from "../flasher/NodeMcuConnector";
 import { VmixProjectState } from "./VmixProjectManager";
+import { EspNowGatewayConfigurationSaveType } from "../tally/EspNowGatewayConfiguration";
 
 // events the server sends to the client
 export interface ServerSentEvents {
@@ -42,6 +43,7 @@ export interface ServerSentEvents {
     'config.state.rolandV60HD': (rolandV60HDConfiguration: RolandV60HDConfigurationSaveType) => void
     'config.state.vmix': (vmixConfiguration: VmixConfigurationSaveType) => void
     'config.state.tallyconfig': (defaultTallyConfiguration: TallyConfigurationObjectType) => void
+    'config.state.espNowGateway': (espNowGatewayConfiguration: EspNowGatewayConfigurationSaveType) => void
     'config.state.mixer': (data: {mixerName: string, allowedMixers: string[]}) => void
     'companion.lan.state': (state: CompanionLanState) => void
     'discovery.state': (state: HubDiscoveryState) => void
@@ -94,6 +96,7 @@ export interface ClientSentEvents {
     'config.change.rolandV60HD': (rolandV60HDConfiguration: RolandV60HDConfigurationSaveType, newMixer?: "rolandV60HD") => void
     'config.change.vmix': (vmixConfiguration: VmixConfigurationSaveType, newMixer?: "vmix") => void
     'config.change.tallyconfig': (configuration: TallyConfigurationObjectType) => void
+    'config.change.espNowGateway': (espNowGatewayConfiguration: EspNowGatewayConfigurationSaveType) => void
     'vmix.project.save': () => void
 
     'flasher.device.get': (path?: string) => void

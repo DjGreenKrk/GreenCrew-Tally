@@ -9,6 +9,7 @@ import RolandV8HDConfiguration from '../../mixer/rolandV8HD/RolandV8HDConfigurat
 import RolandV60HDConfiguration from '../../mixer/rolandV60HD/RolandV60HDConfiguration'
 import VmixConfiguration from '../../mixer/vmix/VmixConfiguration'
 import { DefaultTallyConfiguration } from '../../tally/TallyConfiguration'
+import EspNowGatewayConfiguration from '../../tally/EspNowGatewayConfiguration'
 
 class ConfigTracker extends EventEmitter{
     allowedMixers?: string[]
@@ -24,6 +25,7 @@ class ConfigTracker extends EventEmitter{
     rolandV60HDConfiguration?: RolandV60HDConfiguration
     vmixConfiguration?: VmixConfiguration
     defaultTallyConfiguration?: DefaultTallyConfiguration
+    espNowGatewayConfiguration?: EspNowGatewayConfiguration
 
     constructor(socket: ClientSideSocket) {
         super()
@@ -78,6 +80,11 @@ class ConfigTracker extends EventEmitter{
             this.defaultTallyConfiguration = new DefaultTallyConfiguration()
             this.defaultTallyConfiguration.fromJson(conf)
             this.emit('tally', this.defaultTallyConfiguration)
+        })
+        socket.on('config.state.espNowGateway', (conf) => {
+            this.espNowGatewayConfiguration = new EspNowGatewayConfiguration()
+            this.espNowGatewayConfiguration.fromJson(conf)
+            this.emit('espNowGateway', this.espNowGatewayConfiguration)
         })
         socket.emit('events.config.subscribe')
     }

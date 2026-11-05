@@ -15,6 +15,14 @@ enum class Ws2812Order : uint8_t {
     rgb,
 };
 
+// How the tally reaches the Hub. wifi (default): the existing Wi-Fi/UDP
+// station mode. espNow: no Wi-Fi network at all, receiving and sending
+// through a USB gateway over ESP-NOW (#25); see GatewayLink.h.
+enum class TransportMode : uint8_t {
+    wifi,
+    espNow,
+};
+
 // The id the Hub announces (8 lowercase hex digits)
 bool isHubId(const char* text);
 
@@ -44,7 +52,8 @@ public:
     void parse(const char* text);
 
     // hub.ip may be empty: the tally then looks for the Hub over mDNS.
-    bool isValid() const { return ssid[0] != '\0'; }
+    // An ESP-NOW tally needs no Wi-Fi network, so it is valid without a ssid.
+    bool isValid() const { return ssid[0] != '\0' || transport == TransportMode::espNow; }
 
     const char* stationSsid() const { return ssid; }
     const char* stationPassword() const { return password; }
@@ -63,6 +72,12 @@ public:
     uint32_t recoveryAfterMs() const { return recoveryAfter * 1000; }
     // "Tally-" and the name with every run of non-alphanumerics as one "-"
     void hostName(char* out, size_t size) const;
+
+    // transport.mode: "wifi" (default) or "espnow" (#25).
+    TransportMode transportMode() const { return transport; }
+    // transport.channel: the fixed Wi-Fi channel the gateway and its tallies
+    // share for ESP-NOW (1-13, default 1). Unused in wifi mode.
+    uint8_t espNowChannel() const { return channel; }
 
     LightType operatorType = LightType::commonAnode;
     Ws2812Order operatorWs2812Order = Ws2812Order::grb;
@@ -89,6 +104,8 @@ private:
     char name[maxNameLength + 1] = "";
     char setupKey[64] = "";
     uint32_t recoveryAfter = 30;
+    TransportMode transport = TransportMode::wifi;
+    uint8_t channel = 1;
 
     char warningTexts[maxWarnings][96];
     size_t warnings = 0;

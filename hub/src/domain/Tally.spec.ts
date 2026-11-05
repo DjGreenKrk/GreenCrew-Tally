@@ -1,4 +1,34 @@
-import Tally, { ConnectionState, UdpTally, WebTally } from './Tally'
+import Tally, { ConnectionState, EspNowTally, UdpTally, WebTally } from './Tally'
+
+test('EspNow Tally defaults', () => {
+    const tally = new EspNowTally("Test Dummy")
+
+    expect(tally.isPatched()).toEqual(false)
+    expect(tally.isActive()).toEqual(false)
+    expect(tally.isConnected()).toEqual(false)
+    expect(tally.isDisconnected()).toEqual(true)
+    expect(tally.isHighlighted()).toEqual(false)
+    expect(tally.isMissing()).toEqual(false)
+    expect(tally.hasStageLight).toEqual(true)
+    expect(tally.mac).toBeUndefined()
+})
+
+test('EspNow Tally is active/connected/missing by mac and state, like UdpTally by address/port', () => {
+    const tally = new EspNowTally("Test Dummy", [], "aabbccddeeff", ConnectionState.CONNECTED)
+    expect(tally.isActive()).toEqual(true)
+    expect(tally.isConnected()).toEqual(true)
+    expect(tally.isDisconnected()).toEqual(false)
+    expect(tally.isMissing()).toEqual(false)
+
+    tally.state = ConnectionState.MISSING
+    expect(tally.isActive()).toEqual(true)
+    expect(tally.isConnected()).toEqual(false)
+    expect(tally.isMissing()).toEqual(true)
+
+    tally.state = ConnectionState.DISCONNECTED
+    expect(tally.isActive()).toEqual(false)
+    expect(tally.isDisconnected()).toEqual(true)
+})
 
 test('Udp Tally defaults', () => {
     const tally = new UdpTally("Test Dummy")
@@ -111,6 +141,21 @@ describe('toJsonForSave/fromJsonForSave', () => {
         expect(loadedTally.type).toEqual("web")
         expect(loadedTally.configuration.getOperatorLightBrightness()).toBeUndefined()
     })
+    test('can save and load EspNowTally', () => {
+        const tally = new EspNowTally("EspNow", "123")
+        tally.configuration.setOperatorLightBrightness(42)
+        const json = tally.toJsonForSave()
+
+        const loadedTally = Tally.fromJsonForSave(json) as EspNowTally
+
+        expect(loadedTally.name).toEqual("EspNow")
+        expect(loadedTally.channelId).toEqual("123")
+        expect(loadedTally.type).toEqual("espnow")
+        expect(loadedTally.configuration.getOperatorLightBrightness()).toEqual(42)
+        // the mac is runtime-only (known only while the gateway reports it),
+        // not part of what is saved, same as UdpTally's address/port
+        expect(tally.toJsonForSave()).not.toHaveProperty("mac")
+    })
 })
 
 describe('toJson/fromJson', () => {
@@ -141,6 +186,25 @@ describe('toJson/fromJson', () => {
         expect(udpTally.toJsonForSave()).not.toHaveProperty("device")
     })
     
+    test('it can serialize an EspNowTally', () => {
+        const espNowTally = new EspNowTally("CAM1", "123", "aabbccddeeff", ConnectionState.CONNECTED)
+        espNowTally.configuration.setOperatorLightBrightness(42)
+        espNowTally.configuration.setStageLightBrightness(21)
+        espNowTally.device = { protocol: 1, id: "aabbccddeeff", firmware: "2.0.0-dev", hardware: "esp8266", capabilities: ["ws2812"] }
+
+        const json = espNowTally.toJson()
+        const tally = Tally.fromJson(json) as EspNowTally
+
+        expect(tally.type).toEqual("espnow")
+        expect(tally.name).toEqual("CAM1")
+        expect(tally.channelId).toEqual("123")
+        expect(tally.mac).toEqual("aabbccddeeff")
+        expect(tally.state).toEqual(ConnectionState.CONNECTED)
+        expect(tally.device).toEqual(espNowTally.device)
+        expect(tally.configuration.getOperatorLightBrightness()).toEqual(42)
+        expect(tally.configuration.getStageLightBrightness()).toEqual(21)
+    })
+
     test('it can save and load a WebTally', () => {
         const webTally = new WebTally("Web Tally", "123", [{address: "1.2.3.4"}])
         webTally.configuration.setOperatorLightBrightness(42)

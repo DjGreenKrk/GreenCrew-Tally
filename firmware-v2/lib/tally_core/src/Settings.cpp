@@ -144,6 +144,21 @@ void Settings::parseLine(const char* line) {
         parseLightType(key, value, stageType);
     } else if (equals(key, "stage.ws2812")) {
         parseWs2812(key, value, stageWs2812Lights, stageWs2812Order);
+    } else if (equals(key, "transport.mode")) {
+        if (equals(value, "wifi")) {
+            transport = TransportMode::wifi;
+        } else if (equals(value, "espnow")) {
+            transport = TransportMode::espNow;
+        } else {
+            warn("transport.mode should be \"wifi\" or \"espnow\", but got \"%s\"", value);
+        }
+    } else if (equals(key, "transport.channel")) {
+        long number;
+        if (parseInteger(value, 1, 13, number)) {
+            channel = static_cast<uint8_t>(number);
+        } else {
+            warn("transport.channel needs a Wi-Fi channel from 1 to 13, but got \"%s\"", value);
+        }
     } else {
         warn("Unknown key %s in configuration file. Did you mistype it?", key);
     }

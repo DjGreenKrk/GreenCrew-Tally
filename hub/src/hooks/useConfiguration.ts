@@ -10,6 +10,7 @@ import ManualConfiguration from '../mixer/manual/ManualConfiguration';
 import CompanionConfiguration from '../mixer/companion/CompanionConfiguration';
 import AtemConfiguration from '../mixer/atem/AtemConfiguration';
 import { DefaultTallyConfiguration } from '../tally/TallyConfiguration';
+import EspNowGatewayConfiguration from '../tally/EspNowGatewayConfiguration';
 
 const configTracker = new ConfigTracker(socket)
 
@@ -204,6 +205,24 @@ export function useDefaultTallyConfiguration() {
     return () => {
       // cleanup
       configTracker.off("tally", onChange)
+    }
+  }, [])
+
+  return configuration
+}
+
+export function useEspNowGatewayConfiguration() {
+  const [configuration, setConfiguration] = useState<EspNowGatewayConfiguration|undefined>(undefined)
+
+  useEffect(() => {
+    const onChange = newConf => {
+      setConfiguration(newConf)
+    }
+    configTracker.on("espNowGateway", onChange)
+    setConfiguration(configTracker.espNowGatewayConfiguration)
+    return () => {
+      // cleanup
+      configTracker.off("espNowGateway", onChange)
     }
   }, [])
 
