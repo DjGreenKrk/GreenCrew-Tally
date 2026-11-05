@@ -26,10 +26,14 @@ char serialLine[96];
 size_t serialLineLength = 0;
 
 // Single-slot, like the tally's own onEspNowReceived: a frame arriving
-// before loop() has written the previous one to Serial is dropped.
+// before loop() has written the previous one to Serial is dropped. Sized
+// for the tally's own largest outgoing message (TallyController::sendLog's
+// 160-byte buffer, the biggest of its hello/log senders, firmware-v2/lib/
+// tally_core/src/TallyController.cpp), not the 25/34-byte downstream state
+// text - a hello with a long name/firmware string must not be truncated.
 volatile bool receivedPending = false;
 uint8_t receivedMac[6];
-uint8_t receivedData[64];
+uint8_t receivedData[200];
 volatile uint8_t receivedLength = 0;
 
 void onReceived(uint8_t* mac, uint8_t* data, uint8_t length) {
@@ -44,7 +48,9 @@ void onReceived(uint8_t* mac, uint8_t* data, uint8_t length) {
 // esp_now_add_peer fails if the peer already exists; the Hub has no reason
 // to track which MACs were already added, so this treats "exists" as success.
 void ensurePeer(const uint8_t mac[6]) {
-    if (esp_now_is_peer_exist(mac)) return;
+    // Neither esp_now_is_peer_exist nor esp_now_add_peer accept a const
+    // source in this SDK version; they only read from it.
+    if (esp_now_is_peer_exist(const_cast<uint8_t*>(mac))) return;
     esp_now_add_peer(const_cast<uint8_t*>(mac), ESP_NOW_ROLE_COMBO, espNowChannel, nullptr, 0);
 }
 
