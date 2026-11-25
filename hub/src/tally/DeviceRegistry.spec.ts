@@ -339,6 +339,16 @@ describe('DeviceRegistry', () => {
     await Promise.resolve()
     expect(sent).toHaveLength(1)
 
+    // forgotten while saving: not sent
+    registry.forget('a1b2c3')
+    registry.helloReceived('a1b2c3', 'CAM1', '2.0.0', '10.0.0.5', 7411, { hub: null, challenge: challenge1 })
+    registry.pair('a1b2c3')
+    registry.forget('a1b2c3')
+    saved()
+    await Promise.resolve()
+    expect(sent).toHaveLength(1)
+    expect(configuration.getPairingTokens('a1b2c3')).toEqual([])
+
     // could not save: not sent at all
     const failing = new DeviceRegistry(configuration, text => sent.push(text), () => {}, () => 1000, () => Promise.reject(new Error('disk full')))
     failing.helloReceived('d4e5f6', 'CAM2', '2.0.0', '10.0.0.6', 7411, { hub: null, challenge: challenge1 })

@@ -231,6 +231,8 @@ export default class DeviceRegistry {
     this.configuration.setPairingTokens(id, [])
     const entry = this.entries.get(id)
     if (entry) {
+      // also a pairing still being saved or sent: its token is gone
+      entry.pendingPair = undefined
       entry.pendingUnpair = undefined
       if (!this.isOnline(entry)) this.entries.delete(id)
     }
