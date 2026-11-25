@@ -16,15 +16,26 @@ describe('ManagementMessages', () => {
   })
 
   test('the crew password is hidden and signed like the firmware expects', () => {
-    expect(crewPasswordMessage('1a2b3c4d', token, challenge, 'crew pass 1!')).toBe(
-      'gc/1 crew-password hub=1a2b3c4d ch=0123456789abcdef pw=d505288317e7f77461e09333 ' +
-      'mac=42f41681e373057a823deb4bc51c979644bada6df62e77ac3160ca83d1e5d980\n')
+    const nonce = '0011223344556677'
+    expect(crewPasswordMessage('1a2b3c4d', token, challenge, 'crew pass 1!', nonce)).toBe(
+      'gc/1 crew-password hub=1a2b3c4d ch=0123456789abcdef n=0011223344556677 pw=51f92847714d49addff68f56 ' +
+      'mac=d1ca9620a44f9b3eae016dc24c77ebc6a55b1b96a30339f606a9b2400862445c\n')
     // 40 characters use the second block of the key stream
-    expect(crewPasswordMessage('1a2b3c4d', token, challenge, 'x'.repeat(40))).toBe(
-      'gc/1 crew-password hub=1a2b3c4d ch=0123456789abcdef ' +
-      'pw=ce0f358c4fefee7f6ab8da6a8a82c68f36855629d4e8f6000e60477e35b031ce41fc8985d178474b ' +
-      'mac=84f3588744b3eb4a7bae7b65146aa2c143afe33ff94e323f349525b7ae0c0bbc\n')
-    expect(crewPasswordMessage('1a2b3c4d', token, challenge, '')).toMatch(/^gc\/1 crew-password hub=1a2b3c4d ch=0123456789abcdef pw= mac=[0-9a-f]{64}\n$/)
+    expect(crewPasswordMessage('1a2b3c4d', token, challenge, 'x'.repeat(40), nonce)).toBe(
+      'gc/1 crew-password hub=1a2b3c4d ch=0123456789abcdef n=0011223344556677 ' +
+      'pw=4af33548294550a6d4aec60f0317e5dfda7d87ea75cc430cb0880f81b551f4dd920a5d85ca14f048 ' +
+      'mac=7a868b24cb456fde089a1bfbe43c241f415826820365e56d8aacb55e134f2d9b\n')
+    expect(crewPasswordMessage('1a2b3c4d', token, challenge, '')).toMatch(/^gc\/1 crew-password hub=1a2b3c4d ch=0123456789abcdef n=[0-9a-f]{16} pw= mac=[0-9a-f]{64}\n$/)
+  })
+
+  test('two crew passwords never share a key stream', () => {
+    // a random nonce for every message: XOR of two messages with the same
+    // challenge does not give away the second password
+    const pw = (line: string) => Buffer.from(line.match(/ pw=([0-9a-f]*)/)![1], 'hex')
+    const first = pw(crewPasswordMessage('1a2b3c4d', token, challenge, 'crew pass 1!'))
+    const second = pw(crewPasswordMessage('1a2b3c4d', token, challenge, 'crew pass 2!'))
+    const guess = Buffer.from(first.map((byte, i) => byte ^ second[i] ^ 'crew pass 1!'.charCodeAt(i))).toString('latin1')
+    expect(guess).not.toBe('crew pass 2!')
   })
 
   test('the tally names the crew password it took like the Hub expects', () => {

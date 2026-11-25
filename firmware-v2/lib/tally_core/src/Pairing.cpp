@@ -72,10 +72,12 @@ bool sameBytes(const uint8_t* a, const uint8_t* b, size_t length) {
     return difference == 0;
 }
 
-void crewKeyStream(const uint8_t* token, const char* challenge, uint8_t* out, size_t length) {
+// nonce: chosen by the Hub for every message, so two passwords never share
+// a key stream, even when sent with the same challenge
+void crewKeyStream(const uint8_t* token, const char* challenge, const char* nonce, uint8_t* out, size_t length) {
     for (size_t block = 0; block * Sha256::digestSize < length; block++) {
-        char label[48];
-        snprintf(label, sizeof(label), "crew-password %s %u", challenge, static_cast<unsigned>(block));
+        char label[64];
+        snprintf(label, sizeof(label), "crew-password %s %s %u", challenge, nonce, static_cast<unsigned>(block));
         uint8_t stream[Sha256::digestSize];
         hmacSha256(token, Pairing::tokenSize, label, strlen(label), stream);
         for (size_t i = 0; i < Sha256::digestSize && block * Sha256::digestSize + i < length; i++) {
@@ -268,6 +270,12 @@ PairingController::Result PairingController::handle(const char* data, size_t len
         return result;
     }
 
+    const char* nonce = message.get("n");
+    uint8_t nonceBytes[8];
+    if (!fromHex(nonce, nonceBytes, sizeof(nonceBytes))) {
+        refuse(result, verb, "format");
+        return result;
+    }
     const char* pw = message.get("pw");
     size_t passwordLength = strlen(pw) / 2;
     uint8_t password[maxCrewPassword + 1];
@@ -276,7 +284,7 @@ PairingController::Result PairingController::handle(const char* data, size_t len
         return result;
     }
     uint8_t stream[2 * Sha256::digestSize];
-    crewKeyStream(current.token, challengeText, stream, passwordLength);
+    crewKeyStream(current.token, challengeText, nonce, stream, passwordLength);
     for (size_t i = 0; i < passwordLength; i++) password[i] ^= stream[i];
     password[passwordLength] = '\0';
     const char* text = reinterpret_cast<const char*>(password);
@@ -285,9 +293,10 @@ PairingController::Result PairingController::handle(const char* data, size_t len
         newChallenge();
         return result;
     }
+    // the same again (the answer was lost): confirmed, the flash not written
+    result.effect = strcmp(crew, text) == 0 ? Effect::none : Effect::saveCrewPassword;
     strcpy(crew, text);
     newChallenge();
-    result.effect = Effect::saveCrewPassword;
     char crewText[2 * fingerprintSize + 1];
     crewPasswordFingerprint(current.token, crew, crewText);
     snprintf(result.reply, sizeof(result.reply), "gc/1 crew-password-set id=%s hub=%s crew=%s\n", deviceId, hub, crewText);

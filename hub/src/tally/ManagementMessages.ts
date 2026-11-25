@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto'
+import { createHmac, randomBytes } from 'crypto'
 
 // Management messages between the Hub and firmware v2 tallies (#28), one
 // line each on the tally's UDP port, apart from the state packets. The
@@ -19,11 +19,13 @@ function signed(token: Buffer, line: string) {
   return `${line} mac=${mac(token, line)}\n`
 }
 
-// The crew password XOR HMAC(token, "crew-password <ch> <block>"), 32 bytes a block
-function crewKeyStream(token: Buffer, challenge: string, length: number) {
+// The crew password XOR HMAC(token, "crew-password <ch> <nonce> <block>"),
+// 32 bytes a block. The nonce is new for every message: two passwords sent
+// with the same challenge must not share a key stream.
+function crewKeyStream(token: Buffer, challenge: string, nonce: string, length: number) {
   const blocks: Buffer[] = []
   for (let block = 0; block * 32 < length; block++) {
-    blocks.push(createHmac('sha256', token).update(`crew-password ${challenge} ${block}`).digest())
+    blocks.push(createHmac('sha256', token).update(`crew-password ${challenge} ${nonce} ${block}`).digest())
   }
   return Buffer.concat(blocks).subarray(0, length)
 }
@@ -40,12 +42,14 @@ export function unpairMessage(hubId: string, token: Buffer, challenge: string) {
   return signed(token, `gc/1 unpair hub=${hubId} ch=${challenge}`)
 }
 
-// An empty password clears the one the Hub set before.
-export function crewPasswordMessage(hubId: string, token: Buffer, challenge: string, password: string) {
+// An empty password clears the one the Hub set before. nonce: 16 hex, random
+// unless given (tests).
+export function crewPasswordMessage(hubId: string, token: Buffer, challenge: string, password: string,
+  nonce = randomBytes(8).toString('hex')) {
   const plain = Buffer.from(password, 'latin1')
-  const stream = crewKeyStream(token, challenge, plain.length)
+  const stream = crewKeyStream(token, challenge, nonce, plain.length)
   const hidden = Buffer.from(plain.map((byte, i) => byte ^ stream[i])).toString('hex')
-  return signed(token, `gc/1 crew-password hub=${hubId} ch=${challenge} pw=${hidden}`)
+  return signed(token, `gc/1 crew-password hub=${hubId} ch=${challenge} n=${nonce} pw=${hidden}`)
 }
 
 function fingerprint(token: Buffer, text: string) {

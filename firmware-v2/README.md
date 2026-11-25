@@ -196,7 +196,7 @@ Messages besides the state packets, on the same UDP port:
 Hub → tally   gc/1 identify hub=<id>
 Hub → tally   gc/1 pair hub=<id> token=<32 hex>
 Hub → tally   gc/1 unpair hub=<id> ch=<challenge> mac=<hmac>
-Hub → tally   gc/1 crew-password hub=<id> ch=<challenge> pw=<hex> mac=<hmac>
+Hub → tally   gc/1 crew-password hub=<id> ch=<challenge> n=<nonce> pw=<hex> mac=<hmac>
 tally → Hub   gc/1 paired id=<device> hub=<id> key=<fingerprint>
 tally → Hub   gc/1 unpaired id=<device> hub=<id> key=<fingerprint>
 tally → Hub   gc/1 crew-password-set id=<device> hub=<id> crew=<fingerprint>
@@ -217,8 +217,11 @@ The Hub drops a token only after a signed `unpaired` (`key` over `unpaired <chal
 operator pairs the tally again or clicks Forget, or when the tally answers `not-paired` while the
 operator unpairs it. A `tally-ho` saying the tally is not paired (unpaired on its setup page, or
 forged) only shows it so. A paired tally sends to its own Hub only: one found over mDNS before it
-was paired is not used, even when the next search finds nothing. The crew password travels XORed with a key
-stream from the token and the challenge. The token itself crosses the network once, in plain
+was paired is not used, even when the next search finds nothing.
+
+The crew password travels XORed with a key stream from the token, the challenge and a random `n`
+the Hub picks for every message, so two passwords never share a key stream; the same password
+again is confirmed without writing the flash. The token itself crosses the network once, in plain
 text, when pairing. Colour messages stay unsigned as in v1.
 
 Flash is written only when the tally is paired or unpaired and when the crew password changes.

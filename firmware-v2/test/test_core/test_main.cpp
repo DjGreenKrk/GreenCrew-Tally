@@ -1065,12 +1065,12 @@ PairingController::Result send(PairingController& controller, const char* line) 
 // for token 00..0f, so both sides agree on the format and the mac.
 const char* hubUnpair = "gc/1 unpair hub=1a2b3c4d ch=0123456789abcdef mac=116021f9dac5f24818c91e757fdf61337d3eb235faedaec61e299456fbec5a57\n";
 const char* hubCrewPassword =
-    "gc/1 crew-password hub=1a2b3c4d ch=0123456789abcdef pw=d505288317e7f77461e09333 "
-    "mac=42f41681e373057a823deb4bc51c979644bada6df62e77ac3160ca83d1e5d980";
+    "gc/1 crew-password hub=1a2b3c4d ch=0123456789abcdef n=0011223344556677 pw=51f92847714d49addff68f56 "
+    "mac=d1ca9620a44f9b3eae016dc24c77ebc6a55b1b96a30339f606a9b2400862445c";
 const char* hubLongCrewPassword =
-    "gc/1 crew-password hub=1a2b3c4d ch=0123456789abcdef "
-    "pw=ce0f358c4fefee7f6ab8da6a8a82c68f36855629d4e8f6000e60477e35b031ce41fc8985d178474b "
-    "mac=84f3588744b3eb4a7bae7b65146aa2c143afe33ff94e323f349525b7ae0c0bbc";
+    "gc/1 crew-password hub=1a2b3c4d ch=0123456789abcdef n=0011223344556677 "
+    "pw=4af33548294550a6d4aec60f0317e5dfda7d87ea75cc430cb0880f81b551f4dd920a5d85ca14f048 "
+    "mac=7a868b24cb456fde089a1bfbe43c241f415826820365e56d8aacb55e134f2d9b";
 
 void test_pairing_file_round_trip() {
     Pairing pairing = testPairing();
@@ -1197,6 +1197,14 @@ void test_paired_hub_sets_the_crew_password() {
     // the Hub checks which password the tally took (ManagementMessages.spec.ts)
     TEST_ASSERT_EQUAL_STRING("gc/1 crew-password-set id=a1b2c3 hub=1a2b3c4d crew=db920b6aae174b52\n", result.reply);
     TEST_ASSERT_EQUAL_STRING("crew pass 1!", controller.crewPassword());
+
+    // the same password again (the answer was lost): confirmed, the flash not written
+    randomValues = challenges;
+    controller.begin(testPairing(), "crew pass 1!");
+    result = send(controller, hubCrewPassword);
+    TEST_ASSERT_TRUE(result.effect == PairingController::Effect::none);
+    TEST_ASSERT_EQUAL_STRING("gc/1 crew-password-set id=a1b2c3 hub=1a2b3c4d crew=db920b6aae174b52\n", result.reply);
+    TEST_ASSERT_EQUAL_STRING("fedcba9876543210", controller.challenge());
 
     // 40 characters need the second block of the key stream
     randomValues = challenges;

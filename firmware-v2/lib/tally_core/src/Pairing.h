@@ -27,13 +27,15 @@ struct Pairing {
 //   gc/1 pair hub=<id> token=<32 hex>               only when unpaired, or
 //                                                   the same pairing again
 //   gc/1 unpair hub=<id> ch=<challenge> mac=<hmac>
-//   gc/1 crew-password hub=<id> ch=<challenge> pw=<hex> mac=<hmac>
+//   gc/1 crew-password hub=<id> ch=<challenge> n=<16 hex> pw=<hex> mac=<hmac>
 //
 // mac is HMAC-SHA256 with the token over the line before " mac=", as 64 hex.
 // ch is the challenge the tally sends in "tally-ho"; it changes after every
 // accepted message, so a recorded message cannot be sent again. pw is the
-// crew password XOR HMAC-SHA256(token, "crew-password <ch> <block>") for
-// blocks 0 and 1, as hex; empty clears it. The answer names the password
+// crew password XOR HMAC-SHA256(token, "crew-password <ch> <n> <block>") for
+// blocks 0 and 1, as hex; empty clears it. n is a random nonce of the Hub,
+// so two passwords never share a key stream. The same password again is
+// confirmed without writing the flash. The answer names the password
 // the tally took, so the Hub cannot mistake it for a newer one it sent.
 //
 // The tally answers to the sender:

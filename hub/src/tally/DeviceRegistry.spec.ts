@@ -7,6 +7,10 @@ import { crewPasswordFingerprint, crewPasswordMessage, pairedKey, unpairedKey, u
 const challenge1 = '0123456789abcdef'
 const challenge2 = 'fedcba9876543210'
 
+// The message the Hub sent, with its random nonce (n=)
+const crewMessage = (sent: string, token: Buffer, challenge: string, password: string) =>
+  crewPasswordMessage('1a2b3c4d', token, challenge, password, sent.match(/ n=([0-9a-f]{16})/)?.[1])
+
 function setup() {
   const configuration = new AppConfiguration(new EventEmitter() as ServerEventEmitter)
   configuration.fromJson({ hubId: '1a2b3c4d' })
@@ -237,7 +241,7 @@ describe('DeviceRegistry', () => {
 
     configuration.setCrewPassword('crew pass 1!')
     registry.tick()
-    expect(sent.map(s => s.text)).toEqual([crewPasswordMessage('1a2b3c4d', token, challenge1, 'crew pass 1!')])
+    expect(sent.map(s => s.text)).toEqual([crewMessage(sent[0].text, token, challenge1, 'crew pass 1!')])
     expect(registry.getState().devices[0].crewPassword).toBe('pending')
     advance(500)
     registry.tick()
@@ -255,7 +259,7 @@ describe('DeviceRegistry', () => {
     expect(sent).toHaveLength(1)
     hello('1a2b3c4d', challenge2)
     registry.tick()
-    expect(sent[1].text).toEqual(crewPasswordMessage('1a2b3c4d', token, challenge2, ''))
+    expect(sent[1].text).toEqual(crewMessage(sent[1].text, token, challenge2, ''))
   })
 
   test('an answer to an older crew password does not count for the current one', () => {
@@ -268,9 +272,11 @@ describe('DeviceRegistry', () => {
     configuration.setCrewPassword('crew pass 2!')
     registry.tick()
     expect(sent.map(s => s.text)).toEqual([
-      crewPasswordMessage('1a2b3c4d', token, challenge1, 'crew pass 1!'),
-      crewPasswordMessage('1a2b3c4d', token, challenge1, 'crew pass 2!'),
+      crewMessage(sent[0].text, token, challenge1, 'crew pass 1!'),
+      crewMessage(sent[1].text, token, challenge1, 'crew pass 2!'),
     ])
+    // each with its own key stream
+    expect(sent[0].text.match(/ n=(\w+)/)![1]).not.toEqual(sent[1].text.match(/ n=(\w+)/)![1])
     registry.replyReceived({ kind: 'crew-password-set', id: 'a1b2c3', hub: '1a2b3c4d', crew: crewPasswordFingerprint(token, 'crew pass 1!') })
     registry.replyReceived({ kind: 'refused', id: 'a1b2c3', to: 'crew-password', why: 'challenge' })
     expect(registry.getState().devices[0].crewPassword).toBe('pending')
@@ -278,7 +284,7 @@ describe('DeviceRegistry', () => {
     advance(1000)
     hello('1a2b3c4d', challenge2)
     registry.tick()
-    expect(sent[2].text).toEqual(crewPasswordMessage('1a2b3c4d', token, challenge2, 'crew pass 2!'))
+    expect(sent[2].text).toEqual(crewMessage(sent[2].text, token, challenge2, 'crew pass 2!'))
     registry.replyReceived({ kind: 'crew-password-set', id: 'a1b2c3', hub: '1a2b3c4d', crew: crewPasswordFingerprint(token, 'crew pass 2!') })
     expect(registry.getState().devices[0].crewPassword).toBe('synced')
   })
