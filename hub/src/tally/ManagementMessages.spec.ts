@@ -39,9 +39,9 @@ describe('ManagementMessages', () => {
   })
 
   test('the tally names the crew password it took like the Hub expects', () => {
-    expect(crewPasswordFingerprint(token, 'crew pass 1!')).toBe('db920b6aae174b52')
-    expect(crewPasswordFingerprint(token, 'x'.repeat(40))).toBe('781693d3e3d94b59')
-    expect(crewPasswordFingerprint(token, '')).toBe('088970114d5c5f56')
+    expect(crewPasswordFingerprint(token, '0011223344556677', 'crew pass 1!')).toBe('438215481bc00c4c')
+    expect(crewPasswordFingerprint(token, '0011223344556677', 'x'.repeat(40))).toBe('d256f19e9614e551')
+    expect(crewPasswordFingerprint(token, '0011223344556677', '')).toBe('2a79bba229496162')
     expect(pairedKey(token)).toBe('fdbdef57e8036737')
     expect(unpairedKey(token, challenge)).toBe('886532c4c183298c')
   })

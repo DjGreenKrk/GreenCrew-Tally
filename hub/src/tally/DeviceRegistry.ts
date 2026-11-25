@@ -23,14 +23,11 @@ type Entry = {
   reportedHub?: string | null
   challenge?: string
   pendingPair?: { token: Buffer, since: number, sentAt: number }
-  // tokens sent in "pair" that the tally may have taken although its answer
-  // was lost; while it says it is paired with this Hub and the Hub has no
-  // token, they are sent again and its answer names the right one
-  pairTokens: Buffer[]
   recoverSentAt?: number
   // sentWith: every challenge an "unpair" went with; the answer is signed with one of them
   pendingUnpair?: { since: number, sentWith: string[], sentAt: number }
-  crewSent?: { challenge: string, at: number, version: string }
+  // nonces: of every message with this version; an answer counts only for one of them
+  crewSent?: { challenge: string, at: number, version: string, nonces: string[] }
   pairedAt?: number
   lastError?: string
 }
@@ -57,7 +54,7 @@ export default class DeviceRegistry {
   private entry(id: string, name: string): Entry {
     let entry = this.entries.get(id)
     if (!entry) {
-      entry = { id, name, mdnsUp: false, pairTokens: [] }
+      entry = { id, name, mdnsUp: false }
       this.entries.set(id, entry)
     }
     return entry
@@ -74,7 +71,7 @@ export default class DeviceRegistry {
       entry.reportedHub = pairing.hub
       entry.challenge = pairing.challenge
       // not paired with this Hub: none of the tokens is in use
-      if (pairing.hub !== this.hubId() && !entry.pendingPair) entry.pairTokens = []
+      if (pairing.hub !== this.hubId() && !entry.pendingPair) this.configuration.setPairingTokens(id, [])
     }
     // The "tally-ho" is not signed: a tally that says it is no longer paired
     // is shown so (staleToken), but the token stays until pairing again or "forget".
@@ -110,7 +107,7 @@ export default class DeviceRegistry {
     // an accepted message changes the challenge: wait for the next "tally-ho"
     if (reply.kind !== 'refused') entry.challenge = undefined
     const pairedToken = reply.kind === 'paired' && reply.hub === hubId && !this.configuration.getPairedDevice(entry.id) ?
-      entry.pairTokens.find(token => pairedKey(token) === reply.key) : undefined
+      this.pairTokens(entry.id).find(token => pairedKey(token) === reply.key) : undefined
     if (pairedToken) {
       const crew = this.configuration.getCrewPassword()
       this.configuration.setPairedDevice({
@@ -121,7 +118,7 @@ export default class DeviceRegistry {
         crewPasswordVersion: crew.password === '' ? crew.version : '',
       })
       entry.pendingPair = undefined
-      entry.pairTokens = []
+      this.configuration.setPairingTokens(entry.id, [])
       entry.pairedAt = this.now()
       entry.reportedHub = hubId
       entry.lastError = undefined
@@ -136,7 +133,10 @@ export default class DeviceRegistry {
       // is sent again with the next challenge
       const paired = this.configuration.getPairedDevice(entry.id)
       const crew = this.configuration.getCrewPassword()
-      if (paired && reply.crew === crewPasswordFingerprint(Buffer.from(paired.token, 'hex'), crew.password)) {
+      const sent = entry.crewSent
+      const token = paired && Buffer.from(paired.token, 'hex')
+      if (token && sent && sent.version === crew.version &&
+          sent.nonces.some(nonce => crewPasswordFingerprint(token, nonce, crew.password) === reply.crew)) {
         this.configuration.setPairedDevice({ ...paired, crewPasswordVersion: crew.version })
         entry.crewSent = undefined
       }
@@ -182,7 +182,8 @@ export default class DeviceRegistry {
     if (entry.pendingPair) return true
     const now = this.now()
     entry.pendingPair = { token: randomBytes(TOKEN_BYTES), since: now, sentAt: now }
-    entry.pairTokens = [...entry.pairTokens, entry.pendingPair.token].slice(-MAX_PAIR_TOKENS)
+    // saved before it is sent: the tally may take it even if the Hub restarts
+    this.configuration.setPairingTokens(id, [...this.configuration.getPairingTokens(id), entry.pendingPair.token.toString('hex')].slice(-MAX_PAIR_TOKENS))
     entry.lastError = undefined
     this.send(pairMessage(this.hubId(), entry.pendingPair.token), entry.address, entry.port)
     this.emitIfChanged()
@@ -205,6 +206,7 @@ export default class DeviceRegistry {
   // unpaired on its setup page.
   forget(id: string) {
     this.configuration.removePairedDevice(id)
+    this.configuration.setPairingTokens(id, [])
     const entry = this.entries.get(id)
     if (entry) {
       entry.pendingUnpair = undefined
@@ -265,14 +267,23 @@ export default class DeviceRegistry {
     return this.isUdpOnline(entry) || entry.mdnsUp
   }
 
+  // Tokens sent in "pair" that the tally may have taken although its answer
+  // was lost (kept in the configuration, over a restart of the Hub); while it
+  // says it is paired with this Hub and the Hub has no token, they are sent
+  // again and its answer names the right one.
+  private pairTokens(id: string) {
+    return this.configuration.getPairingTokens(id).map(token => Buffer.from(token, 'hex'))
+  }
+
   // The tally took one of the tokens but its answers were lost
   private recoverPairing(entry: Entry) {
     const now = this.now()
-    if (entry.pendingPair || entry.pairTokens.length === 0 || entry.reportedHub !== this.hubId() ||
+    const tokens = this.pairTokens(entry.id)
+    if (entry.pendingPair || tokens.length === 0 || entry.reportedHub !== this.hubId() ||
         this.configuration.getPairedDevice(entry.id) || !this.isUdpOnline(entry) || !entry.address || !entry.port) return
     if (entry.recoverSentAt !== undefined && now - entry.recoverSentAt < PAIR_RETRY_MS) return
     entry.recoverSentAt = now
-    for (const token of entry.pairTokens) this.send(pairMessage(this.hubId(), token), entry.address, entry.port)
+    for (const token of tokens) this.send(pairMessage(this.hubId(), token), entry.address, entry.port)
   }
 
   private isSignedUnpaired(entry: Entry, key: string) {
@@ -311,8 +322,10 @@ export default class DeviceRegistry {
     const sent = entry.crewSent
     // once per challenge; again after a while in case the packet was lost
     if (sent && sent.version === crew.version && (sent.challenge === entry.challenge || now - sent.at < 500) && now - sent.at < CREW_RETRY_MS) return
-    entry.crewSent = { challenge: entry.challenge, at: now, version: crew.version }
-    this.send(crewPasswordMessage(this.hubId(), Buffer.from(paired.token, 'hex'), entry.challenge, crew.password), entry.address, entry.port)
+    const nonce = randomBytes(8).toString('hex')
+    const nonces = sent && sent.version === crew.version ? [...sent.nonces, nonce].slice(-8) : [nonce]
+    entry.crewSent = { challenge: entry.challenge, at: now, version: crew.version, nonces }
+    this.send(crewPasswordMessage(this.hubId(), Buffer.from(paired.token, 'hex'), entry.challenge, crew.password, nonce), entry.address, entry.port)
   }
 
   private crewState(version: string): DeviceView['crewPassword'] {

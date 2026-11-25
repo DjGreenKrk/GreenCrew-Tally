@@ -208,16 +208,18 @@ sends in its `tally-ho` (`pair=<hub id or -> ch=<16 hex>`); it changes after eve
 message, so a recorded message cannot be sent again. The Hub sends a message again when no answer comes
 (lost UDP packets): a tally already paired with the same Hub and token answers `paired` again.
 `key` and `crew` (the first 8 bytes of HMAC-SHA256 with the token over `paired`, or over
-`crew-password-set <password>`) tell the Hub which token and which password the tally took. When
+`crew-password-set <n> <password>`) tell the Hub which token and which password the tally took. When
 the answers to pairing were lost but the tally says it is paired with this Hub, the Hub sends
-the tokens it tried again and keeps the one the tally names. When the tally cannot write the
+the tokens it tried again (kept in its configuration file, so this works after a restart of
+the Hub too) and keeps the one the tally names. The answer to a crew password names the message
+(its `n`), so a late answer to an earlier message does not count. When the tally cannot write the
 change to its flash it keeps the state from before and answers `refused ... why=storage`.
 
 The Hub drops a token only after a signed `unpaired` (`key` over `unpaired <challenge>`), when the
 operator pairs the tally again or clicks Forget, or when the tally answers `not-paired` while the
 operator unpairs it. A `tally-ho` saying the tally is not paired (unpaired on its setup page, or
 forged) only shows it so. A paired tally sends to its own Hub only: one found over mDNS before it
-was paired is not used, even when the next search finds nothing.
+was paired is not used, even when the next search finds nothing, and its colours are ignored.
 
 The crew password travels XORed with a key stream from the token, the challenge and a random `n`
 the Hub picks for every message, so two passwords never share a key stream; the same password

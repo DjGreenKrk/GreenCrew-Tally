@@ -77,6 +77,9 @@ export class AppConfiguration extends Configuration {
     // when several Hubs share a network (#28). Generated once.
     hubId?: string
     pairedDevices: PairedDevice[] = []
+    // Tokens sent in "pair" whose answer has not come yet, by device id: the
+    // tally may have taken one, so they must survive a restart of the Hub.
+    pairingTokens: Record<string, string[]> = {}
     // The crew password the Hub sets on paired tallies for their setup
     // access point (#28); '' for none. The version changes with every change.
     crewPassword = ''
@@ -201,6 +204,14 @@ export class AppConfiguration extends Configuration {
         if (Array.isArray(data.pairedDevices)) {
             this.pairedDevices = data.pairedDevices.filter(isPairedDevice).map(device => ({ ...device }))
         }
+        if (typeof data.pairingTokens === 'object' && data.pairingTokens !== null) {
+            this.pairingTokens = {}
+            for (const [id, tokens] of Object.entries(data.pairingTokens)) {
+                if (!/^[0-9a-f]{1,16}$/.test(id) || !Array.isArray(tokens)) continue
+                const valid = tokens.filter((token): token is string => typeof token === 'string' && /^[0-9a-f]{32}$/.test(token))
+                if (valid.length) this.pairingTokens[id] = valid
+            }
+        }
         if (typeof data.crewPassword === 'string' && typeof data.crewPasswordVersion === 'string') {
             this.crewPassword = data.crewPassword
             this.crewPasswordVersion = data.crewPasswordVersion
@@ -226,6 +237,7 @@ export class AppConfiguration extends Configuration {
             companionLanToken: this.companionLanToken,
             hubId: this.hubId,
             pairedDevices: this.pairedDevices,
+            pairingTokens: this.pairingTokens,
             crewPassword: this.crewPassword,
             crewPasswordVersion: this.crewPasswordVersion,
         }
@@ -318,6 +330,21 @@ export class AppConfiguration extends Configuration {
     removePairedDevice(id: string) {
         if (!this.getPairedDevice(id)) return
         this.pairedDevices = this.pairedDevices.filter(device => device.id !== id)
+        this.emitter.emit("config.changed", this)
+    }
+
+    getPairingTokens(id: string): string[] {
+        return this.pairingTokens[id] ?? []
+    }
+
+    // [] forgets them
+    setPairingTokens(id: string, tokens: string[]) {
+        const current = this.getPairingTokens(id)
+        if (current.length === tokens.length && current.every((token, i) => token === tokens[i])) return
+        const next = { ...this.pairingTokens }
+        if (tokens.length) next[id] = [...tokens]
+        else delete next[id]
+        this.pairingTokens = next
         this.emitter.emit("config.changed", this)
     }
 

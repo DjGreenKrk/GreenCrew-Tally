@@ -201,6 +201,13 @@ void readSettings() {
     settings->parse(text.c_str());
 }
 
+// Colours from the Hub found before the tally was paired with another one
+// are ignored (colour packets are not signed; see README, Pairing).
+bool isFromFormerHub(const IPAddress& sender) {
+    if (settings->hasHubAddress() || foundHubId[0] == '\0') return false;
+    return sender == foundHubIp && !isUsableHub(foundHubId, pairing.pairing().hubId);
+}
+
 void readPairing() {
     Pairing stored;
     stored.parse(ConfigStore::readPairing().c_str());
@@ -395,7 +402,8 @@ void handleManagement(const char* data, size_t length, uint32_t now) {
         case PairingController::Effect::savePairing: {
             char file[64];
             pairing.pairing().write(file, sizeof(file));
-            if (!ConfigStore::writePairing(String(file))) {
+            // a crew password of an earlier pairing must not come back after a restart
+            if (!ConfigStore::writeHubCrewPassword(String("")) || !ConfigStore::writePairing(String(file))) {
                 controller->log(Severity::error, "Could not save the pairing");
                 pairing.storageFailed(result);
                 break;
@@ -554,7 +562,7 @@ void loop() {
         udp.flush();
         if (length > 0 && PairingController::isManagementMessage(packet, length)) {
             handleManagement(packet, length, now);
-        } else if (length > 0) {
+        } else if (length > 0 && !isFromFormerHub(udp.remoteIP())) {
             controller->packetReceived(packet, length, now);
         }
     }

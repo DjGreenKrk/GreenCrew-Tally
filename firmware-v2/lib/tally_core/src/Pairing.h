@@ -41,7 +41,7 @@ struct Pairing {
 // The tally answers to the sender:
 //   gc/1 paired id=<device> hub=<id> key=<fingerprint of "paired">
 //   gc/1 unpaired id=<device> hub=<id> key=<fingerprint of "unpaired <challenge>">
-//   gc/1 crew-password-set id=<device> hub=<id> crew=<fingerprint of "crew-password-set <password>">
+//   gc/1 crew-password-set id=<device> hub=<id> crew=<fingerprint of "crew-password-set <n> <password>">
 //   gc/1 refused id=<device> to=<verb> why=<reason>
 // The fingerprints tell the Hub which token and which password the tally
 // took, when it sent several (lost answers, quick changes).
@@ -98,8 +98,9 @@ private:
 // The first 8 bytes of HMAC-SHA256(token, text) as 16 hex; out needs 17 bytes.
 static const size_t fingerprintSize = 8;
 void fingerprint(const uint8_t* token, const char* text, char* out);
-// fingerprint of "crew-password-set <password>"
-void crewPasswordFingerprint(const uint8_t* token, const char* password, char* out);
+// fingerprint of "crew-password-set <n> <password>": the answer to that one
+// message, so a late answer to an older one is not taken for it
+void crewPasswordFingerprint(const uint8_t* token, const char* nonce, const char* password, char* out);
 
 // Lowercase hex of the bytes; out needs 2 * length + 1 bytes.
 void toHex(const uint8_t* bytes, size_t length, char* out);

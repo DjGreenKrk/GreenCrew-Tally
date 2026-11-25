@@ -72,9 +72,14 @@ String readPairing() { return readFile(pairingPath); }
 bool writePairing(const String& text) { return writeFile(pairingPath, text); }
 
 bool removePairing() {
-    // the crew password first: it is used only while paired
-    if (LittleFS.exists(hubCrewPasswordPath) && !LittleFS.remove(hubCrewPasswordPath)) return false;
-    return !LittleFS.exists(pairingPath) || LittleFS.remove(pairingPath);
+    // The pairing decides: once it is gone the tally is unpaired, and a crew
+    // password left behind is not used (only with a pairing). Removed first,
+    // so a failure leaves both files as they were.
+    if (LittleFS.exists(pairingPath) && !LittleFS.remove(pairingPath)) return false;
+    if (LittleFS.exists(hubCrewPasswordPath) && !LittleFS.remove(hubCrewPasswordPath)) {
+        Serial.println("[WARN]  Could not remove the crew password of the old pairing");
+    }
+    return true;
 }
 
 String readHubCrewPassword() { return readFile(hubCrewPasswordPath); }

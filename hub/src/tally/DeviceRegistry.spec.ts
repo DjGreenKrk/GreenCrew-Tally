@@ -7,6 +7,11 @@ import { crewPasswordFingerprint, crewPasswordMessage, pairedKey, unpairedKey, u
 const challenge1 = '0123456789abcdef'
 const challenge2 = 'fedcba9876543210'
 
+const nonceOf = (sent: string) => sent.match(/ n=([0-9a-f]{16})/)![1]
+// The tally's answer to that crew-password message
+const crewAnswer = (sent: string, token: Buffer, password: string) =>
+  ({ kind: 'crew-password-set' as const, id: 'a1b2c3', hub: '1a2b3c4d', crew: crewPasswordFingerprint(token, nonceOf(sent), password) })
+
 // The message the Hub sent, with its random nonce (n=)
 const crewMessage = (sent: string, token: Buffer, challenge: string, password: string) =>
   crewPasswordMessage('1a2b3c4d', token, challenge, password, sent.match(/ n=([0-9a-f]{16})/)?.[1])
@@ -247,7 +252,7 @@ describe('DeviceRegistry', () => {
     registry.tick()
     expect(sent).toHaveLength(1)
 
-    registry.replyReceived({ kind: 'crew-password-set', id: 'a1b2c3', hub: '1a2b3c4d', crew: crewPasswordFingerprint(token, 'crew pass 1!') })
+    registry.replyReceived(crewAnswer(sent[0].text, token, 'crew pass 1!'))
     expect(configuration.getPairedDevice('a1b2c3')!.crewPasswordVersion).toEqual(configuration.getCrewPassword().version)
     expect(registry.getState().devices[0].crewPassword).toBe('synced')
     expect(registry.getState().crewPasswordSet).toBe(true)
@@ -277,7 +282,7 @@ describe('DeviceRegistry', () => {
     ])
     // each with its own key stream
     expect(sent[0].text.match(/ n=(\w+)/)![1]).not.toEqual(sent[1].text.match(/ n=(\w+)/)![1])
-    registry.replyReceived({ kind: 'crew-password-set', id: 'a1b2c3', hub: '1a2b3c4d', crew: crewPasswordFingerprint(token, 'crew pass 1!') })
+    registry.replyReceived(crewAnswer(sent[0].text, token, 'crew pass 1!'))
     registry.replyReceived({ kind: 'refused', id: 'a1b2c3', to: 'crew-password', why: 'challenge' })
     expect(registry.getState().devices[0].crewPassword).toBe('pending')
 
@@ -285,8 +290,45 @@ describe('DeviceRegistry', () => {
     hello('1a2b3c4d', challenge2)
     registry.tick()
     expect(sent[2].text).toEqual(crewMessage(sent[2].text, token, challenge2, 'crew pass 2!'))
-    registry.replyReceived({ kind: 'crew-password-set', id: 'a1b2c3', hub: '1a2b3c4d', crew: crewPasswordFingerprint(token, 'crew pass 2!') })
+    registry.replyReceived(crewAnswer(sent[2].text, token, 'crew pass 2!'))
     expect(registry.getState().devices[0].crewPassword).toBe('synced')
+  })
+
+  test('a late answer to an earlier message of the same password does not count', () => {
+    // A, then B, then A again: the answer to the first A comes late
+    const { registry, sent, hello, configuration, advance } = pairedSetup()
+    const token = Buffer.from(configuration.getPairedDevice('a1b2c3')!.token, 'hex')
+    hello('1a2b3c4d', challenge1)
+    configuration.setCrewPassword('crew pass 1!')
+    registry.tick()
+    configuration.setCrewPassword('crew pass 2!')
+    registry.tick()
+    configuration.setCrewPassword('crew pass 1!')
+    advance(1000)
+    hello('1a2b3c4d', challenge2)
+    registry.tick()
+    expect(sent).toHaveLength(3)
+    registry.replyReceived(crewAnswer(sent[0].text, token, 'crew pass 1!'))
+    expect(registry.getState().devices[0].crewPassword).toBe('pending')
+    registry.replyReceived(crewAnswer(sent[2].text, token, 'crew pass 1!'))
+    expect(registry.getState().devices[0].crewPassword).toBe('synced')
+  })
+
+  test('a pairing not answered yet survives a restart of the Hub', () => {
+    const { configuration, registry, sent, hello } = setup()
+    hello(null)
+    registry.pair('a1b2c3')
+    const pairText = sent[0].text
+    // the tally took it, every answer lost, then the Hub restarts
+    const after: string[] = []
+    const restarted = new DeviceRegistry(configuration, text => after.push(text), () => {}, () => 50000)
+    restarted.helloReceived('a1b2c3', 'CAM1', '2.0.0', '10.0.0.5', 7411, { hub: '1a2b3c4d', challenge: challenge2 })
+    restarted.tick()
+    expect(after).toEqual([pairText])
+    const token = Buffer.from(pairText.match(/token=([0-9a-f]{32})/)![1], 'hex')
+    restarted.replyReceived({ kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d', key: pairedKey(token) })
+    expect(configuration.getPairedDevice('a1b2c3')!.token).toEqual(token.toString('hex'))
+    expect(configuration.getPairingTokens('a1b2c3')).toEqual([])
   })
 
   test('marks online tallies with the same name', () => {

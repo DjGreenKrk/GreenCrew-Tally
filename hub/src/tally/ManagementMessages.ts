@@ -68,10 +68,11 @@ export function unpairedKey(token: Buffer, challenge: string) {
   return fingerprint(token, `unpaired ${challenge}`)
 }
 
-// Names the crew password in the tally's "crew-password-set" answer, so an
-// answer to an older password is not taken for the current one.
-export function crewPasswordFingerprint(token: Buffer, password: string) {
-  return fingerprint(token, `crew-password-set ${password}`)
+// Names the message (its nonce) and the password in the tally's
+// "crew-password-set" answer, so a late answer to an older message is not
+// taken for the current one.
+export function crewPasswordFingerprint(token: Buffer, nonce: string, password: string) {
+  return fingerprint(token, `crew-password-set ${nonce} ${password}`)
 }
 
 export { isCrewPassword } from './DeviceList'

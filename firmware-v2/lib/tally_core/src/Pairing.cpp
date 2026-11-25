@@ -94,9 +94,9 @@ void fingerprint(const uint8_t* token, const char* text, char* out) {
     toHex(mac, fingerprintSize, out);
 }
 
-void crewPasswordFingerprint(const uint8_t* token, const char* password, char* out) {
-    char label[sizeof("crew-password-set ") + PairingController::maxCrewPassword];
-    snprintf(label, sizeof(label), "crew-password-set %s", password);
+void crewPasswordFingerprint(const uint8_t* token, const char* nonce, const char* password, char* out) {
+    char label[sizeof("crew-password-set ") + 17 + PairingController::maxCrewPassword];
+    snprintf(label, sizeof(label), "crew-password-set %.16s %s", nonce, password);
     fingerprint(token, label, out);
 }
 
@@ -298,7 +298,7 @@ PairingController::Result PairingController::handle(const char* data, size_t len
     strcpy(crew, text);
     newChallenge();
     char crewText[2 * fingerprintSize + 1];
-    crewPasswordFingerprint(current.token, crew, crewText);
+    crewPasswordFingerprint(current.token, nonce, crew, crewText);
     snprintf(result.reply, sizeof(result.reply), "gc/1 crew-password-set id=%s hub=%s crew=%s\n", deviceId, hub, crewText);
     return result;
 }

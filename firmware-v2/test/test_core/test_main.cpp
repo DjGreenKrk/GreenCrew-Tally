@@ -1195,7 +1195,7 @@ void test_paired_hub_sets_the_crew_password() {
     PairingController::Result result = send(controller, hubCrewPassword);
     TEST_ASSERT_TRUE(result.effect == PairingController::Effect::saveCrewPassword);
     // the Hub checks which password the tally took (ManagementMessages.spec.ts)
-    TEST_ASSERT_EQUAL_STRING("gc/1 crew-password-set id=a1b2c3 hub=1a2b3c4d crew=db920b6aae174b52\n", result.reply);
+    TEST_ASSERT_EQUAL_STRING("gc/1 crew-password-set id=a1b2c3 hub=1a2b3c4d crew=438215481bc00c4c\n", result.reply);
     TEST_ASSERT_EQUAL_STRING("crew pass 1!", controller.crewPassword());
 
     // the same password again (the answer was lost): confirmed, the flash not written
@@ -1203,7 +1203,7 @@ void test_paired_hub_sets_the_crew_password() {
     controller.begin(testPairing(), "crew pass 1!");
     result = send(controller, hubCrewPassword);
     TEST_ASSERT_TRUE(result.effect == PairingController::Effect::none);
-    TEST_ASSERT_EQUAL_STRING("gc/1 crew-password-set id=a1b2c3 hub=1a2b3c4d crew=db920b6aae174b52\n", result.reply);
+    TEST_ASSERT_EQUAL_STRING("gc/1 crew-password-set id=a1b2c3 hub=1a2b3c4d crew=438215481bc00c4c\n", result.reply);
     TEST_ASSERT_EQUAL_STRING("fedcba9876543210", controller.challenge());
 
     // 40 characters need the second block of the key stream
@@ -1213,10 +1213,10 @@ void test_paired_hub_sets_the_crew_password() {
     TEST_ASSERT_EQUAL_STRING(std::string(40, 'x').c_str(), controller.crewPassword());
 
     char fingerprint[17];
-    crewPasswordFingerprint(testPairing().token, std::string(40, 'x').c_str(), fingerprint);
-    TEST_ASSERT_EQUAL_STRING("781693d3e3d94b59", fingerprint);
-    crewPasswordFingerprint(testPairing().token, "", fingerprint);
-    TEST_ASSERT_EQUAL_STRING("088970114d5c5f56", fingerprint);
+    crewPasswordFingerprint(testPairing().token, "0011223344556677", std::string(40, 'x').c_str(), fingerprint);
+    TEST_ASSERT_EQUAL_STRING("d256f19e9614e551", fingerprint);
+    crewPasswordFingerprint(testPairing().token, "0011223344556677", "", fingerprint);
+    TEST_ASSERT_EQUAL_STRING("2a79bba229496162", fingerprint);
     gctally::fingerprint(testPairing().token, "paired", fingerprint);
     TEST_ASSERT_EQUAL_STRING("fdbdef57e8036737", fingerprint);
 }
