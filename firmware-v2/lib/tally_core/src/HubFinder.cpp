@@ -26,6 +26,24 @@ bool hubIdFromHostName(const char* hostName, char* id, size_t size) {
     return isHubId(id);
 }
 
+size_t hubAddresses(const HubAnswer* answers, size_t count, size_t chosen, uint32_t* out, size_t max) {
+    char chosenId[9];
+    if (chosen >= count || !hubIdFromHostName(answers[chosen].hostName, chosenId, sizeof(chosenId))) return 0;
+    size_t found = 0;
+    for (size_t i = 0; i < count && found < max; i++) {
+        char id[9];
+        if (!hubIdFromHostName(answers[i].hostName, id, sizeof(id)) || strcmp(id, chosenId) != 0 || answers[i].ip == 0) continue;
+        bool known = false;
+        for (size_t j = 0; j < found; j++) known = known || out[j] == answers[i].ip;
+        if (!known) out[found++] = answers[i].ip;
+    }
+    return found;
+}
+
+bool isUsableHub(const char* foundId, const char* pairedId) {
+    return pairedId == nullptr || pairedId[0] == '\0' || (foundId != nullptr && strcmp(foundId, pairedId) == 0);
+}
+
 HubSearch chooseHub(const HubAnswer* answers, size_t count, const char* pinnedId, size_t& chosen) {
     bool pinned = pinnedId != nullptr && pinnedId[0] != '\0';
     char firstId[9] = "";

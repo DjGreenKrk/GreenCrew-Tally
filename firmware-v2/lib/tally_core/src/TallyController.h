@@ -5,7 +5,9 @@
 
 #include "LedEngine.h"
 #include "LogBuffer.h"
+#include "Pairing.h"
 #include "Settings.h"
+#include "StateMessage.h"
 
 namespace gctally {
 
@@ -43,14 +45,22 @@ public:
     void wifiGotIp(uint32_t nowMs);
     void wifiLost(uint32_t nowMs);
 
+    // A state packet from the Hub; management messages ("gc/...") go to
+    // the PairingController instead.
     void packetReceived(const char* data, size_t length, uint32_t nowMs);
+    // Blink white for PairingController::identifyMs, then show the Hub's
+    // state again.
+    void identify(uint32_t nowMs);
+    // Adds the pairing and its challenge to "tally-ho"; optional.
+    void setPairing(const PairingController* pairingController) { pairing = pairingController; }
     void tick(uint32_t nowMs);
 
     void log(Severity severity, const char* message);
     bool isHubConnected(uint32_t nowMs) const;
     bool isWifiUp() const { return wifiUp; }
 
-    // 'tally-ho "CAM1" gc/1 id=00a1b2c3 fw=2.0.0 hw=esp8266 caps=ws2812,pwm'
+    // 'tally-ho "CAM1" gc/1 id=00a1b2c3 fw=2.0.0 hw=esp8266 caps=ws2812,pwm',
+    // with a PairingController also ' pair=<hub id or -> ch=<challenge>'
     void helloMessage(char* out, size_t size) const;
 
 private:
@@ -62,6 +72,12 @@ private:
     LedEngine& leds;
     Platform& platform;
     LogBuffer buffer;
+    const PairingController* pairing = nullptr;
+
+    bool identifying = false;
+    uint32_t identifyStartedMs = 0;
+    bool hasMessage = false;
+    StateMessage lastMessage;
 
     bool wifiUp = false;
     bool hasPacket = false;

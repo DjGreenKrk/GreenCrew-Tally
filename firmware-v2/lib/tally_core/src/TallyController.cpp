@@ -57,7 +57,9 @@ void TallyController::packetReceived(const char* data, size_t length, uint32_t n
     lastPacketMs = nowMs;
     StateMessage message;
     if (parseStateMessage(data, length, message)) {
-        leds.show(message, nowMs);
+        lastMessage = message;
+        hasMessage = true;
+        if (!identifying) leds.show(message, nowMs);
     } else {
         char text[LogBuffer::maxMessageLength + 1];
         snprintf(text, sizeof(text), "invalid package: %.*s", static_cast<int>(length < 60 ? length : 60), data);
@@ -65,15 +67,30 @@ void TallyController::packetReceived(const char* data, size_t length, uint32_t n
     }
 }
 
+void TallyController::identify(uint32_t nowMs) {
+    identifying = true;
+    identifyStartedMs = nowMs;
+    leds.showIdentify(nowMs);
+    log(Severity::info, "Identifying for pairing");
+}
+
 bool TallyController::isHubConnected(uint32_t nowMs) const {
     return hasPacket && nowMs - lastPacketMs <= hubTimeoutMs;
 }
 
 void TallyController::tick(uint32_t nowMs) {
+    if (identifying && nowMs - identifyStartedMs >= PairingController::identifyMs) {
+        identifying = false;
+        if (isHubConnected(nowMs) && hasMessage) {
+            leds.show(lastMessage, nowMs);
+        } else if (wifiUp) {
+            leds.showWaitForHub(nowMs);
+        }
+    }
     if (nowMs - lastHelloMs >= helloIntervalMs) {
         lastHelloMs = nowMs;
         if (wifiUp) {
-            if (!isHubConnected(nowMs)) leds.showWaitForHub(nowMs);
+            if (!isHubConnected(nowMs) && !identifying) leds.showWaitForHub(nowMs);
             sendHello();
         }
     }
@@ -103,11 +120,15 @@ void TallyController::log(Severity severity, const char* message) {
 }
 
 void TallyController::helloMessage(char* out, size_t size) const {
-    snprintf(out, size, "tally-ho \"%s\" gc/%u id=%s fw=%s hw=esp8266 caps=ws2812,pwm", settings.tallyName(), protocolVersion, deviceId, GC_FIRMWARE_VERSION);
+    int used = snprintf(out, size, "tally-ho \"%s\" gc/%u id=%s fw=%s hw=esp8266 caps=ws2812,pwm", settings.tallyName(), protocolVersion, deviceId, GC_FIRMWARE_VERSION);
+    if (pairing != nullptr && used > 0 && static_cast<size_t>(used) < size) {
+        const Pairing& paired = pairing->pairing();
+        snprintf(out + used, size - used, " pair=%s ch=%s", paired.paired ? paired.hubId : "-", pairing->challenge());
+    }
 }
 
 void TallyController::sendHello() {
-    char text[128];
+    char text[192];
     helloMessage(text, sizeof(text));
     strncat(text, "\n", sizeof(text) - strlen(text) - 1);
     platform.sendToHub(text);

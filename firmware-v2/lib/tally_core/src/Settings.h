@@ -21,12 +21,13 @@ bool isHubId(const char* text);
 // A WPA2 passphrase: 8 to 63 printable ASCII characters.
 bool isSetupPassword(const char* text);
 
-enum class SetupPasswordSource : uint8_t { settings, crew, generated };
+enum class SetupPasswordSource : uint8_t { settings, hub, crew, generated };
 
 // Which password the setup access point uses: setup.password from the
-// settings file, else the crew password built into the firmware
-// (GC_SETUP_PASSWORD at build time), else one the tally generates.
-SetupPasswordSource pickSetupPassword(const char* fromSettings, const char* crew);
+// settings file, else the crew password the paired Hub set, else the crew
+// password built into the firmware (GC_SETUP_PASSWORD at build time), else
+// one the tally generates.
+SetupPasswordSource pickSetupPassword(const char* fromSettings, const char* fromHub, const char* crew);
 
 // The keys of tally-settings.ini, read the same way as tally/src/my-settings.lua.
 // One difference: a value may contain "=", so Wi-Fi passwords with "=" work.

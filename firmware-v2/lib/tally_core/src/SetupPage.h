@@ -51,6 +51,8 @@ struct SetupPageModel {
     // The last saved configuration that did not connect, if any
     WifiFailure trialFailure = WifiFailure::none;
     const char* trialSsid = "";
+    // The Hub this tally is paired with (#28), "" when not paired
+    const char* pairedHubId = "";
 };
 
 void renderSetupPage(const SetupPageModel& model, TextSink& sink);

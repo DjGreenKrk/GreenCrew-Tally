@@ -9,6 +9,8 @@
 //   /tally-settings.new    saved on the setup page, not tried yet
 //   /tally-settings.trial  being tried since this boot
 //   /setup-key             generated password of the setup access point
+//   /pairing               the paired Hub and its token (#28)
+//   /hub-crew-password     the crew password the paired Hub set (#28)
 //
 // Every write goes to a temporary file first and is then renamed, which
 // LittleFS does atomically, so a power loss leaves the old or the new file,
@@ -37,5 +39,15 @@ bool saveForTrial(const String& text);
 // The setup password: read from /setup-key, or generated and stored there
 // the first time.
 String setupKey();
+
+// Pairing (#28): written only when the tally is paired or unpaired, or the
+// Hub changes the crew password.
+String readPairing();
+bool writePairing(const String& text);
+// Removes the pairing and the crew password that came with it.
+bool removePairing();
+String readHubCrewPassword();
+// An empty password removes the file.
+bool writeHubCrewPassword(const String& password);
 
 }  // namespace ConfigStore
