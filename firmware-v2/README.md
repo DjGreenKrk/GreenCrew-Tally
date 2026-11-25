@@ -180,8 +180,9 @@ two tallies with the same name side by side.
   The tally keeps the Hub id and the token in `/pairing` and from then on follows only that Hub
   over mDNS.
 - **Unpair**: from the Hub while the tally is online, or on the tally's setup page ("Unpair",
-  for a tally whose Hub is gone). The Hub notices an unpairing on the setup page from the next
-  `tally-ho`. **Forget** on the Hub drops the token of a tally that is not around.
+  for a tally whose Hub is gone). The Hub shows an unpairing on the setup page from the next
+  `tally-ho` and keeps the token until the tally is paired again or **Forget** is clicked (also
+  for a tally that is not around).
 - **Crew password**: set on the Hub computer (Configuration, "Crew password"); the Hub sends it to
   every paired tally that is online and shows which have it. It replaces the built-in one; an
   empty password removes it again.
@@ -211,8 +212,9 @@ message, so a recorded message cannot be sent again. The Hub sends a message aga
 `key` and `crew` (the first 8 bytes of HMAC-SHA256 with the token over `paired`, or over
 `crew-password-set <n> <password>`) tell the Hub which token and which password the tally took. When
 the answers to pairing were lost but the tally says it is paired with this Hub, the Hub sends
-the tokens it tried again (kept in its configuration file, so this works after a restart of
-the Hub too) and keeps the one the tally names. The answer to a crew password names the message
+the token again and keeps it when the tally names it. The token is written to the Hub's
+configuration file before the first `pair` goes out and is used again for every new attempt until
+the pairing is confirmed or forgotten, so neither a restart of the Hub nor retries lose it. The answer to a crew password names the message
 (its `n`), so a late answer to an earlier message does not count. When the tally cannot write the
 change to its flash it keeps the state from before and answers `refused ... why=storage`.
 
@@ -220,7 +222,8 @@ The Hub drops a token only after a signed `unpaired` (`key` over `unpaired <chal
 operator pairs the tally again or clicks Forget, or when the tally answers `not-paired` while the
 operator unpairs it. A `tally-ho` saying the tally is not paired (unpaired on its setup page, or
 forged) only shows it so. A paired tally sends to its own Hub only: one found over mDNS before it
-was paired is not used, even when the next search finds nothing, and its colours are ignored.
+was paired is not used, even when the next search finds nothing. Colour packets are taken only
+from the Hub the tally talks to: the address in `hub.ip`, or the addresses the chosen Hub announced.
 
 The crew password travels XORed with a key stream from the token, the challenge and a random `n`
 the Hub picks for every message, so two passwords never share a key stream; the same password

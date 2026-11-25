@@ -106,29 +106,33 @@ describe('DeviceRegistry', () => {
     advance(11000)
     registry.tick()
     expect(registry.getState().devices[0].lastError).toBe('no-answer')
-    // tried again before the tally said it is paired: another token
-    registry.pair('a1b2c3')
+    // the operator tries again, many times: the same token, never a new one
     const firstToken = sent[0].text
-    expect(sent.at(-1)!.text).not.toEqual(firstToken)
-    registry.replyReceived({ kind: 'refused', id: 'a1b2c3', to: 'pair', why: 'already-paired' })
+    for (let attempt = 0; attempt < 5; attempt++) {
+      registry.pair('a1b2c3')
+      expect(sent.at(-1)!.text).toEqual(firstToken)
+      advance(11000)
+      registry.tick()
+    }
+    expect(configuration.getPairingTokens('a1b2c3')).toHaveLength(1)
 
-    // the tally says it is paired with this Hub: both tokens are sent again
+    // the tally says it is paired with this Hub: the token is sent again
     sent.length = 0
-    advance(1000)
     hello('1a2b3c4d', challenge2)
+    advance(1000)
     registry.tick()
-    expect(sent.map(s => s.text)).toEqual([firstToken, expect.stringMatching(/ pair /)])
+    expect(sent.map(s => s.text)).toEqual([firstToken])
     advance(500)
     registry.tick()
-    expect(sent).toHaveLength(2)
-    // the answer to the right one
+    expect(sent).toHaveLength(1)
     paired(firstToken)
     expect(configuration.getPairedDevice('a1b2c3')!.token).toEqual(firstToken.match(/token=([0-9a-f]{32})/)![1])
     expect(registry.getState().devices[0]).toMatchObject({ status: 'paired', lastError: undefined })
     advance(1000)
     registry.tick()
-    expect(sent).toHaveLength(2)
+    expect(sent).toHaveLength(1)
   })
+
 
   test('the tokens are sent again only while the tally says it is paired with this Hub', () => {
     // a "pair" to a paired tally cannot pair it anew: it answers "paired" for

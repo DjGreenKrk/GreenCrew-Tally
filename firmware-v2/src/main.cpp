@@ -70,6 +70,9 @@ uint32_t lastApCheckMs = 0;
 HubFinder hubFinder;
 char foundHubId[9] = "";
 IPAddress foundHubIp;
+// every address of that Hub (one per network interface): colours only from these
+uint32_t foundHubIps[8];
+size_t foundHubIpCount = 0;
 uint16_t foundHubPort = 0;
 bool mdnsStarted = false;
 LedEngine leds;
@@ -201,11 +204,18 @@ void readSettings() {
     settings->parse(text.c_str());
 }
 
-// Colours from the Hub found before the tally was paired with another one
-// are ignored (colour packets are not signed; see README, Pairing).
-bool isFromFormerHub(const IPAddress& sender) {
-    if (settings->hasHubAddress() || foundHubId[0] == '\0') return false;
-    return sender == foundHubIp && !isUsableHub(foundHubId, pairing.pairing().hubId);
+// Colours only from the Hub the tally talks to: hub.ip, or the Hub found over
+// mDNS when it may be used (colour packets are not signed; see README, Pairing).
+bool isFromSelectedHub(const IPAddress& sender) {
+    if (settings->hasHubAddress()) {
+        IPAddress hubIp;
+        return !hubIp.fromString(settings->hubAddress()) || sender == hubIp;  // a host name: not checked
+    }
+    if (!hubFinder.hasHub() || !isUsableHub(foundHubId, pairing.pairing().hubId)) return false;
+    for (size_t i = 0; i < foundHubIpCount; i++) {
+        if (static_cast<uint32_t>(sender) == foundHubIps[i]) return true;
+    }
+    return false;
 }
 
 void readPairing() {
@@ -337,6 +347,7 @@ void searchHub() {
     bool changed = ip != foundHubIp || answers[chosen].port != foundHubPort || strcmp(id, foundHubId) != 0;
     foundHubIp = ip;
     foundHubPort = answers[chosen].port;
+    foundHubIpCount = hubAddresses(answers, count, chosen, foundHubIps, sizeof(foundHubIps) / sizeof(foundHubIps[0]));
     strcpy(foundHubId, id);
     if (changed) {
         char text[80];
@@ -565,7 +576,7 @@ void loop() {
         udp.flush();
         if (length > 0 && PairingController::isManagementMessage(packet, length)) {
             handleManagement(packet, length, now);
-        } else if (length > 0 && !isFromFormerHub(udp.remoteIP())) {
+        } else if (length > 0 && isFromSelectedHub(udp.remoteIP())) {
             controller->packetReceived(packet, length, now);
         }
     }

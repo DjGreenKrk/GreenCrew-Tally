@@ -39,7 +39,6 @@ const GIVE_UP_MS = 10000
 const CREW_RETRY_MS = 5000
 // a "tally-ho" sent just before the pairing must not undo it
 const PAIRING_SETTLE_MS = 10000
-const MAX_PAIR_TOKENS = 4
 
 export default class DeviceRegistry {
   private entries = new Map<string, Entry>()
@@ -182,12 +181,15 @@ export default class DeviceRegistry {
     // a second click (or another browser) keeps the token already sent
     if (entry.pendingPair) return true
     const now = this.now()
-    const pending = { token: randomBytes(TOKEN_BYTES), since: now, sentAt: now, saved: false }
+    // A token from an attempt not resolved yet is used again: the tally may
+    // have taken it, so it must never be dropped for a new one.
+    const saved = this.pairTokens(id)
+    const pending = { token: saved.at(-1) ?? randomBytes(TOKEN_BYTES), since: now, sentAt: now, saved: false }
     entry.pendingPair = pending
     entry.lastError = undefined
     // On disk before it is sent: the tally may take it even if the Hub stops
     // right after. Kept until the pairing is confirmed or forgotten.
-    this.configuration.setPairingTokens(id, [...this.configuration.getPairingTokens(id), pending.token.toString('hex')].slice(-MAX_PAIR_TOKENS))
+    if (saved.length === 0) this.configuration.setPairingTokens(id, [pending.token.toString('hex')])
     const sendFirst = () => {
       if (entry.pendingPair !== pending || !entry.address || !entry.port) return
       pending.saved = true

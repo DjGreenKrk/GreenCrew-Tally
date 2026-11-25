@@ -963,6 +963,19 @@ void test_choose_hub() {
     TEST_ASSERT_TRUE(chooseHub(other, 2, "", chosen) == HubSearch::none);
 }
 
+void test_colours_come_only_from_the_chosen_hub() {
+    // the Hub on two interfaces (one twice), another Hub
+    HubAnswer answers[] = {{"gctally-hub-1a2b3c4d.local", 0x0a01a8c0, 7411}, {"gctally-hub-99999999.local", 0x0b01a8c0, 7411},
+                           {"gctally-hub-1a2b3c4d.local", 0x0a00000a, 7411}, {"gctally-hub-1a2b3c4d.local", 0x0a01a8c0, 7411}};
+    uint32_t addresses[8];
+    TEST_ASSERT_EQUAL_size_t(2, hubAddresses(answers, 4, 0, addresses, 8));
+    TEST_ASSERT_EQUAL_HEX32(0x0a01a8c0, addresses[0]);
+    TEST_ASSERT_EQUAL_HEX32(0x0a00000a, addresses[1]);
+    TEST_ASSERT_EQUAL_size_t(1, hubAddresses(answers, 4, 1, addresses, 8));
+    TEST_ASSERT_EQUAL_HEX32(0x0b01a8c0, addresses[0]);
+    TEST_ASSERT_EQUAL_size_t(1, hubAddresses(answers, 4, 0, addresses, 1));
+}
+
 void test_paired_tally_uses_only_its_own_hub() {
     TEST_ASSERT_TRUE(isUsableHub("1a2b3c4d", ""));
     TEST_ASSERT_TRUE(isUsableHub("", ""));
@@ -1367,6 +1380,7 @@ int main() {
     RUN_TEST(test_controller_says_it_looks_for_the_hub);
     RUN_TEST(test_hub_id_from_host_name);
     RUN_TEST(test_paired_tally_uses_only_its_own_hub);
+    RUN_TEST(test_colours_come_only_from_the_chosen_hub);
     RUN_TEST(test_choose_hub);
     RUN_TEST(test_hub_finder_searches_after_ip_and_backs_off);
     RUN_TEST(test_hub_finder_searches_again_when_the_hub_is_silent);
