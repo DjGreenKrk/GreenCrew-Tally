@@ -39,6 +39,12 @@ describe('v2 tallies', () => {
     expect(actions.forget).toHaveBeenCalledWith('a1b2c3')
   })
 
+  test('unpairing waits for the tally to reach the Hub', () => {
+    const { queryByTestId, getByTestId } = setup(state([{ ...unpaired, status: 'paired', via: ['mdns'] }]))
+    expect(queryByTestId('device-unpair')).toBeNull()
+    expect(getByTestId('device-unpair-needs-udp')).toBeInTheDocument()
+  })
+
   test('paired tallies can be unpaired, or forgotten when away', () => {
     const { actions, getByTestId } = setup(state([
       { ...unpaired, status: 'paired', crewPassword: 'synced' },

@@ -61,8 +61,10 @@ function DeviceRow({ device, actions }: { device: DeviceView, actions: DeviceAct
       {device.online && device.address && <Button size="small" onClick={() => actions.identify(device.id)}>{t('devices.identify')}</Button>}
       {device.online && device.status === 'unpaired' && !confirming &&
         <Button size="small" variant="contained" onClick={startPairing} data-testid="device-pair">{t('devices.pair')}</Button>}
-      {device.online && device.status === 'paired' &&
+      {device.online && device.status === 'paired' && device.via.includes('udp') &&
         <Button size="small" onClick={() => actions.unpair(device.id)} data-testid="device-unpair">{t('devices.unpair')}</Button>}
+      {device.online && device.status === 'paired' && !device.via.includes('udp') &&
+        <Typography variant="body2" color="text.secondary" data-testid="device-unpair-needs-udp">{t('devices.unpairNeedsUdp')}</Typography>}
       {((!device.online && device.status === 'paired') || device.staleToken) &&
         <Button size="small" onClick={() => actions.forget(device.id)} data-testid="device-forget">{t('devices.forget')}</Button>}
     </Stack>

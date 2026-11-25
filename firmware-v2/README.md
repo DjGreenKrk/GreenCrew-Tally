@@ -197,6 +197,7 @@ Messages besides the state packets, on the same UDP port:
 ```
 Hub → tally   gc/1 identify hub=<id>
 Hub → tally   gc/1 pair hub=<id> token=<32 hex>
+Hub → tally   gc/1 pair-check hub=<id> ch=<challenge>
 Hub → tally   gc/1 unpair hub=<id> ch=<challenge> mac=<hmac>
 Hub → tally   gc/1 crew-password hub=<id> ch=<challenge> n=<nonce> pw=<hex> mac=<hmac>
 tally → Hub   gc/1 paired id=<device> hub=<id> key=<fingerprint>
@@ -212,7 +213,9 @@ message, so a recorded message cannot be sent again. The Hub sends a message aga
 `key` and `crew` (the first 8 bytes of HMAC-SHA256 with the token over `paired`, or over
 `crew-password-set <n> <password>`) tell the Hub which token and which password the tally took. When
 the answers to pairing were lost but the tally says it is paired with this Hub, the Hub sends
-the token again and keeps it when the tally names it. The token is written to the Hub's
+`gc/1 pair-check hub=<id> ch=<challenge>` (no token: the address comes from an unsigned
+`tally-ho`) and the tally answers `paired ... ch=<challenge> key=<fingerprint of "paired <challenge>">`,
+which names its token. The token is written to the Hub's
 configuration file before the first `pair` goes out and is used again for every new attempt until
 the pairing is confirmed or forgotten, so neither a restart of the Hub nor retries lose it. The answer to a crew password names the message
 (its `n`), so a late answer to an earlier message does not count. When the tally cannot write the

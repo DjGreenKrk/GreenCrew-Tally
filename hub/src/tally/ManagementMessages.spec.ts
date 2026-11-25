@@ -1,4 +1,4 @@
-import { crewPasswordFingerprint, pairedKey, unpairedKey, crewPasswordMessage, identifyMessage, isCrewPassword, pairMessage, parseManagementReply, unpairMessage } from './ManagementMessages'
+import { crewPasswordFingerprint, pairCheckKey, pairCheckMessage, pairedKey, unpairedKey, crewPasswordMessage, identifyMessage, isCrewPassword, pairMessage, parseManagementReply, unpairMessage } from './ManagementMessages'
 
 // The same lines are checked by the firmware (firmware-v2/test/test_core/test_main.cpp).
 const token = Buffer.from('000102030405060708090a0b0c0d0e0f', 'hex')
@@ -43,6 +43,10 @@ describe('ManagementMessages', () => {
     expect(crewPasswordFingerprint(token, '0011223344556677', 'x'.repeat(40))).toBe('d256f19e9614e551')
     expect(crewPasswordFingerprint(token, '0011223344556677', '')).toBe('2a79bba229496162')
     expect(pairedKey(token)).toBe('fdbdef57e8036737')
+    expect(pairCheckMessage('1a2b3c4d', challenge)).toBe('gc/1 pair-check hub=1a2b3c4d ch=0123456789abcdef\n')
+    expect(pairCheckKey(token, challenge)).toBe('f895be02b24c5582')
+    expect(parseManagementReply('gc/1 paired id=a1b2c3 hub=1a2b3c4d ch=0123456789abcdef key=f895be02b24c5582')).toEqual(
+      { kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d', ch: '0123456789abcdef', key: 'f895be02b24c5582' })
     expect(unpairedKey(token, challenge)).toBe('886532c4c183298c')
   })
 

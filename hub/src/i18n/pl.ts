@@ -120,6 +120,7 @@ const pl = {
   "devices.error.alreadyPaired": "Lampka jest już sparowana z tym Hubem.",
   "devices.error.noAnswer": "Lampka nie odpowiedziała. Sprawdź, czy jest w sieci, i spróbuj ponownie.",
   "devices.staleTokenHelp": "Lampka mówi, że nie jest już sparowana z tym Hubem. Hub trzyma jej klucz, dopóki nie sparujesz jej ponownie albo nie klikniesz „Zapomnij”.",
+  "devices.unpairNeedsUdp": "Do odparowania wiadomości od lampki muszą docierać do Huba (teraz widać ją tylko przez mDNS). Sprawdź sieć albo odparuj ją na stronie konfiguracji lampki.",
   "devices.error.hubStorage": "Hub nie mógł zapisać pliku konfiguracji, więc nie sparował lampki. Sprawdź dysk i spróbuj ponownie.",
   "devices.error.hubIp": "Lampka ma ustawiony adres innego Huba (hub.ip). Wyczyść go albo wpisz adres tego Huba na stronie konfiguracji lampki, potem sparuj ponownie.",
   "devices.error.storage": "Lampka nie mogła tego zapisać w pamięci. Spróbuj ponownie; jeśli to się powtarza, wgraj firmware od nowa.",

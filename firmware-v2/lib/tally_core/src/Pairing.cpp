@@ -196,6 +196,26 @@ PairingController::Result PairingController::handle(const char* data, size_t len
         return result;
     }
 
+    // The Hub lost the answers to a pairing: the tally proves which token it
+    // has without sending it, signed over its current challenge.
+    if (strcmp(verb, "pair-check") == 0) {
+        if (!current.paired || strcmp(current.hubId, hub) != 0) {
+            refuse(result, verb, "not-paired");
+            return result;
+        }
+        if (strcmp(message.get("ch"), challengeText) != 0) {
+            refuse(result, verb, "challenge");
+            return result;
+        }
+        char label[sizeof("paired ") + sizeof(challengeText)];
+        snprintf(label, sizeof(label), "paired %s", challengeText);
+        char key[2 * fingerprintSize + 1];
+        fingerprint(current.token, label, key);
+        snprintf(result.reply, sizeof(result.reply), "gc/1 paired id=%s hub=%s ch=%s key=%s\n", deviceId, hub, challengeText, key);
+        newChallenge();
+        return result;
+    }
+
     if (strcmp(verb, "pair") == 0) {
         if (!fromSetHub) {
             refuse(result, verb, "hub-ip");

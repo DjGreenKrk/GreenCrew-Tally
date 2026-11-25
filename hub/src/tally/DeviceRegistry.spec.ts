@@ -2,7 +2,7 @@ import { EventEmitter } from 'events'
 import { AppConfiguration } from '../lib/AppConfiguration'
 import ServerEventEmitter from '../lib/ServerEventEmitter'
 import DeviceRegistry from './DeviceRegistry'
-import { crewPasswordFingerprint, crewPasswordMessage, pairedKey, unpairedKey, unpairMessage } from './ManagementMessages'
+import { crewPasswordFingerprint, crewPasswordMessage, pairCheckKey, pairCheckMessage, pairedKey, unpairedKey, unpairMessage } from './ManagementMessages'
 
 const challenge1 = '0123456789abcdef'
 const challenge2 = 'fedcba9876543210'
@@ -100,7 +100,7 @@ describe('DeviceRegistry', () => {
   })
 
   test('finds the token the tally took when all its answers were lost', () => {
-    const { registry, sent, hello, configuration, advance, paired } = setup()
+    const { registry, sent, hello, configuration, advance } = setup()
     hello(null)
     registry.pair('a1b2c3')
     advance(11000)
@@ -116,16 +116,22 @@ describe('DeviceRegistry', () => {
     }
     expect(configuration.getPairingTokens('a1b2c3')).toHaveLength(1)
 
-    // the tally says it is paired with this Hub: the token is sent again
+    // the tally says it is paired with this Hub: asked which token, the
+    // token itself is not sent (the address may be forged)
     sent.length = 0
     hello('1a2b3c4d', challenge2)
     advance(1000)
     registry.tick()
-    expect(sent.map(s => s.text)).toEqual([firstToken])
+    expect(sent.map(s => s.text)).toEqual([pairCheckMessage('1a2b3c4d', challenge2)])
     advance(500)
     registry.tick()
     expect(sent).toHaveLength(1)
-    paired(firstToken)
+    const token = Buffer.from(firstToken.match(/token=([0-9a-f]{32})/)![1], 'hex')
+    // a forged answer, or one for a challenge not asked about, does not count
+    registry.replyReceived({ kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d', ch: challenge2, key: pairCheckKey(Buffer.alloc(16), challenge2) })
+    registry.replyReceived({ kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d', ch: challenge1, key: pairCheckKey(token, challenge1) })
+    expect(configuration.getPairedDevice('a1b2c3')).toBeUndefined()
+    registry.replyReceived({ kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d', ch: challenge2, key: pairCheckKey(token, challenge2) })
     expect(configuration.getPairedDevice('a1b2c3')!.token).toEqual(firstToken.match(/token=([0-9a-f]{32})/)![1])
     expect(registry.getState().devices[0]).toMatchObject({ status: 'paired', lastError: undefined })
     advance(1000)
@@ -133,10 +139,7 @@ describe('DeviceRegistry', () => {
     expect(sent).toHaveLength(1)
   })
 
-
-  test('the tokens are sent again only while the tally says it is paired with this Hub', () => {
-    // a "pair" to a paired tally cannot pair it anew: it answers "paired" for
-    // its own token and refuses the others
+  test('the Hub asks for the token only while the tally says it is paired with this Hub', () => {
     const { registry, sent, hello, advance } = setup()
     hello(null)
     registry.pair('a1b2c3')
@@ -152,7 +155,6 @@ describe('DeviceRegistry', () => {
     registry.tick()
     expect(sent).toHaveLength(1)
   })
-
 
   test('gives up pairing without an answer and shows a refusal', () => {
     const { registry, hello, advance, configuration } = setup()
@@ -371,9 +373,9 @@ describe('DeviceRegistry', () => {
     restarted.helloReceived('a1b2c3', 'CAM1', '2.0.0', '10.0.0.5', 7411, { hub: null, challenge: challenge1 })
     restarted.helloReceived('a1b2c3', 'CAM1', '2.0.0', '10.0.0.5', 7411, { hub: '1a2b3c4d', challenge: challenge2 })
     restarted.tick()
-    expect(after).toEqual([pairText])
+    expect(after).toEqual([pairCheckMessage('1a2b3c4d', challenge2)])
     const token = Buffer.from(pairText.match(/token=([0-9a-f]{32})/)![1], 'hex')
-    restarted.replyReceived({ kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d', key: pairedKey(token) })
+    restarted.replyReceived({ kind: 'paired', id: 'a1b2c3', hub: '1a2b3c4d', ch: challenge2, key: pairCheckKey(token, challenge2) })
     expect(configuration.getPairedDevice('a1b2c3')!.token).toEqual(token.toString('hex'))
     expect(configuration.getPairingTokens('a1b2c3')).toEqual([])
   })

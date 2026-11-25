@@ -2,7 +2,7 @@ import { randomBytes } from 'crypto'
 import { AppConfiguration } from '../lib/AppConfiguration'
 import { TallyPairing } from './CommandParser'
 import { DeviceListState, DeviceView } from './DeviceList'
-import { crewPasswordFingerprint, crewPasswordMessage, identifyMessage, ManagementReply, pairedKey, pairMessage, TOKEN_BYTES, unpairedKey, unpairMessage } from './ManagementMessages'
+import { crewPasswordFingerprint, crewPasswordMessage, identifyMessage, ManagementReply, pairCheckKey, pairCheckMessage, pairedKey, pairMessage, TOKEN_BYTES, unpairedKey, unpairMessage } from './ManagementMessages'
 
 // Firmware v2 tallies the Hub knows of, from their "tally-ho" and from mDNS
 // (_gctally-device._udp), keyed by the device id so duplicate names and new
@@ -25,6 +25,8 @@ type Entry = {
   // saved: the token is on disk, so the "pair" may go out
   pendingPair?: { token: Buffer, since: number, sentAt: number, saved: boolean }
   recoverSentAt?: number
+  // challenges a "pair-check" went with
+  checkSentWith?: string[]
   // sentWith: every challenge an "unpair" went with; the answer is signed with one of them
   pendingUnpair?: { since: number, sentWith: string[], sentAt: number }
   // nonces: of every message with this version; an answer counts only for one of them
@@ -107,7 +109,8 @@ export default class DeviceRegistry {
     // an accepted message changes the challenge: wait for the next "tally-ho"
     if (reply.kind !== 'refused') entry.challenge = undefined
     const pairedToken = reply.kind === 'paired' && reply.hub === hubId && !this.configuration.getPairedDevice(entry.id) ?
-      this.pairTokens(entry.id).find(token => pairedKey(token) === reply.key) : undefined
+      this.pairTokens(entry.id).find(token => reply.ch === undefined ? pairedKey(token) === reply.key :
+        entry.checkSentWith?.includes(reply.ch) && pairCheckKey(token, reply.ch) === reply.key) : undefined
     if (pairedToken) {
       const crew = this.configuration.getCrewPassword()
       this.configuration.setPairedDevice({
@@ -293,8 +296,8 @@ export default class DeviceRegistry {
 
   // Tokens sent in "pair" that the tally may have taken although its answer
   // was lost (kept in the configuration, over a restart of the Hub); while it
-  // says it is paired with this Hub and the Hub has no token, they are sent
-  // again and its answer names the right one.
+  // says it is paired with this Hub and the Hub has no token, a "pair-check"
+  // asks which one it has.
   private pairTokens(id: string) {
     return this.configuration.getPairingTokens(id).map(token => Buffer.from(token, 'hex'))
   }
@@ -303,11 +306,14 @@ export default class DeviceRegistry {
   private recoverPairing(entry: Entry) {
     const now = this.now()
     const tokens = this.pairTokens(entry.id)
-    if (entry.pendingPair || tokens.length === 0 || entry.reportedHub !== this.hubId() ||
+    if (entry.pendingPair || tokens.length === 0 || !entry.challenge || entry.reportedHub !== this.hubId() ||
         this.configuration.getPairedDevice(entry.id) || !this.isUdpOnline(entry) || !entry.address || !entry.port) return
     if (entry.recoverSentAt !== undefined && now - entry.recoverSentAt < PAIR_RETRY_MS) return
     entry.recoverSentAt = now
-    for (const token of tokens) this.send(pairMessage(this.hubId(), token), entry.address, entry.port)
+    // Only a question: the address comes from an unsigned "tally-ho", so the
+    // token is never sent there; the answer is signed with it.
+    entry.checkSentWith = [...(entry.checkSentWith ?? []), entry.challenge].slice(-8)
+    this.send(pairCheckMessage(this.hubId(), entry.challenge), entry.address, entry.port)
   }
 
   private isSignedUnpaired(entry: Entry, key: string) {

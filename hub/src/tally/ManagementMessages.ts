@@ -38,6 +38,12 @@ export function pairMessage(hubId: string, token: Buffer) {
   return `gc/1 pair hub=${hubId} token=${token.toString('hex')}\n`
 }
 
+// The answers to a pairing were lost: the tally names its token (signed over
+// its challenge) without anything secret crossing the network.
+export function pairCheckMessage(hubId: string, challenge: string) {
+  return `gc/1 pair-check hub=${hubId} ch=${challenge}\n`
+}
+
 export function unpairMessage(hubId: string, token: Buffer, challenge: string) {
   return signed(token, `gc/1 unpair hub=${hubId} ch=${challenge}`)
 }
@@ -62,6 +68,11 @@ export function pairedKey(token: Buffer) {
   return fingerprint(token, 'paired')
 }
 
+// The answer to "pair-check"
+export function pairCheckKey(token: Buffer, challenge: string) {
+  return fingerprint(token, `paired ${challenge}`)
+}
+
 // Signs the tally's "unpaired" answer, so nobody else can make the Hub drop
 // the token. challenge: the one in the "unpair" the tally took.
 export function unpairedKey(token: Buffer, challenge: string) {
@@ -78,7 +89,8 @@ export function crewPasswordFingerprint(token: Buffer, nonce: string, password: 
 export { isCrewPassword } from './DeviceList'
 
 export type ManagementReply =
-  | { kind: 'paired', id: string, hub: string, key: string }
+  // ch: the answer to "pair-check" with that challenge
+  | { kind: 'paired', id: string, hub: string, key: string, ch?: string }
   | { kind: 'unpaired', id: string, hub: string, key: string }
   | { kind: 'crew-password-set', id: string, hub: string, crew: string }
   | { kind: 'refused', id: string, to: string, why: string }
@@ -94,7 +106,8 @@ export function parseManagementReply(line: string): ManagementReply | undefined 
   const kind = words[1]
   if (!fields.id) return undefined
   if (kind === 'paired') {
-    return fields.hub && fields.key ? { kind, id: fields.id, hub: fields.hub, key: fields.key } : undefined
+    if (!fields.hub || !fields.key) return undefined
+    return fields.ch ? { kind, id: fields.id, hub: fields.hub, key: fields.key, ch: fields.ch } : { kind, id: fields.id, hub: fields.hub, key: fields.key }
   }
   if (kind === 'unpaired') {
     return fields.hub && fields.key ? { kind, id: fields.id, hub: fields.hub, key: fields.key } : undefined

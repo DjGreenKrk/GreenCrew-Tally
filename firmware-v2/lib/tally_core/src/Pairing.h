@@ -27,6 +27,8 @@ struct Pairing {
 //   gc/1 pair hub=<id> token=<32 hex>               only when unpaired, or
 //                                                   the same pairing again
 //   gc/1 unpair hub=<id> ch=<challenge> mac=<hmac>
+//   gc/1 pair-check hub=<id> ch=<challenge>         the Hub lost the answers to
+//                                                   a pairing: which token?
 //   gc/1 crew-password hub=<id> ch=<challenge> n=<16 hex> pw=<hex> mac=<hmac>
 //
 // mac is HMAC-SHA256 with the token over the line before " mac=", as 64 hex.
@@ -40,6 +42,7 @@ struct Pairing {
 //
 // The tally answers to the sender:
 //   gc/1 paired id=<device> hub=<id> key=<fingerprint of "paired">
+//   gc/1 paired id=<device> hub=<id> ch=<challenge> key=<fingerprint of "paired <challenge>">  (pair-check)
 //   gc/1 unpaired id=<device> hub=<id> key=<fingerprint of "unpaired <challenge>">
 //   gc/1 crew-password-set id=<device> hub=<id> crew=<fingerprint of "crew-password-set <n> <password>">
 //   gc/1 refused id=<device> to=<verb> why=<reason>

@@ -1139,6 +1139,21 @@ void test_pairing_from_another_address_than_hub_ip_is_refused() {
     TEST_ASSERT_FALSE(controller.pairing().paired);
 }
 
+void test_pair_check_proves_the_token_without_sending_it() {
+    randomValues = challenges;
+    PairingController controller("a1b2c3", nextRandom);
+    controller.begin(testPairing(), "");
+    PairingController::Result result = send(controller, "gc/1 pair-check hub=1a2b3c4d ch=0123456789abcdef\n");
+    TEST_ASSERT_TRUE(result.effect == PairingController::Effect::none);
+    // the Hub checks it (ManagementMessages.spec.ts)
+    TEST_ASSERT_EQUAL_STRING("gc/1 paired id=a1b2c3 hub=1a2b3c4d ch=0123456789abcdef key=f895be02b24c5582\n", result.reply);
+    // once per challenge
+    result = send(controller, "gc/1 pair-check hub=1a2b3c4d ch=0123456789abcdef\n");
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=pair-check why=challenge\n", result.reply);
+    result = send(controller, "gc/1 pair-check hub=99999999 ch=fedcba9876543210\n");
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=pair-check why=not-paired\n", result.reply);
+}
+
 void test_same_pairing_again_is_answered() {
     // the Hub sends the pairing again when the answer was lost
     randomValues = challenges;
@@ -1344,6 +1359,7 @@ int main() {
     RUN_TEST(test_unpaired_tally_identifies_and_pairs);
     RUN_TEST(test_paired_tally_refuses_another_pairing);
     RUN_TEST(test_pairing_from_another_address_than_hub_ip_is_refused);
+    RUN_TEST(test_pair_check_proves_the_token_without_sending_it);
     RUN_TEST(test_same_pairing_again_is_answered);
     RUN_TEST(test_paired_hub_unpairs_with_the_challenge_once);
     RUN_TEST(test_management_needs_the_mac_and_a_fresh_challenge);
