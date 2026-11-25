@@ -84,12 +84,17 @@ NeoPixelBus<NeoRgbFeature, NeoEsp8266Uart1Ws2812xMethod>* strip;
 uint32_t hardwareRandom() { return ESP.random(); }
 PairingController pairing(deviceId, hardwareRandom);
 
+bool setHubAddress(IPAddress& out);
+
 class EspPlatform : public Platform {
 public:
     void sendToHub(const char* text) override {
         int ready;
+        IPAddress hubIp;
         if (settings->hasHubAddress()) {
-            ready = udp.beginPacket(settings->hubAddress(), settings->hubUdpPort());
+            // the same address the colours are taken from
+            if (!setHubAddress(hubIp)) return;
+            ready = udp.beginPacket(hubIp, settings->hubUdpPort());
         } else if (hubFinder.hasHub() && isUsableHub(foundHubId, pairing.pairing().hubId)) {
             ready = udp.beginPacket(foundHubIp, foundHubPort);
         } else {
@@ -204,13 +209,36 @@ void readSettings() {
     settings->parse(text.c_str());
 }
 
+// hub.ip as an address; a host name is looked up (DNS) and kept for a minute.
+// false while it cannot be resolved.
+IPAddress setHubIp;
+bool setHubResolved = false;
+uint32_t setHubResolvedMs = 0;
+const uint32_t hubNameTtlMs = 60000;
+
+bool setHubAddress(IPAddress& out) {
+    if (setHubIp.fromString(settings->hubAddress())) {
+        out = setHubIp;
+        return true;
+    }
+    uint32_t now = millis();
+    if (!setHubResolved || now - setHubResolvedMs > hubNameTtlMs) {
+        setHubResolved = WiFi.hostByName(settings->hubAddress(), setHubIp) == 1;
+        setHubResolvedMs = now;
+    }
+    out = setHubIp;
+    return setHubResolved;
+}
+
+bool isSetHub(const IPAddress& sender) {
+    IPAddress hubIp;
+    return setHubAddress(hubIp) && sender == hubIp;
+}
+
 // Colours only from the Hub the tally talks to: hub.ip, or the Hub found over
 // mDNS when it may be used (colour packets are not signed; see README, Pairing).
 bool isFromSelectedHub(const IPAddress& sender) {
-    if (settings->hasHubAddress()) {
-        IPAddress hubIp;
-        return !hubIp.fromString(settings->hubAddress()) || sender == hubIp;  // a host name: not checked
-    }
+    if (settings->hasHubAddress()) return isSetHub(sender);
     if (!hubFinder.hasHub() || !isUsableHub(foundHubId, pairing.pairing().hubId)) return false;
     for (size_t i = 0; i < foundHubIpCount; i++) {
         if (static_cast<uint32_t>(sender) == foundHubIps[i]) return true;
@@ -402,9 +430,7 @@ void checkRecoveryAp(uint32_t now) {
 void handleManagement(const char* data, size_t length, uint32_t now) {
     IPAddress sender = udp.remoteIP();
     uint16_t senderPort = udp.remotePort();
-    IPAddress hubIp;
-    // a host name in hub.ip: not checked
-    bool fromSetHub = !settings->hasHubAddress() || !hubIp.fromString(settings->hubAddress()) || sender == hubIp;
+    bool fromSetHub = !settings->hasHubAddress() || isSetHub(sender);
     PairingController::Result result = pairing.handle(data, length, fromSetHub);
     char text[LogBuffer::maxMessageLength + 1];
     switch (result.effect) {

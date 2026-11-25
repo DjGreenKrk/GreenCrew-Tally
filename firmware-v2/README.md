@@ -186,7 +186,7 @@ two tallies with the same name side by side.
 - **Crew password**: set on the Hub computer (Configuration, "Crew password"); the Hub sends it to
   every paired tally that is online and shows which have it. It replaces the built-in one; an
   empty password removes it again.
-- A tally with `hub.ip` set accepts pairing only from that address.
+- A tally with `hub.ip` set accepts pairing only from that address (a host name is looked up).
 - A paired tally refuses to pair with another Hub until it is unpaired. A tally that is not
   paired accepts pairing from any Hub on the network: pair new tallies on a network you trust.
 - Two tallies with the same name: the one the Hub talks to keeps the name and the lights, the
@@ -223,7 +223,8 @@ operator pairs the tally again or clicks Forget, or when the tally answers `not-
 operator unpairs it. A `tally-ho` saying the tally is not paired (unpaired on its setup page, or
 forged) only shows it so. A paired tally sends to its own Hub only: one found over mDNS before it
 was paired is not used, even when the next search finds nothing. Colour packets are taken only
-from the Hub the tally talks to: the address in `hub.ip`, or the addresses the chosen Hub announced.
+from the Hub the tally talks to: the address in `hub.ip` (a host name is looked up every minute),
+or the addresses the chosen Hub announced.
 
 The crew password travels XORed with a key stream from the token, the challenge and a random `n`
 the Hub picks for every message, so two passwords never share a key stream; the same password
