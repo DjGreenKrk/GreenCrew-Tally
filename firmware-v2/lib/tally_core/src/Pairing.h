@@ -70,7 +70,10 @@ public:
     void begin(const Pairing& stored, const char* crewPassword);
 
     static bool isManagementMessage(const char* data, size_t length);
-    Result handle(const char* data, size_t length);
+    // fromSetHub: false when hub.ip is set and the sender has another
+    // address; such a Hub could not reach the tally after pairing, so "pair"
+    // is refused ("hub-ip").
+    Result handle(const char* data, size_t length, bool fromSetHub = true);
     // The effect of handle() could not be written to the flash: back to the
     // state before, and the reply becomes "refused ... why=storage".
     void storageFailed(Result& result);

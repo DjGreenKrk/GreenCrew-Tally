@@ -18,6 +18,8 @@ const ERRORS: Record<string, TranslationKey> = {
   'already-paired': 'devices.error.alreadyPaired',
   'no-answer': 'devices.error.noAnswer',
   'storage': 'devices.error.storage',
+  'hub-storage': 'devices.error.hubStorage',
+  'hub-ip': 'devices.error.hubIp',
 }
 
 function DeviceRow({ device, actions }: { device: DeviceView, actions: DeviceActions }) {

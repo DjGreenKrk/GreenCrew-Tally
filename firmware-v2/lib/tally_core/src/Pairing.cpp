@@ -175,7 +175,7 @@ void PairingController::storageFailed(Result& result) {
     refuse(result, verb, "storage");
 }
 
-PairingController::Result PairingController::handle(const char* data, size_t length) {
+PairingController::Result PairingController::handle(const char* data, size_t length, bool fromSetHub) {
     Result result;
     previous = current;
     strcpy(previousCrew, crew);
@@ -197,6 +197,10 @@ PairingController::Result PairingController::handle(const char* data, size_t len
     }
 
     if (strcmp(verb, "pair") == 0) {
+        if (!fromSetHub) {
+            refuse(result, verb, "hub-ip");
+            return result;
+        }
         uint8_t token[Pairing::tokenSize];
         if (!fromHex(message.get("token"), token, sizeof(token))) {
             refuse(result, verb, "format");

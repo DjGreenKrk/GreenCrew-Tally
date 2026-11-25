@@ -1115,6 +1115,17 @@ void test_paired_tally_refuses_another_pairing() {
     TEST_ASSERT_EQUAL_UINT8(0x00, controller.pairing().token[0]);
 }
 
+void test_pairing_from_another_address_than_hub_ip_is_refused() {
+    randomValues = challenges;
+    PairingController controller("a1b2c3", nextRandom);
+    controller.begin(Pairing(), "");
+    const char* pair = "gc/1 pair hub=1a2b3c4d token=000102030405060708090a0b0c0d0e0f\n";
+    PairingController::Result result = controller.handle(pair, strlen(pair), false);
+    TEST_ASSERT_TRUE(result.effect == PairingController::Effect::none);
+    TEST_ASSERT_EQUAL_STRING("gc/1 refused id=a1b2c3 to=pair why=hub-ip\n", result.reply);
+    TEST_ASSERT_FALSE(controller.pairing().paired);
+}
+
 void test_same_pairing_again_is_answered() {
     // the Hub sends the pairing again when the answer was lost
     randomValues = challenges;
@@ -1319,6 +1330,7 @@ int main() {
     RUN_TEST(test_pairing_file_round_trip);
     RUN_TEST(test_unpaired_tally_identifies_and_pairs);
     RUN_TEST(test_paired_tally_refuses_another_pairing);
+    RUN_TEST(test_pairing_from_another_address_than_hub_ip_is_refused);
     RUN_TEST(test_same_pairing_again_is_answered);
     RUN_TEST(test_paired_hub_unpairs_with_the_challenge_once);
     RUN_TEST(test_management_needs_the_mac_and_a_fresh_challenge);

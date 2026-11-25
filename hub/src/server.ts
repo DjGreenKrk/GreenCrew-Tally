@@ -69,13 +69,14 @@ const io = new SocketIoServer(server)
 const myEmitter = new ServerEventEmitter()
 myEmitter.setMaxListeners(99)
 const myConfiguration = new AppConfiguration(myEmitter)
+let myPersistence: AppConfigurationPersistence | undefined
 if (myConfiguration.isTest()) {
   console.log("Starting test environment")
   myConfiguration.setMixerSelection(TestConnector.ID)
   myConfiguration.setTallyTimeoutMissing(1000)
   myConfiguration.setTallyTimeoutDisconnected(3000)
 } else {
-  new AppConfigurationPersistence(myConfiguration, myEmitter)
+  myPersistence = new AppConfigurationPersistence(myConfiguration, myEmitter)
 }
 
 const myTallyContainer = new TallyContainer(myConfiguration, myEmitter)
@@ -86,7 +87,9 @@ const myUdpTallyDriver = new UdpTallyDriver(myConfiguration, myTallyContainer, e
 // pairing and the crew password (#28)
 const myDeviceRegistry = new DeviceRegistry(myConfiguration,
   (text, address, port) => myUdpTallyDriver.sendManagement(text, address, port),
-  state => myEmitter.emit('devices.changed', state))
+  state => myEmitter.emit('devices.changed', state),
+  Date.now,
+  () => myPersistence?.save())
 myUdpTallyDriver.registry = myDeviceRegistry
 setInterval(() => myDeviceRegistry.tick(), 500)
 const myDeviceBrowser = new DeviceBrowser(myDeviceRegistry)

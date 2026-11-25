@@ -22,7 +22,8 @@ type Entry = {
   // from the tally: null not paired, undefined not told
   reportedHub?: string | null
   challenge?: string
-  pendingPair?: { token: Buffer, since: number, sentAt: number }
+  // saved: the token is on disk, so the "pair" may go out
+  pendingPair?: { token: Buffer, since: number, sentAt: number, saved: boolean }
   recoverSentAt?: number
   // sentWith: every challenge an "unpair" went with; the answer is signed with one of them
   pendingUnpair?: { since: number, sentWith: string[], sentAt: number }
@@ -49,6 +50,8 @@ export default class DeviceRegistry {
     private readonly send: Send,
     private readonly onChange: (state: Omit<DeviceListState, 'canChangeCrewPassword'>) => void = () => {},
     private readonly now: () => number = Date.now,
+    // writes the configuration to disk now (AppConfigurationPersistence.save)
+    private readonly persist: () => Promise<unknown> | void = () => {},
   ) {}
 
   private entry(id: string, name: string): Entry {
@@ -70,8 +73,6 @@ export default class DeviceRegistry {
     if (pairing) {
       entry.reportedHub = pairing.hub
       entry.challenge = pairing.challenge
-      // not paired with this Hub: none of the tokens is in use
-      if (pairing.hub !== this.hubId() && !entry.pendingPair) this.configuration.setPairingTokens(id, [])
     }
     // The "tally-ho" is not signed: a tally that says it is no longer paired
     // is shown so (staleToken), but the token stays until pairing again or "forget".
@@ -181,11 +182,30 @@ export default class DeviceRegistry {
     // a second click (or another browser) keeps the token already sent
     if (entry.pendingPair) return true
     const now = this.now()
-    entry.pendingPair = { token: randomBytes(TOKEN_BYTES), since: now, sentAt: now }
-    // saved before it is sent: the tally may take it even if the Hub restarts
-    this.configuration.setPairingTokens(id, [...this.configuration.getPairingTokens(id), entry.pendingPair.token.toString('hex')].slice(-MAX_PAIR_TOKENS))
+    const pending = { token: randomBytes(TOKEN_BYTES), since: now, sentAt: now, saved: false }
+    entry.pendingPair = pending
     entry.lastError = undefined
-    this.send(pairMessage(this.hubId(), entry.pendingPair.token), entry.address, entry.port)
+    // On disk before it is sent: the tally may take it even if the Hub stops
+    // right after. Kept until the pairing is confirmed or forgotten.
+    this.configuration.setPairingTokens(id, [...this.configuration.getPairingTokens(id), pending.token.toString('hex')].slice(-MAX_PAIR_TOKENS))
+    const sendFirst = () => {
+      if (entry.pendingPair !== pending || !entry.address || !entry.port) return
+      pending.saved = true
+      pending.sentAt = this.now()
+      this.send(pairMessage(this.hubId(), pending.token), entry.address, entry.port)
+    }
+    const saving = this.persist()
+    if (saving) {
+      saving.then(sendFirst, error => {
+        console.error(`Could not save the configuration before pairing ${entry.name} (${id}): ${error}`)
+        if (entry.pendingPair !== pending) return
+        entry.pendingPair = undefined
+        entry.lastError = 'hub-storage'
+        this.emitIfChanged()
+      })
+    } else {
+      sendFirst()
+    }
     this.emitIfChanged()
     return true
   }
@@ -223,7 +243,7 @@ export default class DeviceRegistry {
         if (now - entry.pendingPair.since > GIVE_UP_MS) {
           entry.pendingPair = undefined
           entry.lastError = 'no-answer'
-        } else if (now - entry.pendingPair.sentAt >= PAIR_RETRY_MS && entry.address && entry.port) {
+        } else if (entry.pendingPair.saved && now - entry.pendingPair.sentAt >= PAIR_RETRY_MS && entry.address && entry.port) {
           entry.pendingPair.sentAt = now
           this.send(pairMessage(this.hubId(), entry.pendingPair.token), entry.address, entry.port)
         }

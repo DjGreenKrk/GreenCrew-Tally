@@ -122,6 +122,8 @@ const en: Record<keyof typeof pl, string> = {
   "devices.error.alreadyPaired": "The tally is already paired with this Hub.",
   "devices.error.noAnswer": "The tally did not answer. Check that it is on the network and try again.",
   "devices.staleTokenHelp": "The tally says it is no longer paired with this Hub. The Hub keeps its key until you pair it again or click Forget.",
+  "devices.error.hubStorage": "The Hub could not save its configuration file, so it did not pair the tally. Check the disk and try again.",
+  "devices.error.hubIp": "The tally has another Hub's address set (hub.ip). Clear it or set this Hub's address on the tally's setup page, then pair again.",
   "devices.error.storage": "The tally could not save it to its memory. Try again; if it keeps failing, flash the tally again.",
   "devices.error.other": "The tally refused ({reason}).",
   "devices.crew.title": "Crew password",

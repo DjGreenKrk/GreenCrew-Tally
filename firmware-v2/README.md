@@ -185,6 +185,7 @@ two tallies with the same name side by side.
 - **Crew password**: set on the Hub computer (Configuration, "Crew password"); the Hub sends it to
   every paired tally that is online and shows which have it. It replaces the built-in one; an
   empty password removes it again.
+- A tally with `hub.ip` set accepts pairing only from that address.
 - A paired tally refuses to pair with another Hub until it is unpaired. A tally that is not
   paired accepts pairing from any Hub on the network: pair new tallies on a network you trust.
 - Two tallies with the same name: the one the Hub talks to keeps the name and the lights, the

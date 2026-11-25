@@ -391,7 +391,10 @@ void checkRecoveryAp(uint32_t now) {
 void handleManagement(const char* data, size_t length, uint32_t now) {
     IPAddress sender = udp.remoteIP();
     uint16_t senderPort = udp.remotePort();
-    PairingController::Result result = pairing.handle(data, length);
+    IPAddress hubIp;
+    // a host name in hub.ip: not checked
+    bool fromSetHub = !settings->hasHubAddress() || !hubIp.fromString(settings->hubAddress()) || sender == hubIp;
+    PairingController::Result result = pairing.handle(data, length, fromSetHub);
     char text[LogBuffer::maxMessageLength + 1];
     switch (result.effect) {
         case PairingController::Effect::none:

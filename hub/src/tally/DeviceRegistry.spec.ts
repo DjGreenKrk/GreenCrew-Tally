@@ -130,19 +130,25 @@ describe('DeviceRegistry', () => {
     expect(sent).toHaveLength(2)
   })
 
-  test('does not pair again a tally unpaired meanwhile', () => {
+  test('the tokens are sent again only while the tally says it is paired with this Hub', () => {
+    // a "pair" to a paired tally cannot pair it anew: it answers "paired" for
+    // its own token and refuses the others
     const { registry, sent, hello, advance } = setup()
     hello(null)
     registry.pair('a1b2c3')
     advance(11000)
     registry.tick()
-    hello(null, challenge2)
     sent.length = 0
-    hello('1a2b3c4d', challenge1)
+    hello(null, challenge2)
     advance(1000)
     registry.tick()
     expect(sent).toEqual([])
+    hello('1a2b3c4d', challenge1)
+    advance(1000)
+    registry.tick()
+    expect(sent).toHaveLength(1)
   })
+
 
   test('gives up pairing without an answer and shows a refusal', () => {
     const { registry, hello, advance, configuration } = setup()
@@ -314,6 +320,31 @@ describe('DeviceRegistry', () => {
     expect(registry.getState().devices[0].crewPassword).toBe('synced')
   })
 
+  test('the token is on disk before the pairing is sent', async () => {
+    const configuration = new AppConfiguration(new EventEmitter() as ServerEventEmitter)
+    configuration.fromJson({ hubId: '1a2b3c4d' })
+    const sent: string[] = []
+    let saved: () => void = () => {}
+    const registry = new DeviceRegistry(configuration, text => sent.push(text), () => {}, () => 1000,
+      () => new Promise<void>(resolve => { saved = resolve }))
+    registry.helloReceived('a1b2c3', 'CAM1', '2.0.0', '10.0.0.5', 7411, { hub: null, challenge: challenge1 })
+    registry.pair('a1b2c3')
+    expect(configuration.getPairingTokens('a1b2c3')).toHaveLength(1)
+    expect(sent).toEqual([])
+    saved()
+    await Promise.resolve()
+    expect(sent).toHaveLength(1)
+
+    // could not save: not sent at all
+    const failing = new DeviceRegistry(configuration, text => sent.push(text), () => {}, () => 1000, () => Promise.reject(new Error('disk full')))
+    failing.helloReceived('d4e5f6', 'CAM2', '2.0.0', '10.0.0.6', 7411, { hub: null, challenge: challenge1 })
+    jest.spyOn(console, 'error').mockImplementation(() => {})
+    failing.pair('d4e5f6')
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(sent).toHaveLength(1)
+    expect(failing.getState().devices[0].lastError).toBe('hub-storage')
+  })
+
   test('a pairing not answered yet survives a restart of the Hub', () => {
     const { configuration, registry, sent, hello } = setup()
     hello(null)
@@ -322,6 +353,8 @@ describe('DeviceRegistry', () => {
     // the tally took it, every answer lost, then the Hub restarts
     const after: string[] = []
     const restarted = new DeviceRegistry(configuration, text => after.push(text), () => {}, () => 50000)
+    // a "tally-ho" from before the pairing, late: the token stays
+    restarted.helloReceived('a1b2c3', 'CAM1', '2.0.0', '10.0.0.5', 7411, { hub: null, challenge: challenge1 })
     restarted.helloReceived('a1b2c3', 'CAM1', '2.0.0', '10.0.0.5', 7411, { hub: '1a2b3c4d', challenge: challenge2 })
     restarted.tick()
     expect(after).toEqual([pairText])
